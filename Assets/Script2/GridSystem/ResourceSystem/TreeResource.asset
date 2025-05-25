@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf2bf0f759248809e0e47a1827505f4, type: 3}
+  m_Name: TreeResource
+  m_EditorClassIdentifier: 
+  resourceName: Tree
+  prefabs:
+  - {fileID: 7364972262431371479, guid: 9d15b71417f551c4ca80a144b5111628, type: 3}
+  - {fileID: 3339640185822892482, guid: 3d24660279ed6b64787c154178e7509f, type: 3}
+  - {fileID: 3339640185822892482, guid: 2b2a44b8225dee74bb4e4c8d8bffa7a1, type: 3}
+  _regenPrefab: {fileID: 0}
+  groupCount: 15
+  possibleGroupSizes: 010000000200000003000000060000000b00000010000000110000001b000000
+  regenerationTime: 3600
+  isDestroyedOnCollect: 1
+  yOffset: 0.45

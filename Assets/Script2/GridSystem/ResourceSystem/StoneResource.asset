@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4cf2bf0f759248809e0e47a1827505f4, type: 3}
+  m_Name: StoneResource
+  m_EditorClassIdentifier: 
+  resourceName: Stone
+  prefabs:
+  - {fileID: 7364972262431371479, guid: a52c215cea34529489be8111d369ade6, type: 3}
+  - {fileID: 3339640185822892482, guid: e10666410ba60b645a195a77d555740a, type: 3}
+  - {fileID: 3339640185822892482, guid: 47d088820f76ace4cbd9c77ee9fc1c21, type: 3}
+  - {fileID: 3339640185822892482, guid: 9c0b5a48913677c4396c502de7961104, type: 3}
+  _regenPrefab: {fileID: 1166245892053028240, guid: e1ed0a14134db24479429e1554e021ed, type: 3}
+  groupCount: 7
+  possibleGroupSizes: 03000000050000000600000007000000
+  regenerationTime: 1
+  isDestroyedOnCollect: 0
+  yOffset: 0
