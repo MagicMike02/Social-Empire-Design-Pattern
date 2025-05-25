@@ -3,7 +3,6 @@ using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
 using Script2.GridSystem.ResourceSystem.ResourceGenerationStrategy;
-using Script2.GridSystem.ResourceSystem.Script2.ResourcesSystem;
 using Random = UnityEngine.Random;
 
 namespace Script2.GridSystem.ResourceSystem
@@ -54,7 +53,8 @@ namespace Script2.GridSystem.ResourceSystem
                 if (resource.isDestroyedOnCollect)
                 {
                     groupSize = 15;
-                    SetGenerationStrategy(new RegularGridWithSingleRandomGenerationStrategy()); //SetGenerationStrategy(new RegularGridGenerationStrategy());
+                    SetGenerationStrategy(
+                        new RegularGridWithSingleRandomGenerationStrategy()); //SetGenerationStrategy(new RegularGridGenerationStrategy());
                 }
                 else
                 {
@@ -110,24 +110,22 @@ namespace Script2.GridSystem.ResourceSystem
         void PlaceResourceAt(Vector2Int gridPos, ResourceDataSO data)
         {
             Tile tile = _gridManager.GetTile(gridPos.x, gridPos.y);
-            if (tile is null) return;
+            if (!tile) return;
 
             Vector3 worldPos = tile.transform.position;
             GameObject prefab = data.GetRandomPrefab();
             if (!prefab) return;
 
-            GameObject resource = Instantiate(prefab, worldPos + new Vector3(0, data.yOffset, 0), Quaternion.identity,
-                transform);
+            GameObject resource = Instantiate(prefab, worldPos + new Vector3(0, data.yOffset, 0), Quaternion.identity, transform);
             Debug.Log($"Resource {data.name} created at {tile.name}");
 
             _activeResources[gridPos] = resource;
             _gridManager.occupiedTiles.Add(gridPos, resource);
 
             var ri = resource.GetComponent<ResourceInstance>();
-            if (ri)
-            {
-                ri.Initialize(data, gridPos, this);
-            }
+            if (!ri) return;
+
+            ri.Initialize(data, gridPos, this);
         }
 
         public void OnResourceCollected(Vector2Int pos, ResourceDataSO data)
