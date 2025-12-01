@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Script2.GridSystem.ResourceSystem.ResourceGenerationStrategy
+namespace Script2.ResourceSystem.ResourceGenerationStrategy
 {
     public interface IResourceGenerationStrategy
     {

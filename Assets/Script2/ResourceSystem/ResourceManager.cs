@@ -2,20 +2,29 @@
 using UnityEngine;
 using System.Collections.Generic;
 using System.Linq;
-using Script2.GridSystem.ResourceSystem.ResourceGenerationStrategy;
+using Script2.GridSystem;
+using Script2.Economy;
+using Script2.ResourceSystem.Enums;
+using Script2.ResourceSystem.ResourceGenerationStrategy;
 using Random = UnityEngine.Random;
 
-namespace Script2.GridSystem.ResourceSystem
+namespace Script2.ResourceSystem
 {
     public class ResourceManager : MonoBehaviour
     {
         [SerializeField] private GridManager _gridManager;
         [SerializeField] private List<ResourceDataSO> _resourceTypes;
-
+        [SerializeField] private GameEconomyManager _economyManager;
+        
         private Dictionary<Vector2Int, GameObject> _activeResources = new();
+        private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
 
         private IResourceGenerationStrategy _generationStrategy;
 
+        public event System.Action<ResourceType, int, Vector2Int> OnResourceCollected;
+        public event System.Action<ResourceType, Vector2Int> OnResourceGenerated;
+        public event System.Action<Vector2Int, float> OnRegenerationStarted;
+        public event System.Action<Vector2Int, ResourceType> OnResourceRegenerated;
 
         void Start()
         {
@@ -52,13 +61,19 @@ namespace Script2.GridSystem.ResourceSystem
                 //Imposto strategy di creazione dei gruppi
                 if (resource.isDestroyedOnCollect)
                 {
-                    groupSize = 15;
+                    groupSize = resource.defaultGroupSize;
                     SetGenerationStrategy(
                         new RegularGridWithSingleRandomGenerationStrategy()); //SetGenerationStrategy(new RegularGridGenerationStrategy());
                 }
                 else
                 {
                     SetGenerationStrategy(new ClusterGenerationStrategy());
+                }
+
+                if (_generationStrategy == null)
+                {
+                    Debug.LogError($"Generation strategy not set for {resource.name}");
+                    return;
                 }
 
                 List<Vector2Int> positions = _generationStrategy.GenerateResourcePositions(origin, groupSize);
@@ -116,8 +131,9 @@ namespace Script2.GridSystem.ResourceSystem
             GameObject prefab = data.GetRandomPrefab();
             if (!prefab) return;
 
-            GameObject resource = Instantiate(prefab, worldPos + new Vector3(0, data.yOffset, 0), Quaternion.identity, transform);
-            Debug.Log($"Resource {data.name} created at {tile.name}");
+            GameObject resource = Instantiate(prefab, worldPos + new Vector3(0, data.yOffset, 0), Quaternion.identity,
+                transform);
+            //Debug.Log($"Resource {data.name} created at {tile.name}");
 
             _activeResources[gridPos] = resource;
             _gridManager.occupiedTiles.Add(gridPos, resource);
@@ -126,40 +142,86 @@ namespace Script2.GridSystem.ResourceSystem
             if (!ri) return;
 
             ri.Initialize(data, gridPos, this);
+
+            OnResourceGenerated?.Invoke(data.resourceType, gridPos);
         }
 
-        public void OnResourceCollected(Vector2Int pos, ResourceDataSO data)
+        /* public void OnResourceCollected(Vector2Int pos, ResourceDataSO data)
         {
-            Debug.Log($"ResourceManager - {data.name} collected at {pos}");
+            //Debug.Log($"ResourceManager - {data.name} collected at {pos}.");
+
+            UpdateEconomy(data);
 
             //Elimino GameObject Raccolto
-            _activeResources.TryGetValue(pos, out GameObject go);
-            _gridManager.occupiedTiles.Remove(pos);
-            _activeResources.Remove(pos);
-            Destroy(go);
+            RemoveResource(pos);
 
             //Se il Gameobject prevede una rigenerazione Creami il prefab di Regen e fai partire il timer per la rigenerazione
             if (!data.isDestroyedOnCollect)
             {
-                Tile tile = _gridManager.GetTile(pos.x, pos.y);
-                if (tile == null) return;
-
-                Vector3 worldPos = tile.transform.position;
-                GameObject regenPrefab = data._regenPrefab;
-                if (regenPrefab == null) return;
-
-                //Instanzio il prefab di regen
-                GameObject regenResource = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
-                    Quaternion.identity, transform);
-                Debug.Log($"RegenResource {data.name} created at {tile.name}");
-
-                _activeResources[pos] = regenResource;
-                _gridManager.occupiedTiles.Add(pos, regenResource);
-
-                Debug.Log($"--> Regenerating Resource {data.name} in {data.regenerationTime} at {pos}");
-
-                StartCoroutine(RegenResourceAfterDelay(pos, data));
+                ScheduleRegeneration(pos, data);
             }
+        }*/
+
+        public void HandleResourceCollected(Vector2Int pos, ResourceDataSO data)
+        {
+            UpdateEconomy(data);
+            RemoveResource(pos);
+
+            OnResourceCollected?.Invoke(data.resourceType, data.collectedAmount, pos);
+
+            if (!data.isDestroyedOnCollect)
+                ScheduleRegeneration(pos, data);
+        }
+
+        private void RemoveResource(Vector2Int pos)
+        {
+            if (_activeResources.TryGetValue(pos, out GameObject go) && go != null)
+                Destroy(go);
+            
+            _gridManager.occupiedTiles.Remove(pos);
+            _activeResources.Remove(pos);
+
+            Destroy(go);
+        }
+
+        private static void UpdateEconomy(ResourceDataSO data)
+        {
+            if (GameEconomyManager.Instance)
+            {
+                GameEconomyManager.Instance.AddResource(data.resourceType, data.collectedAmount);
+            }
+            else
+            {
+                Debug.LogError("GameEconomyManager instance not found! Resources will not be added to economy.");
+            }
+        }
+
+        private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
+        {
+            Tile tile = _gridManager.GetTile(pos.x, pos.y);
+            if (tile == null) return;
+
+            Vector3 worldPos = tile.transform.position;
+            GameObject regenPrefab = data._regenPrefab;
+            if (regenPrefab == null) return;
+
+            //Instanzio il prefab di regen
+            GameObject regenResource = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
+                Quaternion.identity, transform);
+            Debug.Log(
+                $"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
+
+            _activeResources[pos] = regenResource;
+            _gridManager.occupiedTiles.Add(pos, regenResource);
+
+            if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
+            {
+                StopCoroutine(existingCoroutine);
+                Debug.LogWarning($"Stopped existing regeneration at {pos}");
+            }
+
+            _regenerationCoroutines[pos] = StartCoroutine(RegenResourceAfterDelay(pos, data));
+            OnRegenerationStarted?.Invoke(pos, data.regenerationTime);
         }
 
         private IEnumerator RegenResourceAfterDelay(Vector2Int pos, ResourceDataSO data)
@@ -174,9 +236,25 @@ namespace Script2.GridSystem.ResourceSystem
 
             //Rigenero la risorsa nella posizione originaria
             PlaceResourceAt(pos, data);
+            
+            // Notifica agli osservatori che la risorsa è stata rigenerata
+            OnResourceRegenerated?.Invoke(pos, data.resourceType);
             Debug.Log($"--> Resource {data.name} regenerated at {pos}");
+            
+            // Cleanup della coroutine terminata
+            _regenerationCoroutines.Remove(pos);
         }
 
+        private void OnDestroy()
+        {
+            // Ferma tutte le rigenerazioni attive
+            foreach (var coroutine in _regenerationCoroutines.Values)
+            {
+                StopCoroutine(coroutine);
+            }
+
+            _regenerationCoroutines.Clear();
+        }
 
         #region editor
 

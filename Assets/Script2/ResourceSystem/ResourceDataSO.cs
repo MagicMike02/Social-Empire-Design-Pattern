@@ -1,19 +1,23 @@
 ﻿using System.Collections.Generic;
+using Script2.ResourceSystem.Enums;
 using UnityEngine;
 
-namespace Script2.GridSystem.ResourceSystem
+namespace Script2.ResourceSystem
 {
     [CreateAssetMenu(fileName = "NewResourceData", menuName = "ScriptableObjects/ResourceDataSO")]
     public class ResourceDataSO : ScriptableObject
     {
-        [Header("General Info")]
-        public string resourceName;
+        [Header("General Info")] public string resourceName;
         public List<GameObject> prefabs;
         public GameObject _regenPrefab;
 
-        [Header("Generation Settings")]
-        [Tooltip("Numero di gruppi che possono essere generati sulla mappa")]
+        [Header("Resource info")] public ResourceType resourceType;
+        public int collectedAmount = 10; // Quantità di risorsa che si ottiene quando viene raccolta
+
+        [Header("Generation Settings")] [Tooltip("Numero di gruppi che possono essere generati sulla mappa")]
         public int groupCount = 3;
+
+        public int defaultGroupSize = 15;
 
         [Tooltip("Dimensioni possibili dei gruppi (es: 3, 5, 7)")]
         public List<int> possibleGroupSizes = new List<int> { 3, 5, 7, 9 };
@@ -26,7 +30,7 @@ namespace Script2.GridSystem.ResourceSystem
         public bool isDestroyedOnCollect = true;
 
         public float yOffset = 0;
-        
+
         /// <summary>
         /// Restituisce un prefab casuale dalla lista
         /// </summary>

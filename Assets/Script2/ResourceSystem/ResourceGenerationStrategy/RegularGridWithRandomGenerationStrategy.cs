@@ -1,7 +1,7 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
 
-namespace Script2.GridSystem.ResourceSystem.ResourceGenerationStrategy
+namespace Script2.ResourceSystem.ResourceGenerationStrategy
 {
     public class RegularGridWithRandomGenerationStrategy : IResourceGenerationStrategy
     {
@@ -36,8 +36,8 @@ namespace Script2.GridSystem.ResourceSystem.ResourceGenerationStrategy
             // Puoi aggiustare il 'randomRange' a seconda delle dimensioni della tua mappa e del tuo desiderio.
             int randomRangeX = Mathf.Max(5, gridWidth); // Almeno 5, o la larghezza della griglia
             int randomRangeY = Mathf.Max(5, gridHeight); // Almeno 5, o l'altezza della griglia
-
-            for (int i = 0; i < numberOfSingleResources; i++)
+			var usedPositions = new HashSet<Vector2Int>(pattern);
+			for (int i = 0; i < numberOfSingleResources; i++)
             {
                 Vector2Int randomPos;
                 int attempts = 0;
@@ -53,12 +53,13 @@ namespace Script2.GridSystem.ResourceSystem.ResourceGenerationStrategy
 
                     // Continua a generare finché non trovi una posizione che non sia già nella lista
                     // e non superi il numero massimo di tentativi.
-                } while (pattern.Contains(randomPos) && attempts < maxAttempts);
+                } while (usedPositions.Contains(randomPos) && attempts < maxAttempts);
 
                 // Se abbiamo trovato una posizione unica entro i tentativi, aggiungila
-                if (!pattern.Contains(randomPos))
+                if (!usedPositions.Contains(randomPos))
                 {
                     pattern.Add(randomPos);
+					usedPositions.Add(randomPos);
                 }
                 // Se non riusciamo a trovare una posizione unica dopo maxAttempts, semplicemente
                 // aggiungeremo meno risorse singole di quelle richieste.

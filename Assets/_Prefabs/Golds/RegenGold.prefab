@@ -11,6 +11,7 @@ GameObject:
   - component: {fileID: 5511536648109978846}
   - component: {fileID: 1924687875387020122}
   - component: {fileID: 8137193794102691555}
+  - component: {fileID: -6592001164924971499}
   m_Layer: 0
   m_Name: RegenGold
   m_TagString: Resources
@@ -174,3 +175,15 @@ PolygonCollider2D:
       - {x: 0.79078615, y: 0.0511137}
       - {x: 0.8248618, y: -0.008488722}
   m_UseDelaunayMesh: 0
+--- !u!114 &-6592001164924971499
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6661218506845378680}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: af79a3b4b9374630ba410c4b8cf0b925, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 

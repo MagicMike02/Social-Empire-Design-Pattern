@@ -1,5 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Resources;
+using Script2.Economy;
+using Script2.ResourceSystem.Enums;
 using UnityEngine;
 
 namespace Script2.GridSystem
@@ -15,9 +17,14 @@ namespace Script2.GridSystem
         [SerializeField] private GameObject _tilePrefab;
 
         private Grid<Tile> _grid;
-        public  Dictionary<Vector2, GameObject> occupiedTiles = new();
+        public  Dictionary<Vector2Int, GameObject> occupiedTiles = new();
         
         private Dictionary<Vector2Int, Zone> _zones = new();
+
+        private Dictionary<ResourceType, int> zoneCost = new()
+        {
+            { ResourceType.Gold, 10 }
+        };
         private int _zoneSize { get; } = 20;
         [SerializeField] private GameObject _purchaseSignPrefab;
 
@@ -133,39 +140,46 @@ namespace Script2.GridSystem
         {
             if (_zones.TryGetValue(zoneCoord, out Zone zone) && !zone.isUnlocked)
             {
-                zone.isUnlocked = true;
-
-                foreach (var tile in zone.tiles)
+                if (GameEconomyManager.Instance != null && GameEconomyManager.Instance.CanAfford(zoneCost))
                 {
-                    if (tile != null)
+                    GameEconomyManager.Instance.SpendResources(zoneCost);
+                    zone.isUnlocked = true;
+                    foreach (var tile in zone.tiles)
                     {
-                        tile.SetState(TileState.Unlocked);
+                        if (tile != null) { tile.SetState(TileState.Unlocked); }
                     }
+                    if (zone.purchaseSign != null)
+                    {
+                        Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+                        occupiedTiles.Remove(signGridPos);
+                        Destroy(zone.purchaseSign);
+                    }
+                    Debug.Log($"Zona sbloccata in {zoneCoord}");
                 }
-
-                if (zone.purchaseSign != null)
+                else if (GameEconomyManager.Instance != null)
                 {
-                    Vector2 purchaseSignPosition = zone.purchaseSign.transform.position;
-                    occupiedTiles.Remove(purchaseSignPosition);
-
-                    Destroy(zone.purchaseSign);
+                    Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
                 }
-
-                Debug.Log($"Zona sbloccata in {zoneCoord}");
+                else
+                {
+                    Debug.LogError("GameEconomyManager instance not found. Cannot check/spend resources.");
+                }
             }
         }
 
         void CreatePurchaseSign(Zone zone)
         {
-            Vector2 centerTilePos = zone.start + new Vector2(_zoneSize / 2f, _zoneSize / 2f);
-            Vector3 worldPos = _grid.GetIsoToWorldPosition((int)centerTilePos.x, (int)centerTilePos.y);
+            Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+            Vector3 worldPos = _grid.GetIsoToWorldPosition(centerTilePos.x, centerTilePos.y);
             GameObject signObj = Instantiate(_purchaseSignPrefab, worldPos + new Vector3(0,0.45f,0), Quaternion.identity, transform);
 
             occupiedTiles.Add(centerTilePos, signObj);
             
             var sign = signObj.GetComponent<PurchaseSign>();
+            
             sign.Initialize(zone.start);
-
+            sign.SetCost(new(){ {ResourceType.Gold, 15}} );
+            
             zone.purchaseSign = signObj;
 
             //unlock all tile in zone

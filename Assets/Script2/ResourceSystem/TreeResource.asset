@@ -18,6 +18,8 @@ MonoBehaviour:
   - {fileID: 3339640185822892482, guid: 3d24660279ed6b64787c154178e7509f, type: 3}
   - {fileID: 3339640185822892482, guid: 2b2a44b8225dee74bb4e4c8d8bffa7a1, type: 3}
   _regenPrefab: {fileID: 0}
+  resourceType: 1
+  collectedAmount: 10
   groupCount: 15
   possibleGroupSizes: 010000000200000003000000060000000b00000010000000110000001b000000
   regenerationTime: 3600

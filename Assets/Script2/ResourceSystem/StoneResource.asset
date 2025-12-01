@@ -19,8 +19,10 @@ MonoBehaviour:
   - {fileID: 3339640185822892482, guid: 47d088820f76ace4cbd9c77ee9fc1c21, type: 3}
   - {fileID: 3339640185822892482, guid: 9c0b5a48913677c4396c502de7961104, type: 3}
   _regenPrefab: {fileID: 1166245892053028240, guid: e1ed0a14134db24479429e1554e021ed, type: 3}
+  resourceType: 2
+  collectedAmount: 10
   groupCount: 7
   possibleGroupSizes: 03000000050000000600000007000000
-  regenerationTime: 1
+  regenerationTime: 5
   isDestroyedOnCollect: 0
   yOffset: 0
