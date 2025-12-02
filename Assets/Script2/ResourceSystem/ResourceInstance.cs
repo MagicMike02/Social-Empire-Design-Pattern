@@ -11,6 +11,9 @@ namespace Script2.ResourceSystem
         private SpriteRenderer _spriteRenderer;
 
         private int _prefabIndex;
+        
+        public ResourceDataSO Data => _data;
+        
 
         private void Awake()
         {
@@ -53,5 +56,6 @@ namespace Script2.ResourceSystem
             else
                 Debug.LogWarning("ResourceInstance: Manager o Data non impostati!");
         }
+
     }
 }

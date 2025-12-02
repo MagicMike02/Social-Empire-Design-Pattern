@@ -10,7 +10,10 @@ namespace Script2.ResourceSystem
     {
         [SerializeField] private TileManager _tileManager;
         [SerializeField] private ZoneManager _zoneManager;
+        [SerializeField] private ResourcePoolManager _poolManager;
+        
         [SerializeField] private List<ResourceDataSO> _resourceTypes;
+        
         private IResourceGenerationStrategy _generationStrategy;
 
         public delegate void ResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance);
@@ -63,6 +66,7 @@ namespace Script2.ResourceSystem
                     {
                         SpawnResourceAt(pos, resource);
                     }
+
                     groupsCreated++;
                 }
             }
@@ -99,10 +103,16 @@ namespace Script2.ResourceSystem
         {
             Tile tile = _tileManager.GetGrid().GetValue(gridPos.x, gridPos.y);
             if (!tile) return;
+
             Vector3 worldPos = tile.transform.position;
-            GameObject prefab = data.GetRandomPrefab();
-            if (!prefab) return;
-            GameObject resource = Instantiate(prefab, worldPos + new Vector3(0, data.yOffset, 0), Quaternion.identity, transform);
+            var position = worldPos + new Vector3(0, data.yOffset, 0);
+
+            GameObject resource = _poolManager
+                ? _poolManager.GetFromPool(data, position, Quaternion.identity)
+                : Instantiate(data.GetRandomPrefab(), position, Quaternion.identity, transform);
+
+            if (!resource) return;
+
             OnResourceSpawned?.Invoke(data.resourceType, gridPos, resource);
         }
 
@@ -118,6 +128,7 @@ namespace Script2.ResourceSystem
                 if (data.resourceType == type)
                     return data;
             }
+
             return null;
         }
     }

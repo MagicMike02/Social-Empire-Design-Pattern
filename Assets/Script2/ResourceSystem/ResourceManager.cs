@@ -13,6 +13,7 @@ namespace Script2.ResourceSystem
         [SerializeField] private GameEconomyManager _economyManager;
         [SerializeField] private ZoneManager _zoneManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
+        [SerializeField] private ResourcePoolManager _poolManager;
         
         private Dictionary<Vector2Int, GameObject> _activeResources = new();
         private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
@@ -63,12 +64,15 @@ namespace Script2.ResourceSystem
         private void RemoveResource(Vector2Int pos)
         {
             if (_activeResources.TryGetValue(pos, out GameObject go) && go != null)
-                Destroy(go);
-            
+            {
+                var data = GetResourceDataForInstance(go);
+                if (_poolManager != null && data != null)
+                    _poolManager.ReturnToPool(go, data);
+                else
+                    Destroy(go);
+            }
             _zoneManager.occupiedTiles.Remove(pos);
             _activeResources.Remove(pos);
-
-            Destroy(go);
         }
 
         // Refactoring: UpdateEconomy ora è un metodo di istanza e usa la dipendenza iniettata
@@ -120,7 +124,10 @@ namespace Script2.ResourceSystem
             _activeResources.TryGetValue(pos, out GameObject go);
             _zoneManager.occupiedTiles.Remove(pos);
             _activeResources.Remove(pos);
-            Destroy(go);
+            if (_poolManager != null && data != null)
+                _poolManager.ReturnToPool(go, data);
+            else
+                Destroy(go);
 
             //Rigenero la risorsa nella posizione originaria tramite ResourceSpawner
             _resourceSpawner.SpawnResourceAtPosition(pos, data);
@@ -171,5 +178,13 @@ namespace Script2.ResourceSystem
         }
 
         #endregion editor
+
+        private ResourceDataSO GetResourceDataForInstance(GameObject go)
+        {
+            var ri = go.GetComponent<ResourceInstance>();
+            if (ri != null)
+                return _resourceSpawner.GetResourceDataSO(ri.Data.resourceType);
+            return null;
+        }
     }
 }
