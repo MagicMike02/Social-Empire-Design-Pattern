@@ -19,29 +19,28 @@ namespace Script2.ResourceSystem.ResourceUI
 
         [SerializeField] private List<ResourceUIElement> uiElements;
         [SerializeField] private ResourceIconsSO resourceIcons; // Riferimento all'asset ScriptableObject delle icone
+        [SerializeField] private GameEconomyManager _economyManager;
 
         private void Start()
         {
-            if (GameEconomyManager.Instance != null)
+            if (_economyManager == null)
             {
-                GameEconomyManager.Instance.OnResourceAmountChanged += UpdateResourceUI;
-                // Aggiorna subito la UI con gli importi attuali all'attivazione
-                foreach (var element in uiElements)
-                {
-                    UpdateResourceUI(element.resourceType, GameEconomyManager.Instance.GetResourceAmount(element.resourceType)); 
-                }
+                Debug.LogError("[ResourceDisplayUI] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                return;
             }
-            else
+            _economyManager.OnResourceAmountChanged += UpdateResourceUI;
+            // Aggiorna subito la UI con gli importi attuali all'attivazione
+            foreach (var element in uiElements)
             {
-                Debug.LogError("GameEconomyManager non trovato. Assicurati che sia presente nella scena e inizializzato."); 
+                UpdateResourceUI(element.resourceType, _economyManager.GetResourceAmount(element.resourceType)); 
             }
         }
 
         private void OnDisable()
         {
-            if (GameEconomyManager.Instance != null)
+            if (_economyManager != null)
             {
-                GameEconomyManager.Instance.OnResourceAmountChanged -= UpdateResourceUI;
+                _economyManager.OnResourceAmountChanged -= UpdateResourceUI;
             }
         }
 

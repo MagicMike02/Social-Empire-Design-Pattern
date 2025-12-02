@@ -28,6 +28,10 @@ namespace Script2.ResourceSystem
 
         void Start()
         {
+            if (_economyManager == null)
+            {
+                Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            }
             Debug.Log("Resource Manager -> Generating Resources");
             GenerateAllResources();
         }
@@ -184,15 +188,16 @@ namespace Script2.ResourceSystem
             Destroy(go);
         }
 
-        private static void UpdateEconomy(ResourceDataSO data)
+        // Refactoring: UpdateEconomy ora è un metodo di istanza e usa la dipendenza iniettata
+        private void UpdateEconomy(ResourceDataSO data)
         {
-            if (GameEconomyManager.Instance)
+            if (_economyManager != null)
             {
-                GameEconomyManager.Instance.AddResource(data.resourceType, data.collectedAmount);
+                _economyManager.AddResource(data.resourceType, data.collectedAmount);
             }
             else
             {
-                Debug.LogError("GameEconomyManager instance not found! Resources will not be added to economy.");
+                Debug.LogError("GameEconomyManager reference not set in ResourceManager! Resources will not be added to economy.");
             }
         }
 

@@ -2436,6 +2436,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: 4361c67e94d6806459f991f3cca14639, type: 2}
   - {fileID: 11400000, guid: b31f29df2c2a59846a1f4d14358d298c, type: 2}
   - {fileID: 11400000, guid: b74af63c351ff7f41979df9109023ccf, type: 2}
+  _economyManager: {fileID: 1159254679}
 --- !u!4 &1770461062
 Transform:
   m_ObjectHideFlags: 0
@@ -2973,6 +2974,7 @@ MonoBehaviour:
     iconImage: {fileID: 980582439}
     amountText: {fileID: 1444562803}
   resourceIcons: {fileID: 11400000, guid: 118bd060332de1d4fa5808e99d7ef4fe, type: 2}
+  _economyManager: {fileID: 1159254679}
 --- !u!1 &1990503624
 GameObject:
   m_ObjectHideFlags: 0
@@ -3145,6 +3147,7 @@ MonoBehaviour:
   cellSize: 1
   _tilePrefab: {fileID: 8695224214221710384, guid: f49fb40436735a143a2c0214f97a15d6, type: 3}
   _purchaseSignPrefab: {fileID: 6448893105892614570, guid: fe3a34deab274f940a41e72258ce4f28, type: 3}
+  _economyManager: {fileID: 1159254679}
 --- !u!4 &2027393991
 Transform:
   m_ObjectHideFlags: 0

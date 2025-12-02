@@ -17,19 +17,22 @@ namespace Script2.GridSystem
         [SerializeField] private GameObject _tilePrefab;
 
         private Grid<Tile> _grid;
-        public  Dictionary<Vector2Int, GameObject> occupiedTiles = new();
-        
+        public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
+
         private Dictionary<Vector2Int, Zone> _zones = new();
 
         private Dictionary<ResourceType, int> zoneCost = new()
         {
             { ResourceType.Gold, 10 }
         };
-        private int _zoneSize { get; } = 20;
+
+        private int _zoneSize = 20;
         [SerializeField] private GameObject _purchaseSignPrefab;
 
+        [SerializeField] private GameEconomyManager _economyManager;
 
-        void Awake()
+
+        private void Awake()
         {
             // Singleton pattern
             if (Instance == null)
@@ -42,12 +45,18 @@ namespace Script2.GridSystem
                 Destroy(gameObject);
             }
 
+            if (_economyManager == null)
+            {
+                Debug.LogError(
+                    "[GridManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            }
+
             //Initialize Grid
             CreateGrid();
             CreateZones();
         }
 
-        void CreateGrid()
+        private void CreateGrid()
         {
             _grid = new Grid<Tile>(width, height, cellSize);
 
@@ -60,7 +69,7 @@ namespace Script2.GridSystem
             }
         }
 
-        void CreateZones()
+        private void CreateZones()
         {
             for (int x = 0; x < width; x += _zoneSize)
             {
@@ -108,7 +117,7 @@ namespace Script2.GridSystem
             }
         }
 
-        void CreateTileAt(int x, int y)
+        private void CreateTileAt(int x, int y)
         {
             Vector2 gridPosition = new Vector2(x, y);
             Vector3 worldPosition = _grid.GetIsoToWorldPosition(x, y);
@@ -123,42 +132,53 @@ namespace Script2.GridSystem
             _grid.SetValue(x, y, tile);
         }
 
-        Tile InstantiateTile(Vector3 position)
+        private Tile InstantiateTile(Vector3 position)
         {
             // Istanzia e assegna direttamente il parent
             GameObject obj = Instantiate(_tilePrefab, position, Quaternion.identity, transform);
             return obj.GetComponent<Tile>();
         }
 
-        int CalculateSortingOrder(int x, int y)
+        private int CalculateSortingOrder(int x, int y)
         {
             return (x + y) * -100;
         }
 
 
+        // Eventi Observer per la gestione zone
+        public event System.Action<Vector2Int> OnZoneUnlocked;
+        public event System.Action<Vector2Int> OnZonePurchaseFailed;
+
         public void PurchaseZone(Vector2Int zoneCoord)
         {
             if (_zones.TryGetValue(zoneCoord, out Zone zone) && !zone.isUnlocked)
             {
-                if (GameEconomyManager.Instance != null && GameEconomyManager.Instance.CanAfford(zoneCost))
+                if (_economyManager != null && _economyManager.CanAfford(zoneCost))
                 {
-                    GameEconomyManager.Instance.SpendResources(zoneCost);
+                    _economyManager.SpendResources(zoneCost);
                     zone.isUnlocked = true;
                     foreach (var tile in zone.tiles)
                     {
-                        if (tile != null) { tile.SetState(TileState.Unlocked); }
+                        if (tile != null)
+                        {
+                            tile.SetState(TileState.Unlocked);
+                        }
                     }
+
                     if (zone.purchaseSign != null)
                     {
                         Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
                         occupiedTiles.Remove(signGridPos);
                         Destroy(zone.purchaseSign);
                     }
+
                     Debug.Log($"Zona sbloccata in {zoneCoord}");
+                    OnZoneUnlocked?.Invoke(zoneCoord);
                 }
-                else if (GameEconomyManager.Instance != null)
+                else if (_economyManager != null)
                 {
                     Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
+                    OnZonePurchaseFailed?.Invoke(zoneCoord);
                 }
                 else
                 {
@@ -167,19 +187,18 @@ namespace Script2.GridSystem
             }
         }
 
-        void CreatePurchaseSign(Zone zone)
+        private void CreatePurchaseSign(Zone zone)
         {
             Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
             Vector3 worldPos = _grid.GetIsoToWorldPosition(centerTilePos.x, centerTilePos.y);
-            GameObject signObj = Instantiate(_purchaseSignPrefab, worldPos + new Vector3(0,0.45f,0), Quaternion.identity, transform);
+            GameObject signObj = Instantiate(_purchaseSignPrefab, worldPos + new Vector3(0, 0.45f, 0),
+                Quaternion.identity, transform);
 
             occupiedTiles.Add(centerTilePos, signObj);
-            
+
             var sign = signObj.GetComponent<PurchaseSign>();
-            
-            sign.Initialize(zone.start);
-            sign.SetCost(new(){ {ResourceType.Gold, 15}} );
-            
+            sign.Setup(zone.start, _economyManager, new() { { ResourceType.Gold, 15 } });
+
             zone.purchaseSign = signObj;
 
             //unlock all tile in zone
@@ -188,7 +207,7 @@ namespace Script2.GridSystem
                 if (tile != null) tile.SetState(TileState.Locked);
             }
         }
-        
+
         public Tile GetTile(int x, int y)
         {
             return _grid.GetValue(x, y);
@@ -199,7 +218,7 @@ namespace Script2.GridSystem
             _grid.GetWorldToIsoPosition(worldPosition, out int x, out int y);
             return new Vector3Int(x, y, 0);
         }
-        
+
         public int GetZoneSize()
         {
             return _zoneSize;
@@ -330,7 +349,7 @@ namespace Script2.GridSystem
             GetWorldToIsoPosition(worldPosition, out int x, out int y);
             return GetIsoToWorldPosition(x, y);
         }
-       
+
         public List<T> ToList()
         {
             List<T> listT = new();
@@ -359,3 +378,4 @@ namespace Script2.GridSystem
         }
     }
 }
+

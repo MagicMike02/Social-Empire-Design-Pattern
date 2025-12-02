@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using JetBrains.Annotations;
 using Script2.Economy;
 using Script2.ResourceSystem.Enums;
 using UnityEngine;
@@ -12,11 +13,13 @@ namespace Script2.GridSystem
         private Dictionary<ResourceType, int> _purchaseCost = new();
 
         private Vector3 _originalScale;
-        [SerializeField] private float _scaleMultiplier = 1.1f;
-        [SerializeField] private float _animationSpeed = 5f;
         private bool _hovered;
-
-        void Update()
+        
+        [SerializeField] private float _scaleMultiplier = 1.1f;
+        [SerializeField] private float _animationSpeed = 5f;        
+        private GameEconomyManager _economyManager;
+        
+        private void Update()
         {
             Vector3 targetScale = _hovered ? _originalScale * _scaleMultiplier : _originalScale;
             if (transform.localScale != targetScale)
@@ -26,33 +29,27 @@ namespace Script2.GridSystem
             }
         }
 
-        public void Initialize(Vector2Int zoneCoord, Dictionary<ResourceType, int> cost = null)
-        {
+        public void Setup(Vector2Int zoneCoord, GameEconomyManager economyManager, [CanBeNull] Dictionary<ResourceType, int> cost = null)
+        { 
             _zoneCoord = zoneCoord;
+            _economyManager = economyManager;
+            _purchaseCost = cost ?? new Dictionary<ResourceType, int>();
             _originalScale = transform.localScale;
-            _purchaseCost = cost;
         }
-
-        public void SetCost(Dictionary<ResourceType, int> cost)
-        {
-            _purchaseCost = cost;
-        }
-
 
         void OnMouseDown()
         {
             if (_purchaseCost == null)
             {
-                // Se non ci sono costi o il manager non è pronto, sblocca comunque (per testing)
                 GridManager.Instance.PurchaseZone(_zoneCoord);
                 Debug.Log("TEST: Zona sbloccata senza costi!");
                 return;
             }
 
-            var economy = GameEconomyManager.Instance;
+            var economy = _economyManager;
             if (economy == null)
             {
-                Debug.LogWarning("GameEconomyManager non è disponibile o non è stato inizializzato!");
+                Debug.LogWarning("GameEconomyManager non è stato assegnato! Chiama Setup() dopo l'instanziazione del prefab.");
                 return;
             }
 
@@ -78,5 +75,7 @@ namespace Script2.GridSystem
         {
             _hovered = false;
         }
+
+       
     }
 }

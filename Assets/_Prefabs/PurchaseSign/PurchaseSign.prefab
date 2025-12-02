@@ -10,8 +10,8 @@ GameObject:
   m_Component:
   - component: {fileID: 2379652420462280177}
   - component: {fileID: 1964545042161068349}
-  - component: {fileID: 3971937964814809455}
   - component: {fileID: 7409929864874515477}
+  - component: {fileID: 7555102794328927337}
   m_Layer: 5
   m_Name: PurchaseSign
   m_TagString: Untagged
@@ -54,6 +54,8 @@ SpriteRenderer:
   m_RayTracingAccelStructBuildFlagsOverride: 0
   m_RayTracingAccelStructBuildFlags: 1
   m_SmallMeshCulling: 1
+  m_ForceMeshLod: -1
+  m_MeshLodSelectionBias: 0
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
@@ -75,6 +77,7 @@ SpriteRenderer:
   m_AutoUVMaxDistance: 0.5
   m_AutoUVMaxAngle: 89
   m_LightmapParameters: {fileID: 0}
+  m_GlobalIlluminationMeshLod: 0
   m_SortingLayerID: 1285917673
   m_SortingLayer: 1
   m_SortingOrder: 0
@@ -89,18 +92,6 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &3971937964814809455
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6448893105892614570}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 907730c9c856448b9f238b2f2c3e45a1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!60 &7409929864874515477
 PolygonCollider2D:
   m_ObjectHideFlags: 0
@@ -174,3 +165,18 @@ PolygonCollider2D:
       - {x: 0.51953125, y: -0.25390625}
       - {x: 0.50517476, y: -0.20322579}
   m_UseDelaunayMesh: 0
+--- !u!114 &7555102794328927337
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6448893105892614570}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 907730c9c856448b9f238b2f2c3e45a1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Script2.GridSystem.PurchaseSign
+  _scaleMultiplier: 1.1
+  _animationSpeed: 5
+  _economyManager: {fileID: 0}

@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using Script2.GridSystem;
 using Script2.ResourceSystem.Enums;
 using UnityEngine;
 
@@ -8,7 +7,7 @@ namespace Script2.Economy
 {
     public class GameEconomyManager : MonoBehaviour
     {
-        public static GameEconomyManager Instance { get; private set; }
+        private static GameEconomyManager Instance { get; set; }
 
         public event Action<ResourceType, int> OnResourceAmountChanged;
         private Dictionary<ResourceType, int> _resources = new();
@@ -18,11 +17,13 @@ namespace Script2.Economy
             if (!Instance)
             {
                 Instance = this;
-                // DontDestroyOnLoad(gameObject); 
+                DontDestroyOnLoad(gameObject); 
             }
             else
             {
+                Debug.LogWarning("GameEconomyManager duplicato rilevato e distrutto.");
                 Destroy(gameObject);
+                return;
             }
 
             // Inizializza tutte le risorse a 0
@@ -34,7 +35,7 @@ namespace Script2.Economy
             Debug.Log("GameEconomyManager Initialized. Current Resources:");
             foreach (var resource in _resources)
             {
-                Debug.Log($"- {resource.Key}: {resource.Value}");
+                Debug.Log($"- {resource.Key.ToString()}: {resource.Value}");
             }
         }
 
