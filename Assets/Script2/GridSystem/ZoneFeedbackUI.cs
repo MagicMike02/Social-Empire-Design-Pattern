@@ -10,7 +10,7 @@ namespace Script2.GridSystem
         {
             if (_zoneManager == null)
             {
-                _zoneManager = FindObjectOfType<ZoneManager>();
+                _zoneManager = FindFirstObjectByType<ZoneManager>();
             }
         }
 

@@ -1,171 +1,53 @@
 ﻿using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
-using System.Linq;
 using Script2.GridSystem;
 using Script2.Economy;
 using Script2.ResourceSystem.Enums;
-using Script2.ResourceSystem.ResourceGenerationStrategy;
-using Random = UnityEngine.Random;
 
 namespace Script2.ResourceSystem
 {
     public class ResourceManager : MonoBehaviour
     {
-        [SerializeField] private GridManager _gridManager;
-        [SerializeField] private List<ResourceDataSO> _resourceTypes;
+        [SerializeField] private TileManager _tileManager;
         [SerializeField] private GameEconomyManager _economyManager;
         [SerializeField] private ZoneManager _zoneManager;
+        [SerializeField] private ResourceSpawner _resourceSpawner;
         
         private Dictionary<Vector2Int, GameObject> _activeResources = new();
         private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
 
-        private IResourceGenerationStrategy _generationStrategy;
-
+        #region Events
         public event System.Action<ResourceType, int, Vector2Int> OnResourceCollected;
         public event System.Action<ResourceType, Vector2Int> OnResourceGenerated;
         public event System.Action<Vector2Int, float> OnRegenerationStarted;
         public event System.Action<Vector2Int, ResourceType> OnResourceRegenerated;
-
+        #endregion Events
+        
         void Start()
         {
             if (_economyManager == null)
             {
                 Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
-            Debug.Log("Resource Manager -> Generating Resources");
-            GenerateAllResources();
-        }
-
-        public void SetGenerationStrategy(IResourceGenerationStrategy strategy)
-        {
-            _generationStrategy = strategy;
-        }
-
-        public void GenerateAllResources()
-        {
-            foreach (var resource in _resourceTypes)
+            if (_resourceSpawner == null)
             {
-                Debug.Log($"Resource Manager -> Generating {resource.name}");
-                GenerateResourceGroups(resource);
+                Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
+            _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
+            // Genera le risorse appena i tile sono presenti
+            _resourceSpawner.GenerateAllResources();
         }
 
-        void GenerateResourceGroups(ResourceDataSO resource)
+        private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
         {
-            int attempts = 0;
-            int groupsCreated = 0;
-
-            while (groupsCreated < resource.groupCount && attempts < resource.groupCount * 20)
-            {
-                attempts++;
-
-                Vector2Int origin = GetRandomTileOutsideCentralZone();
-                int groupSize = resource.possibleGroupSizes[Random.Range(0, resource.possibleGroupSizes.Count)];
-
-                //Imposto strategy di creazione dei gruppi
-                if (resource.isDestroyedOnCollect)
-                {
-                    groupSize = resource.defaultGroupSize;
-                    SetGenerationStrategy(
-                        new RegularGridWithSingleRandomGenerationStrategy()); //SetGenerationStrategy(new RegularGridGenerationStrategy());
-                }
-                else
-                {
-                    SetGenerationStrategy(new ClusterGenerationStrategy());
-                }
-
-                if (_generationStrategy == null)
-                {
-                    Debug.LogError($"Generation strategy not set for {resource.name}");
-                    return;
-                }
-
-                List<Vector2Int> positions = _generationStrategy.GenerateResourcePositions(origin, groupSize);
-
-                // Verifica che i tile siano validi e vuoti
-                if (positions.All(IsValidTile))
-                {
-                    foreach (var pos in positions)
-                    {
-                        PlaceResourceAt(pos, resource);
-                    }
-
-                    groupsCreated++;
-                }
-            }
+            _activeResources[pos] = instance;
+            _zoneManager.occupiedTiles.Add(pos, instance);
+            var ri = instance.GetComponent<ResourceInstance>();
+            if (ri != null)
+                ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this); // Passa il ResourceDataSO corretto
+            OnResourceGenerated?.Invoke(type, pos);
         }
-
-        Vector2Int GetRandomTileOutsideCentralZone()
-        {
-            int width = _gridManager.width;
-            int height = _gridManager.height;
-
-            while (true)
-            {
-                int x = Random.Range(0, width);
-                int y = Random.Range(0, height);
-                if (!IsInsideCentralZone(x, y)) return new Vector2Int(x, y);
-            }
-        }
-
-        bool IsInsideCentralZone(int x, int y)
-        {
-            int half = _zoneManager.ZoneSize / 2;
-            return x >= _gridManager.width / 2 - half &&
-                   x < _gridManager.width / 2 + half &&
-                   y >= _gridManager.height / 2 - half &&
-                   y < _gridManager.height / 2 + half;
-        }
-
-        bool IsValidTile(Vector2Int pos)
-        {
-            var tile = _gridManager.GetTile(pos.x, pos.y);
-            return tile != null
-                   && !_activeResources.ContainsKey(pos)
-                   && !_zoneManager.occupiedTiles.ContainsKey(pos)
-                   && tile.State != TileState.Unlocked;
-        }
-
-        void PlaceResourceAt(Vector2Int gridPos, ResourceDataSO data)
-        {
-            Tile tile = _gridManager.GetTile(gridPos.x, gridPos.y);
-            if (!tile) return;
-
-            Vector3 worldPos = tile.transform.position;
-            GameObject prefab = data.GetRandomPrefab();
-            if (!prefab) return;
-
-            GameObject resource = Instantiate(prefab, worldPos + new Vector3(0, data.yOffset, 0), Quaternion.identity,
-                transform);
-            //Debug.Log($"Resource {data.name} created at {tile.name}");
-
-            _activeResources[gridPos] = resource;
-            _zoneManager.occupiedTiles.Add(gridPos, resource);
-
-            var ri = resource.GetComponent<ResourceInstance>();
-            if (!ri) return;
-
-            ri.Initialize(data, gridPos, this);
-
-            OnResourceGenerated?.Invoke(data.resourceType, gridPos);
-        }
-
-        /* public void OnResourceCollected(Vector2Int pos, ResourceDataSO data)
-        {
-            //Debug.Log($"ResourceManager - {data.name} collected at {pos}.");
-
-            UpdateEconomy(data);
-
-            //Elimino GameObject Raccolto
-            RemoveResource(pos);
-
-            //Se il Gameobject prevede una rigenerazione Creami il prefab di Regen e fai partire il timer per la rigenerazione
-            if (!data.isDestroyedOnCollect)
-            {
-                ScheduleRegeneration(pos, data);
-            }
-        }*/
 
         public void HandleResourceCollected(Vector2Int pos, ResourceDataSO data)
         {
@@ -204,7 +86,7 @@ namespace Script2.ResourceSystem
 
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
-            Tile tile = _gridManager.GetTile(pos.x, pos.y);
+            Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
             if (tile == null) return;
 
             Vector3 worldPos = tile.transform.position;
@@ -240,8 +122,8 @@ namespace Script2.ResourceSystem
             _activeResources.Remove(pos);
             Destroy(go);
 
-            //Rigenero la risorsa nella posizione originaria
-            PlaceResourceAt(pos, data);
+            //Rigenero la risorsa nella posizione originaria tramite ResourceSpawner
+            _resourceSpawner.SpawnResourceAtPosition(pos, data);
             
             // Notifica agli osservatori che la risorsa è stata rigenerata
             OnResourceRegenerated?.Invoke(pos, data.resourceType);
@@ -284,7 +166,7 @@ namespace Script2.ResourceSystem
         private void RegenerateAllResources()
         {
             RemoveAllResources(); // Elimina tutte le risorse
-            GenerateAllResources(); // Rigenera tutte le risorse
+            _resourceSpawner.GenerateAllResources(); // Rigenera tutte le risorse
             Debug.Log("All resources have been regenerated.");
         }
 

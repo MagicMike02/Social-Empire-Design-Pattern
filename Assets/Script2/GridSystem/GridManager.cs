@@ -1,7 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using Script2.Economy;
-using Script2.ResourceSystem.Enums;
+using Script2.ResourceSystem;
 using UnityEngine;
 
 namespace Script2.GridSystem
@@ -10,19 +9,10 @@ namespace Script2.GridSystem
     {
         public static GridManager Instance;
 
-        [SerializeField] public int width;
-        [SerializeField] public int height;
-        [SerializeField] private float cellSize;
-
-        [SerializeField] private GameObject _tilePrefab;
-
-        [SerializeField] private GameObject _purchaseSignPrefab;
-
-        [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private TileManager _tileManager;
         [SerializeField] private ZoneManager _zoneManager;
-
-        private Grid<Tile> _grid;
-        public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
+        [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private ResourceSpawner _resourceSpawner;
 
         private void Awake()
         {
@@ -37,77 +27,24 @@ namespace Script2.GridSystem
                 Destroy(gameObject);
             }
 
-            if (_economyManager == null)
+            if (_tileManager == null)
             {
                 Debug.LogError(
-                    "[GridManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                    "[GridManager] TileManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
 
             if (_zoneManager == null)
             {
-                Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                Debug.LogError(
+                    "[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
 
-            //Initialize Grid
-            CreateGrid();
-            _zoneManager.Initialize(_grid);
-            _zoneManager.CreateZones(width, height);
-        }
+            // Inizializza la griglia tramite TileManager
+            _tileManager.CreateGrid();
+            var grid = _tileManager.GetGrid();
+            _zoneManager.Initialize(grid);
+            _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
 
-        private void CreateGrid()
-        {
-            _grid = new Grid<Tile>(width, height, cellSize);
-
-            for (int x = 0; x < width; x++)
-            {
-                for (int y = 0; y < height; y++)
-                {
-                    CreateTileAt(x, y);
-                }
-            }
-        }
-
-        private void CreateTileAt(int x, int y)
-        {
-            Vector2 gridPosition = new Vector2(x, y);
-            Vector3 worldPosition = _grid.GetIsoToWorldPosition(x, y);
-
-            Tile tile = InstantiateTile(worldPosition);
-
-            int sortingOrder = CalculateSortingOrder(x, y);
-            tile.Initialize(gridPosition, worldPosition, sortingOrder);
-
-            //AssignTileToSector(tile, x, y);
-
-            _grid.SetValue(x, y, tile);
-        }
-
-        private Tile InstantiateTile(Vector3 position)
-        {
-            // Istanzia e assegna direttamente il parent
-            GameObject obj = Instantiate(_tilePrefab, position, Quaternion.identity, transform);
-            return obj.GetComponent<Tile>();
-        }
-
-        private int CalculateSortingOrder(int x, int y)
-        {
-            return (x + y) * -100;
-        }
-
-        public Tile GetTile(int x, int y)
-        {
-            return _grid.GetValue(x, y);
-        }
-
-        public Vector3Int WorldToGrid(Vector3 worldPosition)
-        {
-            _grid.GetWorldToIsoPosition(worldPosition, out int x, out int y);
-            return new Vector3Int(x, y, 0);
-        }
-
-        public Grid<Tile> GetGrid()
-        {
-            return _grid;
         }
     }
 
