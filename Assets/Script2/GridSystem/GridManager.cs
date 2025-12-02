@@ -1,5 +1,5 @@
-﻿using System.Collections.Generic;
-using System.Resources;
+﻿using System;
+using System.Collections.Generic;
 using Script2.Economy;
 using Script2.ResourceSystem.Enums;
 using UnityEngine;
@@ -16,21 +16,13 @@ namespace Script2.GridSystem
 
         [SerializeField] private GameObject _tilePrefab;
 
-        private Grid<Tile> _grid;
-        public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
-
-        private Dictionary<Vector2Int, Zone> _zones = new();
-
-        private Dictionary<ResourceType, int> zoneCost = new()
-        {
-            { ResourceType.Gold, 10 }
-        };
-
-        private int _zoneSize = 20;
         [SerializeField] private GameObject _purchaseSignPrefab;
 
         [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private ZoneManager _zoneManager;
 
+        private Grid<Tile> _grid;
+        public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
 
         private void Awake()
         {
@@ -51,9 +43,15 @@ namespace Script2.GridSystem
                     "[GridManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
 
+            if (_zoneManager == null)
+            {
+                Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            }
+
             //Initialize Grid
             CreateGrid();
-            CreateZones();
+            _zoneManager.Initialize(_grid);
+            _zoneManager.CreateZones(width, height);
         }
 
         private void CreateGrid()
@@ -65,54 +63,6 @@ namespace Script2.GridSystem
                 for (int y = 0; y < height; y++)
                 {
                     CreateTileAt(x, y);
-                }
-            }
-        }
-
-        private void CreateZones()
-        {
-            for (int x = 0; x < width; x += _zoneSize)
-            {
-                for (int y = 0; y < height; y += _zoneSize)
-                {
-                    Vector2Int zoneCoord = new(x, y);
-                    Zone zone = new Zone(zoneCoord, _zoneSize);
-
-                    for (int dx = 0; dx < _zoneSize; dx++)
-                    {
-                        for (int dy = 0; dy < _zoneSize; dy++)
-                        {
-                            int gx = x + dx;
-                            int gy = y + dy;
-
-                            if (gx < width && gy < height)
-                            {
-                                zone.tiles[dx, dy] = _grid.GetValue(gx, gy);
-                            }
-                        }
-                    }
-
-                    Vector2Int centerCoord = new(width / 2 - _zoneSize / 2, height / 2 - _zoneSize / 2);
-
-                    if (zoneCoord == centerCoord)
-                    {
-                        zone.isUnlocked = true;
-                        for (int dx = 0; dx < _zoneSize; dx++)
-                        {
-                            for (int dy = 0; dy < _zoneSize; dy++)
-                            {
-                                if (zone.tiles[dx, dy] != null)
-                                    zone.tiles[dx, dy].SetState(TileState.Unlocked);
-                            }
-                        }
-                    }
-                    else if (Mathf.Abs(zoneCoord.x - centerCoord.x) <= _zoneSize &&
-                             Mathf.Abs(zoneCoord.y - centerCoord.y) <= _zoneSize)
-                    {
-                        CreatePurchaseSign(zone);
-                    }
-
-                    _zones[zoneCoord] = zone;
                 }
             }
         }
@@ -144,70 +94,6 @@ namespace Script2.GridSystem
             return (x + y) * -100;
         }
 
-
-        // Eventi Observer per la gestione zone
-        public event System.Action<Vector2Int> OnZoneUnlocked;
-        public event System.Action<Vector2Int> OnZonePurchaseFailed;
-
-        public void PurchaseZone(Vector2Int zoneCoord)
-        {
-            if (_zones.TryGetValue(zoneCoord, out Zone zone) && !zone.isUnlocked)
-            {
-                if (_economyManager != null && _economyManager.CanAfford(zoneCost))
-                {
-                    _economyManager.SpendResources(zoneCost);
-                    zone.isUnlocked = true;
-                    foreach (var tile in zone.tiles)
-                    {
-                        if (tile != null)
-                        {
-                            tile.SetState(TileState.Unlocked);
-                        }
-                    }
-
-                    if (zone.purchaseSign != null)
-                    {
-                        Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-                        occupiedTiles.Remove(signGridPos);
-                        Destroy(zone.purchaseSign);
-                    }
-
-                    Debug.Log($"Zona sbloccata in {zoneCoord}");
-                    OnZoneUnlocked?.Invoke(zoneCoord);
-                }
-                else if (_economyManager != null)
-                {
-                    Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
-                    OnZonePurchaseFailed?.Invoke(zoneCoord);
-                }
-                else
-                {
-                    Debug.LogError("GameEconomyManager instance not found. Cannot check/spend resources.");
-                }
-            }
-        }
-
-        private void CreatePurchaseSign(Zone zone)
-        {
-            Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-            Vector3 worldPos = _grid.GetIsoToWorldPosition(centerTilePos.x, centerTilePos.y);
-            GameObject signObj = Instantiate(_purchaseSignPrefab, worldPos + new Vector3(0, 0.45f, 0),
-                Quaternion.identity, transform);
-
-            occupiedTiles.Add(centerTilePos, signObj);
-
-            var sign = signObj.GetComponent<PurchaseSign>();
-            sign.Setup(zone.start, _economyManager, new() { { ResourceType.Gold, 15 } });
-
-            zone.purchaseSign = signObj;
-
-            //unlock all tile in zone
-            foreach (var tile in zone.tiles)
-            {
-                if (tile != null) tile.SetState(TileState.Locked);
-            }
-        }
-
         public Tile GetTile(int x, int y)
         {
             return _grid.GetValue(x, y);
@@ -217,11 +103,6 @@ namespace Script2.GridSystem
         {
             _grid.GetWorldToIsoPosition(worldPosition, out int x, out int y);
             return new Vector3Int(x, y, 0);
-        }
-
-        public int GetZoneSize()
-        {
-            return _zoneSize;
         }
 
         public Grid<Tile> GetGrid()
@@ -363,19 +244,4 @@ namespace Script2.GridSystem
 
         #endregion
     }
-
-    class Zone
-    {
-        public Vector2Int start; // angolo in basso a sinistra
-        public Tile[,] tiles;
-        public bool isUnlocked = false;
-        public GameObject purchaseSign;
-
-        public Zone(Vector2Int start, int size)
-        {
-            this.start = start;
-            tiles = new Tile[size, size];
-        }
-    }
 }
-

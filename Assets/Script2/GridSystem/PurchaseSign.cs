@@ -18,6 +18,7 @@ namespace Script2.GridSystem
         [SerializeField] private float _scaleMultiplier = 1.1f;
         [SerializeField] private float _animationSpeed = 5f;        
         private GameEconomyManager _economyManager;
+        private ZoneManager _zoneManager;
         
         private void Update()
         {
@@ -29,10 +30,11 @@ namespace Script2.GridSystem
             }
         }
 
-        public void Setup(Vector2Int zoneCoord, GameEconomyManager economyManager, [CanBeNull] Dictionary<ResourceType, int> cost = null)
+        public void Setup(Vector2Int zoneCoord, GameEconomyManager economyManager, ZoneManager zoneManager, [CanBeNull] Dictionary<ResourceType, int> cost = null)
         { 
             _zoneCoord = zoneCoord;
             _economyManager = economyManager;
+            _zoneManager = zoneManager;
             _purchaseCost = cost ?? new Dictionary<ResourceType, int>();
             _originalScale = transform.localScale;
         }
@@ -41,7 +43,7 @@ namespace Script2.GridSystem
         {
             if (_purchaseCost == null)
             {
-                GridManager.Instance.PurchaseZone(_zoneCoord);
+                _zoneManager.PurchaseZone(_zoneCoord);
                 Debug.Log("TEST: Zona sbloccata senza costi!");
                 return;
             }
@@ -55,9 +57,7 @@ namespace Script2.GridSystem
 
             if (economy.CanAfford(_purchaseCost))
             {
-                // L'acquisto effettivo e la distruzione del GameObject del segno
-                // avverranno all'interno di GridManager.PurchaseZone() dopo la verifica
-                GridManager.Instance.PurchaseZone(_zoneCoord);
+                _zoneManager.PurchaseZone(_zoneCoord);
             }
             else
             {

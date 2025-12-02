@@ -119,6 +119,51 @@ NavMeshSettings:
     debug:
       m_Flags: 0
   m_NavMeshData: {fileID: 0}
+--- !u!1 &42177435
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 42177436}
+  - component: {fileID: 42177437}
+  m_Layer: 0
+  m_Name: ZoneFeedbackUI
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &42177436
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 42177435}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1277000308}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &42177437
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 42177435}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 425d4f8118fe4001850f743a73e096e8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Script2.GridSystem.ZoneFeedbackUI
+  _zoneManager: {fileID: 1277000307}
 --- !u!1 &51437584
 GameObject:
   m_ObjectHideFlags: 0
@@ -1788,6 +1833,54 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1227153135}
   m_CullTransparentMesh: 1
+--- !u!1 &1277000306
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1277000308}
+  - component: {fileID: 1277000307}
+  m_Layer: 0
+  m_Name: ZoneManager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1277000307
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1277000306}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a12f8233002b4c948c07663595581d97, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Script2.GridSystem.ZoneManager
+  _economyManager: {fileID: 1159254679}
+  _purchaseSignPrefab: {fileID: 6448893105892614570, guid: fe3a34deab274f940a41e72258ce4f28, type: 3}
+  _zoneSize: 20
+--- !u!4 &1277000308
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1277000306}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 14.08195, y: 43.39951, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children:
+  - {fileID: 42177436}
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1444562801
 GameObject:
   m_ObjectHideFlags: 0
@@ -2437,6 +2530,7 @@ MonoBehaviour:
   - {fileID: 11400000, guid: b31f29df2c2a59846a1f4d14358d298c, type: 2}
   - {fileID: 11400000, guid: b74af63c351ff7f41979df9109023ccf, type: 2}
   _economyManager: {fileID: 1159254679}
+  _zoneManager: {fileID: 1277000307}
 --- !u!4 &1770461062
 Transform:
   m_ObjectHideFlags: 0
@@ -3148,6 +3242,7 @@ MonoBehaviour:
   _tilePrefab: {fileID: 8695224214221710384, guid: f49fb40436735a143a2c0214f97a15d6, type: 3}
   _purchaseSignPrefab: {fileID: 6448893105892614570, guid: fe3a34deab274f940a41e72258ce4f28, type: 3}
   _economyManager: {fileID: 1159254679}
+  _zoneManager: {fileID: 1277000307}
 --- !u!4 &2027393991
 Transform:
   m_ObjectHideFlags: 0
@@ -3248,6 +3343,7 @@ SceneRoots:
   m_Roots:
   - {fileID: 369339604}
   - {fileID: 2027393991}
+  - {fileID: 1277000308}
   - {fileID: 1770461062}
   - {fileID: 1159254680}
   - {fileID: 2053819371}

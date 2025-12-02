@@ -15,6 +15,7 @@ namespace Script2.ResourceSystem
         [SerializeField] private GridManager _gridManager;
         [SerializeField] private List<ResourceDataSO> _resourceTypes;
         [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private ZoneManager _zoneManager;
         
         private Dictionary<Vector2Int, GameObject> _activeResources = new();
         private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
@@ -110,7 +111,7 @@ namespace Script2.ResourceSystem
 
         bool IsInsideCentralZone(int x, int y)
         {
-            int half = _gridManager.GetZoneSize() / 2;
+            int half = _zoneManager.ZoneSize / 2;
             return x >= _gridManager.width / 2 - half &&
                    x < _gridManager.width / 2 + half &&
                    y >= _gridManager.height / 2 - half &&
@@ -122,7 +123,7 @@ namespace Script2.ResourceSystem
             var tile = _gridManager.GetTile(pos.x, pos.y);
             return tile != null
                    && !_activeResources.ContainsKey(pos)
-                   && !_gridManager.occupiedTiles.ContainsKey(pos)
+                   && !_zoneManager.occupiedTiles.ContainsKey(pos)
                    && tile.State != TileState.Unlocked;
         }
 
@@ -140,7 +141,7 @@ namespace Script2.ResourceSystem
             //Debug.Log($"Resource {data.name} created at {tile.name}");
 
             _activeResources[gridPos] = resource;
-            _gridManager.occupiedTiles.Add(gridPos, resource);
+            _zoneManager.occupiedTiles.Add(gridPos, resource);
 
             var ri = resource.GetComponent<ResourceInstance>();
             if (!ri) return;
@@ -182,7 +183,7 @@ namespace Script2.ResourceSystem
             if (_activeResources.TryGetValue(pos, out GameObject go) && go != null)
                 Destroy(go);
             
-            _gridManager.occupiedTiles.Remove(pos);
+            _zoneManager.occupiedTiles.Remove(pos);
             _activeResources.Remove(pos);
 
             Destroy(go);
@@ -217,7 +218,7 @@ namespace Script2.ResourceSystem
                 $"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
 
             _activeResources[pos] = regenResource;
-            _gridManager.occupiedTiles.Add(pos, regenResource);
+            _zoneManager.occupiedTiles.Add(pos, regenResource);
 
             if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
             {
@@ -235,7 +236,7 @@ namespace Script2.ResourceSystem
 
             //Elimino risorsa di regen
             _activeResources.TryGetValue(pos, out GameObject go);
-            _gridManager.occupiedTiles.Remove(pos);
+            _zoneManager.occupiedTiles.Remove(pos);
             _activeResources.Remove(pos);
             Destroy(go);
 
@@ -269,7 +270,7 @@ namespace Script2.ResourceSystem
             foreach (var resource in _activeResources)
             {
                 //Libero la cella occupata 
-                _gridManager.occupiedTiles.Remove(resource.Key);
+                _zoneManager.occupiedTiles.Remove(resource.Key);
 
                 // Distruggo il GameObject
                 Destroy(resource.Value);
