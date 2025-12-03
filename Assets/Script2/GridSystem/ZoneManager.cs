@@ -72,34 +72,32 @@ namespace Script2.GridSystem
 
         public void PurchaseZone(Vector2Int zoneCoord)
         {
-            if (_zones.TryGetValue(zoneCoord, out Zone zone) && !zone.isUnlocked)
+            if (!_zones.TryGetValue(zoneCoord, out var zone) || zone.isUnlocked) return;
+            if (_economyManager && _economyManager.CanAfford(_zoneCost))
             {
-                if (_economyManager != null && _economyManager.CanAfford(_zoneCost))
+                _economyManager.SpendResources(_zoneCost);
+                zone.isUnlocked = true;
+                foreach (var tile in zone.tiles)
                 {
-                    _economyManager.SpendResources(_zoneCost);
-                    zone.isUnlocked = true;
-                    foreach (var tile in zone.tiles)
-                    {
-                        if (tile != null) tile.SetState(TileState.Unlocked);
-                    }
-                    if (zone.purchaseSign != null)
-                    {
-                        Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-                        occupiedTiles.Remove(signGridPos);
-                        Destroy(zone.purchaseSign);
-                    }
-                    Debug.Log($"Zona sbloccata in {zoneCoord}");
-                    OnZoneUnlocked?.Invoke(zoneCoord);
+                    if (tile) tile.SetState(TileState.Unlocked);
                 }
-                else if (_economyManager != null)
+                if (zone.purchaseSign)
                 {
-                    Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
-                    OnZonePurchaseFailed?.Invoke(zoneCoord);
+                    Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+                    occupiedTiles.Remove(signGridPos);
+                    Destroy(zone.purchaseSign);
                 }
-                else
-                {
-                    Debug.LogError("GameEconomyManager instance not found. Cannot check/spend resources.");
-                }
+                Debug.Log($"Zona sbloccata in {zoneCoord}");
+                OnZoneUnlocked?.Invoke(zoneCoord);
+            }
+            else if (_economyManager)
+            {
+                Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
+                OnZonePurchaseFailed?.Invoke(zoneCoord);
+            }
+            else
+            {
+                Debug.LogError("GameEconomyManager instance not found. Cannot check/spend resources.");
             }
         }
 

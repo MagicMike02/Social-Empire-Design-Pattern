@@ -27,11 +27,11 @@ namespace Script2.ResourceSystem
         
         void Start()
         {
-            if (_economyManager == null)
+            if (!_economyManager)
             {
                 Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
-            if (_resourceSpawner == null)
+            if (!_resourceSpawner)
             {
                 Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
@@ -45,8 +45,7 @@ namespace Script2.ResourceSystem
             _activeResources[pos] = instance;
             _zoneManager.occupiedTiles.Add(pos, instance);
             var ri = instance.GetComponent<ResourceInstance>();
-            if (ri != null)
-                ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this); // Passa il ResourceDataSO corretto
+            if (ri) ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this); // Passa il ResourceDataSO corretto
             OnResourceGenerated?.Invoke(type, pos);
         }
 
@@ -63,10 +62,10 @@ namespace Script2.ResourceSystem
 
         private void RemoveResource(Vector2Int pos)
         {
-            if (_activeResources.TryGetValue(pos, out GameObject go) && go != null)
+            if (_activeResources.TryGetValue(pos, out var go) && go)
             {
                 var data = GetResourceDataForInstance(go);
-                if (_poolManager != null && data != null)
+                if (_poolManager && data)
                     _poolManager.ReturnToPool(go, data);
                 else
                     Destroy(go);
@@ -78,7 +77,7 @@ namespace Script2.ResourceSystem
         // Refactoring: UpdateEconomy ora è un metodo di istanza e usa la dipendenza iniettata
         private void UpdateEconomy(ResourceDataSO data)
         {
-            if (_economyManager != null)
+            if (_economyManager)
             {
                 _economyManager.AddResource(data.resourceType, data.collectedAmount);
             }
@@ -91,11 +90,11 @@ namespace Script2.ResourceSystem
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
             Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
-            if (tile == null) return;
+            if (!tile) return;
 
             Vector3 worldPos = tile.transform.position;
             GameObject regenPrefab = data._regenPrefab;
-            if (regenPrefab == null) return;
+            if (!regenPrefab) return;
 
             //Instanzio il prefab di regen
             GameObject regenResource = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
@@ -124,7 +123,7 @@ namespace Script2.ResourceSystem
             _activeResources.TryGetValue(pos, out GameObject go);
             _zoneManager.occupiedTiles.Remove(pos);
             _activeResources.Remove(pos);
-            if (_poolManager != null && data != null)
+            if (_poolManager && data)
                 _poolManager.ReturnToPool(go, data);
             else
                 Destroy(go);
@@ -149,6 +148,8 @@ namespace Script2.ResourceSystem
             }
 
             _regenerationCoroutines.Clear();
+            if (_resourceSpawner != null)
+                _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
         }
 
         #region editor
@@ -182,9 +183,7 @@ namespace Script2.ResourceSystem
         private ResourceDataSO GetResourceDataForInstance(GameObject go)
         {
             var ri = go.GetComponent<ResourceInstance>();
-            if (ri != null)
-                return _resourceSpawner.GetResourceDataSO(ri.Data.resourceType);
-            return null;
+            return ri != null ? _resourceSpawner.GetResourceDataSO(ri.Data.resourceType) : null;
         }
     }
 }

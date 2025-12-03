@@ -38,7 +38,7 @@ namespace Script2.ResourceSystem.ResourceUI
 
         private void OnDisable()
         {
-            if (_economyManager != null)
+            if (_economyManager)
             {
                 _economyManager.OnResourceAmountChanged -= UpdateResourceUI;
             }
@@ -49,19 +49,17 @@ namespace Script2.ResourceSystem.ResourceUI
         {
             foreach (var element in uiElements)
             {
-                if (element.resourceType == type)
+                if (element.resourceType != type) continue;
+                if (element.amountText)
                 {
-                    if (element.amountText != null)
-                    {
-                        element.amountText.text = newAmount.ToString();
-                    }
-
-                    if (element.iconImage != null && resourceIcons != null)
-                    {
-                        element.iconImage.sprite = resourceIcons.GetIcon(type);
-                    }
-                    break;
+                    element.amountText.text = newAmount.ToString();
                 }
+
+                if (element.iconImage && resourceIcons)
+                {
+                    element.iconImage.sprite = resourceIcons.GetIcon(type);
+                }
+                break;
             }
         }
     }

@@ -66,12 +66,12 @@ namespace Script2.GridSystem
         }
 
 
-        void OnMouseEnter()
+        private void OnMouseEnter()
         {
             _hovered = true;
         }
 
-        void OnMouseExit()
+        private void OnMouseExit()
         {
             _hovered = false;
         }

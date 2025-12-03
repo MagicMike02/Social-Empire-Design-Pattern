@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using Script2.ResourceSystem.Enums;
 using UnityEngine;
 
@@ -95,7 +96,7 @@ namespace Script2.Economy
             return _resources.GetValueOrDefault(type, 0);
         }
 
-        public bool CanAfford(ResourceType type, int amount)
+        private bool CanAfford(ResourceType type, int amount)
         {
             if (amount < 0) return true;
             return _resources.ContainsKey(type) && _resources[type] >= amount;
@@ -103,13 +104,7 @@ namespace Script2.Economy
 
         public bool CanAfford(Dictionary<ResourceType, int> costs)
         {
-			if (costs == null) return true;
-			foreach (var cost in costs)
-			{
-				if (!CanAfford(cost.Key, cost.Value))
-					return false;
-			}
-			return true;
-		}
+            return costs == null || costs.All(cost => CanAfford(cost.Key, cost.Value));
+        }
     }
 }
