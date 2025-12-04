@@ -23,7 +23,7 @@ namespace Script2.ResourceSystem.ResourceUI
 
         private void Start()
         {
-            if (_economyManager == null)
+            if (!_economyManager || !resourceIcons || uiElements == null)
             {
                 Debug.LogError("[ResourceDisplayUI] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
                 return;
@@ -36,7 +36,7 @@ namespace Script2.ResourceSystem.ResourceUI
             }
         }
 
-        private void OnDisable()
+        private void OnDestroy()
         {
             if (_economyManager)
             {

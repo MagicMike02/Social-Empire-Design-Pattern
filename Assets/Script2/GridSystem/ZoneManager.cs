@@ -81,7 +81,7 @@ namespace Script2.GridSystem
                 {
                     if (tile) tile.SetState(TileState.Unlocked);
                 }
-                if (zone.purchaseSign)
+                if (zone.purchaseSign) 
                 {
                     Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
                     occupiedTiles.Remove(signGridPos);
