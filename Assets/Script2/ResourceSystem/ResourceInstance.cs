@@ -25,7 +25,7 @@ namespace Script2.ResourceSystem
             _data = data;
             _gridPosition = gridPos;
             _manager = manager;
-            
+            tag = "Resources";
             SetSortingOrder();
         }
 

@@ -1,4 +1,4 @@
-﻿using TMPro;
+﻿﻿using TMPro;
 using UnityEngine;
 
 namespace Script2.GridSystem
@@ -13,9 +13,16 @@ namespace Script2.GridSystem
         [SerializeField] private Color _buyableColor = Color.green; //verde verde;
         [SerializeField] private Color _unlockedColor = Color.white;//verde normale;
         
-        public TileState State { get; private set; }
+        public TileState State { private set; get; }
         
         private SpriteRenderer _renderer;
+
+        [SerializeField] private GameObject _buildingInstance;
+        public GameObject BuildingInstance => _buildingInstance;
+
+        public bool HasBuilding => _buildingInstance != null;
+
+        public event System.Action<Tile> OnBuildingPlaced;
 
         void Awake()
         {
@@ -29,6 +36,8 @@ namespace Script2.GridSystem
                 _renderer.material = new Material(Shader.Find("Sprites/Default"));
                 _renderer.color = _normalColor;
                 SetState(TileState.Locked); // Inizialmente bloccato
+                _renderer.sortingLayerName = "Tiles";
+                tag = "Tiles";
             }
             
         }
@@ -90,7 +99,41 @@ namespace Script2.GridSystem
                 // Logica per sbloccare tile (ad esempio, aggiungi monete, notifiche, ecc.)
             }
         }
+        public void PlaceBuilding(GameObject buildingPrefab)
+        {
+            if (State != TileState.Unlocked || HasBuilding)
+                return;
+            var t = transform;
+            _buildingInstance = Instantiate(buildingPrefab, t.position, Quaternion.identity, t);
+            OnBuildingPlaced?.Invoke(this);
+        }
 
+        public void AssignBuilding(GameObject building) => _buildingInstance = building;
+
+        public void PreviewTint(Color color)
+        {
+            if (_renderer != null)
+            {
+                _renderer.color = color;
+            }
+        }
+
+        public void ResetTint()
+        {
+            if (_renderer == null) return;
+            switch (State)
+            {
+                case TileState.Locked:
+                    _renderer.color = _lockedColor;
+                    break;
+                case TileState.Buyable:
+                    _renderer.color = _buyableColor;
+                    break;
+                case TileState.Unlocked:
+                    _renderer.color = _unlockedColor;
+                    break;
+            }
+        }
     }
     
     

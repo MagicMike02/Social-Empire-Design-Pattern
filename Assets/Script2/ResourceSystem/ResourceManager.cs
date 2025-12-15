@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using Script2.GridSystem;
@@ -10,7 +11,7 @@ namespace Script2.ResourceSystem
     public class ResourceManager : MonoBehaviour
     {
         [SerializeField] private TileManager _tileManager;
-        [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private Economy.GameEconomyManager _economyManager;
         [SerializeField] private ZoneManager _zoneManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
         [SerializeField] private ResourcePoolManager _poolManager;
@@ -19,22 +20,17 @@ namespace Script2.ResourceSystem
         private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
 
         #region Events
-        public event System.Action<ResourceType, int, Vector2Int> OnResourceCollected;
-        public event System.Action<ResourceType, Vector2Int> OnResourceGenerated;
-        public event System.Action<Vector2Int, float> OnRegenerationStarted;
-        public event System.Action<Vector2Int, ResourceType> OnResourceRegenerated;
+        public event Action<ResourceType, int, Vector2Int> OnResourceCollected;
+        public event Action<ResourceType, Vector2Int> OnResourceGenerated;
+        public event Action<Vector2Int, float> OnRegenerationStarted;
+        public event Action<Vector2Int, ResourceType> OnResourceRegenerated;
         #endregion Events
         
         void Start()
         {
-            if (!_economyManager)
-            {
-                Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
-            }
-            if (!_resourceSpawner)
-            {
-                Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
-            }
+            if (!_economyManager) Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            if (!_resourceSpawner) Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            
             _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
             // Genera le risorse appena i tile sono presenti
             _resourceSpawner.GenerateAllResources();

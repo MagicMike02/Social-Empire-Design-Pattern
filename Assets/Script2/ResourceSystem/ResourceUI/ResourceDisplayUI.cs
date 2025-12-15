@@ -19,7 +19,7 @@ namespace Script2.ResourceSystem.ResourceUI
 
         [SerializeField] private List<ResourceUIElement> uiElements;
         [SerializeField] private ResourceIconsSO resourceIcons; // Riferimento all'asset ScriptableObject delle icone
-        [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private Economy.GameEconomyManager _economyManager;
 
         private void Start()
         {
