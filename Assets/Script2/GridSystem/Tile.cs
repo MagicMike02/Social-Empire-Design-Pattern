@@ -1,4 +1,4 @@
-﻿﻿using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
 namespace Script2.GridSystem
@@ -16,11 +16,13 @@ namespace Script2.GridSystem
         public TileState State { private set; get; }
         
         private SpriteRenderer _renderer;
+        private Color _savedColorBeforePreview; // Salva colore prima della preview
+        private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
 
         [SerializeField] private GameObject _buildingInstance;
         public GameObject BuildingInstance => _buildingInstance;
 
-        public bool HasBuilding => _buildingInstance != null;
+        private bool HasBuilding => _buildingInstance != null;
 
         public event System.Action<Tile> OnBuildingPlaced;
 
@@ -33,9 +35,8 @@ namespace Script2.GridSystem
             }
             else
             {
-                _renderer.material = new Material(Shader.Find("Sprites/Default"));
                 _renderer.color = _normalColor;
-                SetState(TileState.Locked); // Inizialmente bloccato
+                SetState(TileState.Locked); 
                 _renderer.sortingLayerName = "Tiles";
                 tag = "Tiles";
             }
@@ -46,24 +47,33 @@ namespace Script2.GridSystem
         {
             name = $"Tile_{gridPosition.x}_{gridPosition.y}";
             transform.position = worldPosition;
+            
+            // Imposta sorting order per rendering isometrico corretto
+            if (_renderer != null)
+            {
+                _renderer.sortingOrder = sortingOrder;
+            }
 
-            _coordinatesText.text = $"{(int)gridPosition.x},{(int)gridPosition.y}";
-            _coordinatesText.sortingOrder = sortingOrder + 1; //sopra il Tile
-            _renderer.sortingOrder = sortingOrder;
+            // Text sopra il tile per debug coordinate
+            if (_coordinatesText != null)
+            {
+                _coordinatesText.text = $"{(int)gridPosition.x},{(int)gridPosition.y}";
+                _coordinatesText.sortingOrder = sortingOrder + 1;
+            }
 
             State = TileState.Locked;
         }
 
         void OnMouseEnter()
         {
+            if (_isShowingPreview) return;
             _renderer.color = _hoverColor;
-            //Debug.Log($"Tile OnMouseEnter: {name}");
         }
 
         void OnMouseExit()
         {
+            if (_isShowingPreview) return;
             _renderer.color = State == TileState.Unlocked ? _normalColor : _lockedColor;
-            //Debug.Log($"Tile OnMouseExit: {name}");
         }
         
         void OnMouseDown()
@@ -96,7 +106,6 @@ namespace Script2.GridSystem
             if (State == TileState.Buyable)
             {
                 SetState(TileState.Unlocked);
-                // Logica per sbloccare tile (ad esempio, aggiungi monete, notifiche, ecc.)
             }
         }
         public void PlaceBuilding(GameObject buildingPrefab)
@@ -112,26 +121,33 @@ namespace Script2.GridSystem
 
         public void PreviewTint(Color color)
         {
-            if (_renderer != null)
+            if (_renderer == null) return;
+            if (!_isShowingPreview)
             {
-                _renderer.color = color;
+                _savedColorBeforePreview = _renderer.color;
             }
+            _isShowingPreview = true;
+            _renderer.color = color;
         }
 
         public void ResetTint()
         {
             if (_renderer == null) return;
-            switch (State)
+            if (_isShowingPreview)
             {
-                case TileState.Locked:
-                    _renderer.color = _lockedColor;
-                    break;
-                case TileState.Buyable:
-                    _renderer.color = _buyableColor;
-                    break;
-                case TileState.Unlocked:
-                    _renderer.color = _unlockedColor;
-                    break;
+                _renderer.color = _savedColorBeforePreview;
+                _isShowingPreview = false;
+            }
+            else
+            {
+                Color targetColor = State switch
+                {
+                    TileState.Locked => _lockedColor,
+                    TileState.Buyable => _buyableColor,
+                    TileState.Unlocked => _unlockedColor,
+                    _ => _normalColor
+                };
+                _renderer.color = targetColor;
             }
         }
     }

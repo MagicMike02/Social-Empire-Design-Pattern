@@ -1,4 +1,4 @@
-﻿﻿using Script2.Economy;
+﻿﻿﻿using Script2.Economy;
 using UnityEngine;
 using Script2.GridSystem;
 
@@ -50,5 +50,72 @@ namespace Script2.BuildingSystem
         public BuildingFactory Factory => _factory;
         public GameEconomyManager Economy => _economy;
         public Transform Root => _root;
+
+        #region SortingUtils (Consolidato)
+
+        /// <summary>
+        /// Applica sorting layer e order a un SpriteRenderer per visualizzazione isometrica corretta.
+        /// Formula: sortingOrder = -Y * 100 + baseOrder
+        /// </summary>
+        public static void ApplySorting(SpriteRenderer renderer, string layer, float yPosition, int baseOrder)
+        {
+            if (renderer == null) return;
+            
+            renderer.sortingLayerName = layer;
+            renderer.sortingOrder = Mathf.RoundToInt(-yPosition * 100f) + baseOrder;
+        }
+
+        /// <summary>
+        /// Imposta il colore di un SpriteRenderer con alpha specificata.
+        /// Utilizzato per le preview degli edifici.
+        /// </summary>
+        public static void SetGhostColor(SpriteRenderer renderer, Color color, float alpha)
+        {
+            if (renderer == null) return;
+            
+            var finalColor = color;
+            finalColor.a = Mathf.Clamp01(alpha);
+            renderer.color = finalColor;
+        }
+
+        #endregion
     }
+
+    #region BuildingEvents (Consolidato)
+
+    /// <summary>
+    /// Hub centralizzato per eventi del sistema Building.
+    /// NOTA: Gli eventi statici devono essere gestiti con cura per evitare memory leak.
+    /// Assicurarsi di disiccrivere gli handler in OnDestroy/OnDisable.
+    /// </summary>
+    public static class BuildingEvents
+    {
+        /// <summary>
+        /// Invocato quando un edificio viene selezionato dall'utente.
+        /// </summary>
+        public static System.Action<Building> OnBuildingSelected;
+        
+        /// <summary>
+        /// Invocato quando un edificio viene distrutto/rimosso dalla scena.
+        /// </summary>
+        public static System.Action<Building> OnBuildingDestroyed;
+        
+        /// <summary>
+        /// Invocato quando un edificio viene piazzato con successo sulla griglia.
+        /// </summary>
+        public static System.Action<Building> OnBuildingPlaced;
+
+        /// <summary>
+        /// Pulisce tutti gli eventi sottoscritti.
+        /// ATTENZIONE: Usare solo per cleanup globale (es. cambio scena, reset).
+        /// </summary>
+        public static void ClearAllEvents()
+        {
+            OnBuildingSelected = null;
+            OnBuildingDestroyed = null;
+            OnBuildingPlaced = null;
+        }
+    }
+
+    #endregion
 }

@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿﻿﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Script2.ResourceSystem.Enums;
@@ -24,7 +24,17 @@ namespace Script2.Economy
             if (!Instance)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject); 
+                
+                // DontDestroyOnLoad solo se è root GameObject
+                if (transform.parent == null)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
+                else
+                {
+                    // Se ha un parent, applica a root
+                    DontDestroyOnLoad(transform.root.gameObject);
+                }
             }
             else
             {
@@ -33,6 +43,7 @@ namespace Script2.Economy
                 return;
             }
 
+            // Inizializza risorse
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
                 if (!_resources.ContainsKey(type)) _resources[type] = 0;

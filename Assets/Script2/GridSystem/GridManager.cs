@@ -1,5 +1,4 @@
-﻿﻿using Script2.Economy;
-using Script2.ResourceSystem;
+﻿﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
 using System.Collections.Generic;
@@ -20,6 +19,7 @@ namespace Script2.GridSystem
 
         private readonly List<Vector2Int> _lastPreviewCells = new();
         private readonly HashSet<Vector2Int> _occupiedCells = new();
+        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new(); // Cache tile preview per performance
 
         private void Awake()
         {
@@ -27,7 +27,17 @@ namespace Script2.GridSystem
             if (Instance == null)
             {
                 Instance = this;
-                DontDestroyOnLoad(gameObject);
+                
+                // DontDestroyOnLoad solo se è root GameObject
+                if (transform.parent == null)
+                {
+                    DontDestroyOnLoad(gameObject);
+                }
+                else
+                {
+                    // Se ha un parent, applica a root
+                    DontDestroyOnLoad(transform.root.gameObject);
+                }
             }
             else if (Instance != this)
             {
@@ -139,36 +149,80 @@ namespace Script2.GridSystem
 
         public void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid)
         {
-            // reset celle precedenti
-            if (_lastPreviewCells.Count > 0)
+            // Cache riferimento griglia per performance
+            var grid = _tileManager?.GetGrid();
+            if (grid == null) return;
+
+            var newPreviewCells = new List<Vector2Int>();
+            
+            // richiesta di clear-only
+            if (width <= 0 || height <= 0)
             {
+                // Reset solo celle precedenti usando cache
                 foreach (var p in _lastPreviewCells)
                 {
-                    var tilePrev = _tileManager.GetGrid().GetValue(p.x, p.y);
-                    if (tilePrev != null) tilePrev.ResetTint();
+                    if (_previewTileCache.TryGetValue(p, out var tile))
+                    {
+                        tile?.ResetTint();
+                    }
                 }
                 _lastPreviewCells.Clear();
+                _previewTileCache.Clear();
+                return;
             }
 
-            // richiesta di clear-only
-            if (width <= 0 || height <= 0) return;
-
-            var color = isValid ? new Color(0f, 1f, 0f, 0.4f) : new Color(1f, 0f, 0f, 0.4f);
+            // Calcola nuove celle da evidenziare
             for (int dx = 0; dx < width; dx++)
             {
                 for (int dy = 0; dy < height; dy++)
                 {
                     int x = originCell.x + dx;
                     int y = originCell.y + dy;
-                    if (x < 0 || y < 0 || x >= _tileManager.Width || y >= _tileManager.Height) continue;
-                    var tile = _tileManager.GetGrid().GetValue(x, y);
-                    if (tile != null)
+                    if (x >= 0 && y >= 0 && x < _tileManager.Width && y < _tileManager.Height)
                     {
-                        tile.PreviewTint(color);
-                        _lastPreviewCells.Add(new Vector2Int(x, y));
+                        newPreviewCells.Add(new Vector2Int(x, y));
                     }
                 }
             }
+
+            // Reset SOLO celle che non sono più nella preview
+            foreach (var p in _lastPreviewCells)
+            {
+                if (!newPreviewCells.Contains(p))
+                {
+                    if (_previewTileCache.TryGetValue(p, out var tile))
+                    {
+                        tile?.ResetTint();
+                        _previewTileCache.Remove(p);
+                    }
+                }
+            }
+
+            // Colori PURI che sostituiscono completamente il tile (no alpha, no moltiplicazione)
+            var greenPreview = new Color(0f, 1f, 0f, 1f); // Verde puro opaco
+            var redPreview = new Color(1f, 0f, 0f, 1f);   // Rosso puro opaco
+            
+            var color = isValid ? greenPreview : redPreview;
+            
+            // Applica colore SOLO alle nuove celle usando cache
+            foreach (var p in newPreviewCells)
+            {
+                // Usa cache o recupera e cachea
+                if (!_previewTileCache.TryGetValue(p, out var tile))
+                {
+                    tile = grid.GetValue(p.x, p.y);
+                    if (tile != null)
+                    {
+                        _previewTileCache[p] = tile;
+                    }
+                }
+                
+                tile?.PreviewTint(color);
+            }
+
+            // Aggiorna cache celle
+            _lastPreviewCells.Clear();
+            _lastPreviewCells.AddRange(newPreviewCells);
         }
     }
 }

@@ -12,12 +12,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0b0e57321f24816995c868a0e13ba21, type: 3}
   m_Name: BuildingConfig
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.BuildingConfigSO
-  Prefab: {fileID: 0}
+  Prefab: {fileID: 7937458878421881128, guid: 88b1dcb950c9b6347b52670fb05ffaad, type: 3}
   SortingLayer: OnTiles
   BaseSortingOrder: 0
-  Width: 1
-  Height: 1
-  Costs: []
+  Width: 2
+  Height: 2
+  Costs:
+  - Type: 3
+    Amount: 1
   ValidColor: {r: 0, g: 1, b: 0, a: 0.5}
   InvalidColor: {r: 1, g: 0, b: 0, a: 0.5}
   GhostAlpha: 0.6
