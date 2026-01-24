@@ -133,7 +133,7 @@ namespace Script2.GridSystem
                 foreach (var p in _lastPreviewCells)
                 {
                     if (!_previewTileCache.TryGetValue(p, out var tile)) continue;
-                    
+
                     if (tile) tile.ResetTint();
                 }
                 _lastPreviewCells.Clear();
@@ -202,7 +202,7 @@ namespace Script2.GridSystem
                 var tile = _tileManager.GetGrid().GetValue(cell.x, cell.y);
                 if (tile)
                 {
-                    tile.ResetTint();  
+                    tile.ResetTint();
                 }
             }
             _lastPreviewCells.Clear();
