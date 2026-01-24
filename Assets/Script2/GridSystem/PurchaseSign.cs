@@ -3,10 +3,11 @@ using JetBrains.Annotations;
 using Script2.Economy;
 using Script2.ResourceSystem.Enums;
 using UnityEngine;
+using Script2.InputSystem;
 
 namespace Script2.GridSystem
 {
-    public class PurchaseSign : MonoBehaviour
+    public class PurchaseSign : MonoBehaviour, IHoverable
     {
         private GameEconomyManager _economyManager;
         private ZoneManager _zoneManager;
@@ -79,6 +80,45 @@ namespace Script2.GridSystem
             }
         }
 
+        public void OnHoverEnter()
+        {
+            _hovered = true;
+        }
+
+        public void OnHoverExit()
+        {
+            _hovered = false;
+        }
+
+        public void OnClick()
+        {
+            if (_purchaseCost == null)
+            {
+                _zoneManager.PurchaseZone(_zoneCoord);
+                return;
+            }
+
+            if (_economyManager == null)
+            {
+                Debug.LogWarning("GameEconomyManager non è stato assegnato! Chiama Setup() dopo l'instanziazione del prefab.");
+                return;
+            }
+
+            // Zone con costo
+            if (_economyManager.CanAfford(_purchaseCost))
+            {
+                _zoneManager.PurchaseZone(_zoneCoord);
+            }
+            else
+            {
+                Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
+            }
+        }
+
+        public void OnRightClick(Vector3 worldPosition)
+        {
+            // Future: right-click commands if needed
+        }
 
         private void OnMouseEnter()
         {
