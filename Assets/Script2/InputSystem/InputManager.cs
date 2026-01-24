@@ -27,8 +27,9 @@ namespace Script2.InputSystem
         private void Update()
         {
             var mousePos = Input.mousePosition;
-            // Optional micro-optimization: skip if mouse hasn't moved
-            // if (mousePos == _lastMousePos) return;
+            
+            // micro-optimization: skip if mouse hasn't moved
+            if (mousePos == _lastMousePos) return;
             _lastMousePos = mousePos;
 
             // Screen → Ray
@@ -60,17 +61,24 @@ namespace Script2.InputSystem
                 _lastHovered?.OnHoverExit();
                 target?.OnHoverEnter();
                 _lastHovered = target;
+                
+                if (target != null)
+                    Debug.Log($"[InputManager] Hovering: {target.GetType().Name}");
             }
 
             // Clicks
             if (Input.GetMouseButtonDown(0))
             {
                 target?.OnClick();
+                if (target != null)
+                    Debug.Log($"[InputManager] Click on {target.GetType().Name}");
             }
             if (Input.GetMouseButtonDown(1))
             {
                 // Right-click passes precise world position (used for commands)
                 target?.OnRightClick(worldPos);
+                if (target != null)
+                    Debug.Log($"[InputManager] RightClick on {target.GetType().Name} at {worldPos}");
             }
         }
 

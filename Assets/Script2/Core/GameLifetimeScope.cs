@@ -1,4 +1,4 @@
-﻿﻿using UnityEngine;
+﻿﻿﻿using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using Script2.BuildingSystem;
@@ -6,6 +6,7 @@ using Script2.Economy;
 using Script2.GridSystem;
 using Script2.ResourceSystem;
 using Script2.Common;
+using Script2.InputSystem;
 
 namespace Script2.Core
 {
@@ -57,6 +58,9 @@ namespace Script2.Core
             RegisterIfExists<GenericPreviewSystem>(builder);
             RegisterIfExists<BuildingPlacer>(builder);
             RegisterIfExists<KeyboardPlacementInput>(builder);
+            
+            // INPUT SYSTEM
+            RegisterIfExists<InputManager>(builder);
             
             // CAMERA
             var camera = Camera.main;
