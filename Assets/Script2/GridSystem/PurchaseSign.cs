@@ -56,13 +56,9 @@ namespace Script2.GridSystem
 
         private void OnMouseDown()
         {
-           
-            if (_purchaseCost == null || _purchaseCost.Count == 0)
+            if (_purchaseCost == null)
             {
                 _zoneManager.PurchaseZone(_zoneCoord);
-                #if UNITY_EDITOR
-                Debug.Log("TEST: Zona sbloccata senza costi!");
-                #endif
                 return;
             }
 

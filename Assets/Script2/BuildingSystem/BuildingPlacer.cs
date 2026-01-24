@@ -1,20 +1,43 @@
 ﻿using UnityEngine;
 using Script2.Common;
+using VContainer;
 
 namespace Script2.BuildingSystem
 {
     /// <summary>
     /// Gestisce il processo di piazzamento degli edifici con preview visiva e validazione in tempo reale.
-    /// Usa GenericPreviewSystem (consolidato) per visualizzazione del preview.
+    /// REFACTORED: Usa Dependency Injection (VContainer) invece di Singleton pattern.
     /// </summary>
     public sealed class BuildingPlacer : MonoBehaviour
     {
-        #region Fields
+        #region Dependencies (Injected)
         
-        [Header("Dependencies")]
-        [SerializeField] private BuildingManager _manager;
-        [SerializeField] private Camera _camera;
-        [SerializeField] private GenericPreviewSystem _previewSystem; 
+        private BuildingManager _manager;
+        private Camera _camera;
+        private GenericPreviewSystem _previewSystem;
+        private BuildingEventBus _eventBus;
+        
+        [Inject]
+        public void Construct(
+            BuildingManager manager,
+            Camera mainCamera, 
+            GenericPreviewSystem previewSystem,
+            BuildingEventBus eventBus)
+        {
+            _manager = manager;
+            _camera = mainCamera;
+            _previewSystem = previewSystem;
+            _eventBus = eventBus;
+            
+            // Debug: Verifica dipendenze iniettate
+            Debug.Log($"[BuildingPlacer] Construct() called:");
+            Debug.Log($"  - BuildingManager: {(_manager != null ? "✅" : "❌ NULL")}");
+            Debug.Log($"  - Camera: {(_camera != null ? "✅" : "❌ NULL")}");
+            Debug.Log($"  - GenericPreviewSystem: {(_previewSystem != null ? "✅" : "❌ NULL")}");
+            Debug.Log($"  - BuildingEventBus: {(_eventBus != null ? "✅" : "❌ NULL")}");
+        }
+        
+        #endregion 
 
         [Header("State (Debug Only)")]
         [SerializeField] private BuildingConfigSO _selectedConfig;
@@ -24,7 +47,7 @@ namespace Script2.BuildingSystem
         private Vector3Int _lastCell = Vector3Int.one * -1000;
         private bool _lastValidState = true;
         
-        #endregion
+        
 
         #region Properties
         
@@ -37,14 +60,6 @@ namespace Script2.BuildingSystem
 
         #region Unity Lifecycle
         
-        private void Awake()
-        {
-            if (_manager == null) _manager = GetComponent<BuildingManager>();
-            if (_camera == null) _camera = Camera.main;
-            if (_previewSystem == null) _previewSystem = GetComponent<GenericPreviewSystem>(); 
-            
-            ValidateDependencies();
-        }
 
         private void Update()
         {
@@ -73,6 +88,8 @@ namespace Script2.BuildingSystem
         /// </summary>
         public void StartPlacing(BuildingConfigSO config)
         {
+            Debug.Log($"[BuildingPlacer] StartPlacing() chiamato con config: {(config != null ? config.name : "NULL")}");
+            
             if (config == null)
             {
                 Debug.LogWarning("[BuildingPlacer] Impossibile avviare placement: configurazione null.");
@@ -96,7 +113,7 @@ namespace Script2.BuildingSystem
             _lastCell = Vector3Int.one * -1000; // Reset cache
             _lastValidState = true;
             
-            Debug.Log($"[BuildingPlacer] Placement iniziato: {config.name}");
+            Debug.Log($"[BuildingPlacer] Placement iniziato: {config.name}, _isPlacing = {_isPlacing}");
         }
 
         /// <summary>
@@ -133,8 +150,8 @@ namespace Script2.BuildingSystem
 
             Debug.Log($"[BuildingPlacer] Edificio piazzato: {_selectedConfig.name} alla posizione {worldPos}");
             
-            // Notifica evento
-            BuildingEvents.OnBuildingPlaced?.Invoke(building);
+            // Notifica evento tramite EventBus (no static events!)
+            _eventBus.RaiseBuildingPlaced(building);
 
             // Termina placement
             CancelPlacement();
@@ -168,24 +185,7 @@ namespace Script2.BuildingSystem
         #endregion
 
         #region Private Methods
-        
-        private void ValidateDependencies()
-        {
-            if (_manager == null)
-            {
-                Debug.LogError("[BuildingPlacer] BuildingManager non assegnato! Il componente non funzionerà correttamente.");
-            }
 
-            if (_camera == null)
-            {
-                Debug.LogError("[BuildingPlacer] Camera non trovata! Assegna una camera nell'Inspector.");
-            }
-
-            if (_previewSystem == null)
-            {
-                Debug.LogError("[BuildingPlacer] GenericPreviewSystem non trovato! Aggiungi il componente GenericPreviewSystem allo stesso GameObject.");  // ← Aggiornato
-            }
-        }
 
         private void CleanupGridPreview()
         {

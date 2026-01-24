@@ -1,4 +1,4 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
@@ -30,10 +30,19 @@ namespace Script2.ResourceSystem
         {
             if (!_economyManager) Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             if (!_resourceSpawner) Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            if (!_tileManager) Debug.LogError("[ResourceManager] TileManager non assegnato nell'Inspector!");
+            if (!_zoneManager) Debug.LogError("[ResourceManager] ZoneManager non assegnato nell'Inspector!");
             
-            _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
-            // Genera le risorse appena i tile sono presenti
-            _resourceSpawner.GenerateAllResources();
+            if (_resourceSpawner != null)
+            {
+                _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
+                Debug.Log("[ResourceManager] Generazione risorse in corso...");
+                _resourceSpawner.GenerateAllResources();
+            }
+            else
+            {
+                Debug.LogError("[ResourceManager] Impossibile generare risorse: ResourceSpawner è NULL!");
+            }
         }
 
         private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
@@ -41,7 +50,17 @@ namespace Script2.ResourceSystem
             _activeResources[pos] = instance;
             _zoneManager.occupiedTiles.Add(pos, instance);
             var ri = instance.GetComponent<ResourceInstance>();
-            if (ri) ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this); // Passa il ResourceDataSO corretto
+            
+            if (ri)
+            {
+                ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this);
+                // Debug.Log($"[ResourceManager] Risorsa {type} inizializzata a {pos}");
+            }
+            else
+            {
+                Debug.LogError($"[ResourceManager] ResourceInstance component non trovato su {instance.name}!");
+            }
+            
             OnResourceGenerated?.Invoke(type, pos);
         }
 
@@ -95,8 +114,7 @@ namespace Script2.ResourceSystem
             //Instanzio il prefab di regen
             GameObject regenResource = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
                 Quaternion.identity, transform);
-            Debug.Log(
-                $"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
+            // Debug.Log($"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
 
             _activeResources[pos] = regenResource;
             _zoneManager.occupiedTiles.Add(pos, regenResource);
@@ -104,7 +122,7 @@ namespace Script2.ResourceSystem
             if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
             {
                 StopCoroutine(existingCoroutine);
-                Debug.LogWarning($"Stopped existing regeneration at {pos}");
+                // Debug.LogWarning($"Stopped existing regeneration at {pos}");
             }
 
             _regenerationCoroutines[pos] = StartCoroutine(RegenResourceAfterDelay(pos, data));
@@ -129,7 +147,7 @@ namespace Script2.ResourceSystem
             
             // Notifica agli osservatori che la risorsa è stata rigenerata
             OnResourceRegenerated?.Invoke(pos, data.resourceType);
-            Debug.Log($"--> Resource {data.name} regenerated at {pos}");
+            // Debug.Log($"--> Resource {data.name} regenerated at {pos}");
             
             // Cleanup della coroutine terminata
             _regenerationCoroutines.Remove(pos);
