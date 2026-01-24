@@ -1,11 +1,13 @@
 ﻿﻿﻿using Script2.Economy;
 using UnityEngine;
 using Script2.GridSystem;
+using VContainer;
 
 namespace Script2.BuildingSystem
 {
     /// <summary>
     /// Coordina BuildingFactory, ResourceManager e GridService per la gestione degli edifici.
+    /// REFACTORED: Usa Dependency Injection invece di Singleton pattern.
     /// Punto di accesso centralizzato per le dipendenze del sistema Building.
     /// </summary>
     public sealed class BuildingManager : MonoBehaviour
@@ -16,18 +18,17 @@ namespace Script2.BuildingSystem
         private IGridService _grid;
         private GameEconomyManager _economy;
 
+        [Inject]
+        public void Construct(GameEconomyManager economy, IGridService grid)
+        {
+            _economy = economy;
+            _grid = grid;
+        }
+
         private void Awake()
         {
             if (_root == null) _root = transform;
             if (_factory == null) _factory = GetComponent<BuildingFactory>();
-        }
-
-        private void Start()
-        {
-            _economy = GameEconomyManager.Instance;
-            _grid = GridManager.Instance;
-            
-            ValidateDependencies();
         }
 
         private void ValidateDependencies()
@@ -39,12 +40,12 @@ namespace Script2.BuildingSystem
             
             if (_economy == null)
             {
-                Debug.LogError("[BuildingManager] ResourceManager non disponibile! Assicurati che ResourceManager.Instance sia inizializzato prima di BuildingManager.");
+                Debug.LogError("[BuildingManager] GameEconomyManager non disponibile! VContainer dovrebbe averlo iniettato.");
             }
             
             if (_grid == null)
             {
-                Debug.LogError("[BuildingManager] IGridService non disponibile! Assicurati che GridManager.Instance sia presente in scena.");
+                Debug.LogError("[BuildingManager] IGridService non disponibile! VContainer dovrebbe averlo iniettato.");
             }
         }
 

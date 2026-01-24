@@ -181,7 +181,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0f13d77c5244bfe8a38ff29b4129f71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.KeyboardPlacementInput
-  _placer: {fileID: 13221524}
   _testBuildingConfig: {fileID: 11400000, guid: e0b1cad3bd6c26c4baf68ef23df90e91, type: 2}
 --- !u!114 &13221523
 MonoBehaviour:
@@ -207,9 +206,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de891235fa6643ccad4deb965435ca91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.BuildingPlacer
-  _manager: {fileID: 13221520}
-  _camera: {fileID: 369339603}
-  _previewSystem: {fileID: 13221525}
   _selectedConfig: {fileID: 11400000, guid: e0b1cad3bd6c26c4baf68ef23df90e91, type: 2}
   _isPlacing: 0
   _currentCell: {x: 0, y: 0, z: 0}
@@ -306,7 +302,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 425d4f8118fe4001850f743a73e096e8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.GridSystem.ZoneFeedbackUI
-  _zoneManager: {fileID: 1277000307}
 --- !u!1 &51437584
 GameObject:
   m_ObjectHideFlags: 0
@@ -959,6 +954,54 @@ MonoBehaviour:
   maxZoom: 30
   initialZoom: 5
   dragSpeed: 1
+--- !u!1 &381727346
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 381727348}
+  - component: {fileID: 381727347}
+  m_Layer: 0
+  m_Name: GameLifetimeScope
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &381727347
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 381727346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 49631e16469a4a638a97a834342e0c62, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Script2.Core.GameLifetimeScope
+  parentReference:
+    TypeName: 
+  autoRun: 0
+  autoInjectGameObjects: []
+--- !u!4 &381727348
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 381727346}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -0.89859, y: 45.50933, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &516471157
 GameObject:
   m_ObjectHideFlags: 0
@@ -1875,50 +1918,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1118941149}
   m_CullTransparentMesh: 1
---- !u!1 &1123323612
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1123323614}
-  - component: {fileID: 1123323613}
-  m_Layer: 0
-  m_Name: EventCleanUp
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!114 &1123323613
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1123323612}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9494450d543242fa805b2dc2edebfe93, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Script2.Common.EventCleanupManager
---- !u!4 &1123323614
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1123323612}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -8.05215, y: 51.07241, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 0}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1159254678
 GameObject:
   m_ObjectHideFlags: 0
@@ -2776,6 +2775,50 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1582459223}
   m_CullTransparentMesh: 1
+--- !u!1 &1593578483
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1593578485}
+  - component: {fileID: 1593578484}
+  m_Layer: 0
+  m_Name: BuildingEventBus
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1593578484
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1593578483}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: adc79b1c3828443097b191624cd58f13, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.BuildingEventBus
+--- !u!4 &1593578485
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1593578483}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: -14.25442, y: 45.33737, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1688931629
 GameObject:
   m_ObjectHideFlags: 0
@@ -3784,4 +3827,5 @@ SceneRoots:
   - {fileID: 226251873}
   - {fileID: 2053819371}
   - {fileID: 13221521}
-  - {fileID: 1123323614}
+  - {fileID: 1593578485}
+  - {fileID: 381727348}

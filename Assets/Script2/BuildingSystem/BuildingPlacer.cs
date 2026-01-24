@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using Script2.Common;
+using Script2.GridSystem;
 using VContainer;
 
 namespace Script2.BuildingSystem
@@ -16,25 +17,21 @@ namespace Script2.BuildingSystem
         private Camera _camera;
         private GenericPreviewSystem _previewSystem;
         private BuildingEventBus _eventBus;
+        private ZoneManager _zoneManager;
         
         [Inject]
         public void Construct(
             BuildingManager manager,
             Camera mainCamera, 
             GenericPreviewSystem previewSystem,
-            BuildingEventBus eventBus)
+            BuildingEventBus eventBus,
+            ZoneManager zoneManager)
         {
             _manager = manager;
             _camera = mainCamera;
             _previewSystem = previewSystem;
             _eventBus = eventBus;
-            
-            // Debug: Verifica dipendenze iniettate
-            Debug.Log($"[BuildingPlacer] Construct() called:");
-            Debug.Log($"  - BuildingManager: {(_manager != null ? "✅" : "❌ NULL")}");
-            Debug.Log($"  - Camera: {(_camera != null ? "✅" : "❌ NULL")}");
-            Debug.Log($"  - GenericPreviewSystem: {(_previewSystem != null ? "✅" : "❌ NULL")}");
-            Debug.Log($"  - BuildingEventBus: {(_eventBus != null ? "✅" : "❌ NULL")}");
+            _zoneManager = zoneManager;
         }
         
         #endregion 
@@ -88,8 +85,6 @@ namespace Script2.BuildingSystem
         /// </summary>
         public void StartPlacing(BuildingConfigSO config)
         {
-            Debug.Log($"[BuildingPlacer] StartPlacing() chiamato con config: {(config != null ? config.name : "NULL")}");
-            
             if (config == null)
             {
                 Debug.LogWarning("[BuildingPlacer] Impossibile avviare placement: configurazione null.");
@@ -112,8 +107,6 @@ namespace Script2.BuildingSystem
             _isPlacing = true;
             _lastCell = Vector3Int.one * -1000; // Reset cache
             _lastValidState = true;
-            
-            Debug.Log($"[BuildingPlacer] Placement iniziato: {config.name}, _isPlacing = {_isPlacing}");
         }
 
         /// <summary>
@@ -130,7 +123,7 @@ namespace Script2.BuildingSystem
             // Validazione finale
             if (!CanPlaceBuilding(_selectedConfig, _currentCell))
             {
-                Debug.Log("[BuildingPlacer] Conferma fallita: posizione non valida o risorse insufficienti.");
+                Debug.Log("[BuildingPlacer] ✗ Piazzamento fallito: posizione non valida o risorse insufficienti.");
                 return;
             }
 
@@ -178,8 +171,8 @@ namespace Script2.BuildingSystem
             
             _isPlacing = false;
             _selectedConfig = null;
-            
-            Debug.Log("[BuildingPlacer] Placement annullato.");
+
+            Debug.Log("[BuildingPlacer] ✓ Placement annullato");
         }
         
         #endregion
@@ -202,17 +195,18 @@ namespace Script2.BuildingSystem
                 return;
             }
 
-            // Conversione mouse → world → cell
+            // Conversione mouse → world
             var mousePos = Input.mousePosition;
             var worldPos = _camera.ScreenToWorldPoint(mousePos);
             worldPos.z = 0f;
 
+            // Converti a cella per validazione
             if (!_manager.Grid.TryWorldToCell(worldPos, out var cell))
             {
                 return;
             }
 
-
+            // Se cella non è cambiata, non aggiornare
             if (cell == _lastCell)
             {
                 return;
@@ -220,13 +214,13 @@ namespace Script2.BuildingSystem
 
             _currentCell = cell;
             
-            // Calcola posizione world snappata
+            // Calcola posizione world snappata per il building finale
             var snapPos = _manager.Grid.CellToWorld(cell);
 
             // Validazione
             bool isValid = CanPlaceBuilding(_selectedConfig, cell);
 
-            // Aggiorna preview edificio SOLO se cella cambiata (FIX GLITCH)
+            // Aggiorna preview edificio con posizione snappata
             bool updated = _previewSystem.UpdatePreviewIfCellChanged(cell, snapPos, isValid);
 
             // Se prima volta o cella cambiata, mostra preview
@@ -235,7 +229,7 @@ namespace Script2.BuildingSystem
                 _previewSystem.ShowPreview(_selectedConfig.Prefab, snapPos, isValid);
             }
 
-            // Aggiorna preview griglia tile SOLO se cella cambiata (FIX GLITCH)
+            // Aggiorna preview griglia tile
             if (updated || _lastValidState != isValid)
             {
                 _manager.Grid.SetCellsPreview(cell, _selectedConfig.Width, _selectedConfig.Height, isValid);
@@ -247,8 +241,7 @@ namespace Script2.BuildingSystem
 
         /// <summary>
         /// Validazione consolidata del piazzamento edifici.
-        /// Verifica: 1) Celle libere, 2) Risorse sufficienti
-        /// (Consolidato da BuildingPlacementValidator)
+        /// Verifica: 1) Celle libere, 2) Risorse sufficienti, 3) Nessuna risorsa sulle celle
         /// </summary>
         private bool CanPlaceBuilding(BuildingConfigSO config, Vector3Int originCell)
         {
@@ -257,13 +250,41 @@ namespace Script2.BuildingSystem
                 return false;
             }
 
-            // Controllo 1: Celle libere
+            // Controllo 1: Celle libere (non occupate da altri edifici)
             bool cellsFree = _manager.Grid.AreCellsFree(originCell, config.Width, config.Height);
             
             // Controllo 2: Risorse sufficienti
             bool canAfford = _manager.Economy == null || _manager.Economy.CanAfford(config.ToDictionary());
             
-            return cellsFree && canAfford;
+            // Controllo 3: Nessuna risorsa sulle celle
+            bool noResourcesOnCells = AreCellsFreeOfResources(originCell, config.Width, config.Height);
+            
+            return cellsFree && canAfford && noResourcesOnCells;
+        }
+
+        /// <summary>
+        /// Verifica se le celle non contengono risorse.
+        /// </summary>
+        private bool AreCellsFreeOfResources(Vector3Int originCell, int width, int height)
+        {
+            if (_zoneManager == null) return true;
+
+            // Verifica se qualche cella è occupata da una risorsa
+            for (int dx = 0; dx < width; dx++)
+            {
+                for (int dy = 0; dy < height; dy++)
+                {
+                    var checkCell = new Vector2Int(originCell.x + dx, originCell.y + dy);
+                    
+                    // Controlla se la cella è occupata in occupiedTiles (risorse/decorazioni)
+                    if (_zoneManager.occupiedTiles.ContainsKey(checkCell))
+                    {
+                        return false;
+                    }
+                }
+            }
+            
+            return true;
         }
         
         #endregion

@@ -1,4 +1,4 @@
-﻿﻿﻿using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using Script2.ResourceSystem.Enums;
@@ -7,13 +7,12 @@ using UnityEngine;
 namespace Script2.Economy
 {
     /// <summary>
-    /// Gestisce tutte le risorse del gioco con pattern Singleton thread-safe.
+    /// Gestisce tutte le risorse del gioco.
+    /// REFACTORED: Usa Dependency Injection invece di Singleton pattern.
     /// Notifica i cambiamenti tramite eventi.
     /// </summary>
     public class GameEconomyManager : MonoBehaviour
     {
-        public static GameEconomyManager Instance { get; private set; }
-
         public event Action<ResourceType, int> OnResourceAmountChanged;
         public event Action<IReadOnlyDictionary<ResourceType, int>> OnResourcesBatchChanged;
         
@@ -21,48 +20,21 @@ namespace Script2.Economy
 
         private void Awake()
         {
-            if (!Instance)
-            {
-                Instance = this;
-                
-                // DontDestroyOnLoad solo se è root GameObject
-                if (transform.parent == null)
-                {
-                    DontDestroyOnLoad(gameObject);
-                }
-                else
-                {
-                    // Se ha un parent, applica a root
-                    DontDestroyOnLoad(transform.root.gameObject);
-                }
-            }
-            else
-            {
-                Debug.LogWarning("GameEconomyManager duplicato rilevato e distrutto.");
-                Destroy(gameObject);
-                return;
-            }
-
             // Inizializza risorse
             foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
             {
                 if (!_resources.ContainsKey(type)) _resources[type] = 0;
             }
 
-            Debug.Log("GameEconomyManager Initialized. Current Resources:");
+            Debug.Log("[GameEconomyManager] Initialized. Current Resources:");
             foreach (var resource in _resources)
             {
-                Debug.Log($"- {resource.Key.ToString()}: {resource.Value}");
+                Debug.Log($"  - {resource.Key}: {resource.Value}");
             }
         }
 
         private void OnDestroy()
         {
-            if (Instance == this)
-            {
-                Instance = null;
-            }
-            
             // Cleanup eventi per prevenire memory leak
             OnResourceAmountChanged = null;
             OnResourcesBatchChanged = null;

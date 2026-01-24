@@ -1,4 +1,4 @@
-﻿﻿using Script2.ResourceSystem;
+﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
 using System.Collections.Generic;
@@ -7,12 +7,11 @@ namespace Script2.GridSystem
 {
     /// <summary>
     /// Gestisce la griglia di gioco, integrando TileManager e ZoneManager.
+    /// REFACTORED: Usa Dependency Injection invece di Singleton pattern.
     /// Implementa IGridService per fornire operazioni sulla griglia al BuildingSystem.
     /// </summary>
     public class GridManager : MonoBehaviour, IGridService
     {
-        public static GridManager Instance { get; private set; }
-
         [SerializeField] private TileManager _tileManager;
         [SerializeField] private ZoneManager _zoneManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
@@ -23,30 +22,10 @@ namespace Script2.GridSystem
 
         private void Awake()
         {
-            // Singleton pattern
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(transform.parent == null ? gameObject : transform.root.gameObject);
-            }
-            else if (Instance != this)
-            {
-                Debug.LogWarning("[GridManager] Istanza duplicata rilevata e distrutta.");
-                Destroy(gameObject);
-                return;
-            }
-
             ValidateDependencies();
             InitializeGrid();
         }
 
-        private void OnDestroy()
-        {
-            if (Instance == this)
-            {
-                Instance = null;
-            }
-        }
 
         private void ValidateDependencies()
         {
