@@ -985,8 +985,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Script2.Core.GameLifetimeScope
   parentReference:
     TypeName: 
-  autoRun: 0
+  autoRun: 1
   autoInjectGameObjects: []
+  debugMode: 1
 --- !u!4 &381727348
 Transform:
   m_ObjectHideFlags: 0
