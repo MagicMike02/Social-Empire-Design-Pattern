@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1406995247220699059}
   - component: {fileID: 1167027049371479021}
   - component: {fileID: 4006783216200841324}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: CoordinatesText
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -191,7 +191,7 @@ GameObject:
   - component: {fileID: 2731821609310775863}
   - component: {fileID: -4573295692481189829}
   - component: {fileID: 5389186796728916432}
-  m_Layer: 0
+  m_Layer: 8
   m_Name: Tile
   m_TagString: Tiles
   m_Icon: {fileID: 0}

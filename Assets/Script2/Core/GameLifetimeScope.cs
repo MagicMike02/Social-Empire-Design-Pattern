@@ -1,4 +1,4 @@
-﻿﻿﻿using UnityEngine;
+﻿using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using Script2.BuildingSystem;
@@ -22,7 +22,7 @@ namespace Script2.Core
         {
             // CRITICO: Forza AutoRun = true
             autoRun = true;
-            
+
             try
             {
                 base.Awake();
@@ -61,7 +61,6 @@ namespace Script2.Core
             
             // INPUT SYSTEM
             RegisterIfExists<InputManager>(builder);
-            
             // CAMERA
             var camera = Camera.main;
             if (camera != null)
