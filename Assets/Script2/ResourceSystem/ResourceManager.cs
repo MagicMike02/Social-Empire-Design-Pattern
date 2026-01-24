@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿﻿using System;
+using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using Script2.GridSystem;
@@ -10,7 +11,7 @@ namespace Script2.ResourceSystem
     public class ResourceManager : MonoBehaviour
     {
         [SerializeField] private TileManager _tileManager;
-        [SerializeField] private GameEconomyManager _economyManager;
+        [SerializeField] private Economy.GameEconomyManager _economyManager;
         [SerializeField] private ZoneManager _zoneManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
         [SerializeField] private ResourcePoolManager _poolManager;
@@ -19,25 +20,29 @@ namespace Script2.ResourceSystem
         private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
 
         #region Events
-        public event System.Action<ResourceType, int, Vector2Int> OnResourceCollected;
-        public event System.Action<ResourceType, Vector2Int> OnResourceGenerated;
-        public event System.Action<Vector2Int, float> OnRegenerationStarted;
-        public event System.Action<Vector2Int, ResourceType> OnResourceRegenerated;
+        public event Action<ResourceType, int, Vector2Int> OnResourceCollected;
+        public event Action<ResourceType, Vector2Int> OnResourceGenerated;
+        public event Action<Vector2Int, float> OnRegenerationStarted;
+        public event Action<Vector2Int, ResourceType> OnResourceRegenerated;
         #endregion Events
         
         void Start()
         {
-            if (!_economyManager)
+            if (!_economyManager) Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            if (!_resourceSpawner) Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+            if (!_tileManager) Debug.LogError("[ResourceManager] TileManager non assegnato nell'Inspector!");
+            if (!_zoneManager) Debug.LogError("[ResourceManager] ZoneManager non assegnato nell'Inspector!");
+            
+            if (_resourceSpawner != null)
             {
-                Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
+                Debug.Log("[ResourceManager] Generazione risorse in corso...");
+                _resourceSpawner.GenerateAllResources();
             }
-            if (!_resourceSpawner)
+            else
             {
-                Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                Debug.LogError("[ResourceManager] Impossibile generare risorse: ResourceSpawner è NULL!");
             }
-            _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
-            // Genera le risorse appena i tile sono presenti
-            _resourceSpawner.GenerateAllResources();
         }
 
         private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
@@ -45,7 +50,17 @@ namespace Script2.ResourceSystem
             _activeResources[pos] = instance;
             _zoneManager.occupiedTiles.Add(pos, instance);
             var ri = instance.GetComponent<ResourceInstance>();
-            if (ri) ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this); // Passa il ResourceDataSO corretto
+            
+            if (ri)
+            {
+                ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this);
+                // Debug.Log($"[ResourceManager] Risorsa {type} inizializzata a {pos}");
+            }
+            else
+            {
+                Debug.LogError($"[ResourceManager] ResourceInstance component non trovato su {instance.name}!");
+            }
+            
             OnResourceGenerated?.Invoke(type, pos);
         }
 
@@ -99,8 +114,7 @@ namespace Script2.ResourceSystem
             //Instanzio il prefab di regen
             GameObject regenResource = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
                 Quaternion.identity, transform);
-            Debug.Log(
-                $"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
+            // Debug.Log($"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
 
             _activeResources[pos] = regenResource;
             _zoneManager.occupiedTiles.Add(pos, regenResource);
@@ -108,7 +122,7 @@ namespace Script2.ResourceSystem
             if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
             {
                 StopCoroutine(existingCoroutine);
-                Debug.LogWarning($"Stopped existing regeneration at {pos}");
+                // Debug.LogWarning($"Stopped existing regeneration at {pos}");
             }
 
             _regenerationCoroutines[pos] = StartCoroutine(RegenResourceAfterDelay(pos, data));
@@ -133,7 +147,7 @@ namespace Script2.ResourceSystem
             
             // Notifica agli osservatori che la risorsa è stata rigenerata
             OnResourceRegenerated?.Invoke(pos, data.resourceType);
-            Debug.Log($"--> Resource {data.name} regenerated at {pos}");
+            // Debug.Log($"--> Resource {data.name} regenerated at {pos}");
             
             // Cleanup della coroutine terminata
             _regenerationCoroutines.Remove(pos);
@@ -141,15 +155,28 @@ namespace Script2.ResourceSystem
 
         private void OnDestroy()
         {
-            // Ferma tutte le rigenerazioni attive
+            // Previene orphaned coroutines e memory leaks su scene transitions
             foreach (var coroutine in _regenerationCoroutines.Values)
             {
-                StopCoroutine(coroutine);
+                if (coroutine != null)
+                {
+                    StopCoroutine(coroutine);
+                }
             }
 
             _regenerationCoroutines.Clear();
+            
+            // Disiscrivi dall'evento per prevenire stale references
             if (_resourceSpawner != null)
+            {
                 _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
+            }
+            
+            // Cleanup eventi per prevenire memory leaks
+            OnResourceCollected = null;
+            OnResourceGenerated = null;
+            OnRegenerationStarted = null;
+            OnResourceRegenerated = null;
         }
 
         #region editor

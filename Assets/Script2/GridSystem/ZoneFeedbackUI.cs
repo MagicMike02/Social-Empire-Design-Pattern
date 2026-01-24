@@ -1,17 +1,20 @@
 ﻿using UnityEngine;
+using VContainer;
 
 namespace Script2.GridSystem
 {
+    /// <summary>
+    /// Fornisce feedback UI per gli eventi delle zone (sblocco, acquisto fallito).
+    /// REFACTORED: Usa Dependency Injection invece di FindFirstObjectByType.
+    /// </summary>
     public class ZoneFeedbackUI : MonoBehaviour
     {
-        [SerializeField] private ZoneManager _zoneManager;
+        private ZoneManager _zoneManager;
 
-        private void Awake()
+        [Inject]
+        public void Construct(ZoneManager zoneManager)
         {
-            if (_zoneManager == null)
-            {
-                _zoneManager = FindFirstObjectByType<ZoneManager>();
-            }
+            _zoneManager = zoneManager;
         }
 
         private void OnEnable()

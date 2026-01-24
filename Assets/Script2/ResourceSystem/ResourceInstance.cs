@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿﻿using UnityEngine;
 
 namespace Script2.ResourceSystem
 {
@@ -25,7 +25,7 @@ namespace Script2.ResourceSystem
             _data = data;
             _gridPosition = gridPos;
             _manager = manager;
-            
+            tag = "Resources";
             SetSortingOrder();
         }
 
@@ -50,11 +50,13 @@ namespace Script2.ResourceSystem
 
         private void CollectResource()
         {
-            // _manager.OnResourceCollected(_gridPosition, _data);
-            if (_manager != null && _data != null)
-                _manager.HandleResourceCollected(_gridPosition, _data);
-            else
-                Debug.LogWarning("ResourceInstance: Manager o Data non impostati!");
+            if (_manager == null || _data == null)
+            {
+                Debug.LogWarning($"[ResourceInstance] Impossibile raccogliere risorsa: Manager o Data non inizializzati su {gameObject.name}");
+                return;
+            }
+            
+            _manager.HandleResourceCollected(_gridPosition, _data);
         }
 
     }

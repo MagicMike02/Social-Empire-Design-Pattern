@@ -1,0 +1,64 @@
+﻿﻿using UnityEngine;
+
+namespace Script2.BuildingSystem
+{
+    /// <summary>
+    /// Interfaccia per servizi di griglia.
+    /// Disaccoppia BuildingSystem da implementazione concreta di GridManager.
+    /// Permette testabilità e sostituibilità dell'implementazione.
+    /// </summary>
+    public interface IGridService
+    {
+        /// <summary>
+        /// Converte una posizione world in coordinate di cella della griglia.
+        /// </summary>
+        /// <param name="worldPos">Posizione world</param>
+        /// <param name="cell">Output: coordinate cella (se successo)</param>
+        /// <returns>True se la conversione ha successo e la cella è valida</returns>
+        bool TryWorldToCell(Vector3 worldPos, out Vector3Int cell);
+        
+        /// <summary>
+        /// Converte coordinate di cella in posizione world.
+        /// </summary>
+        /// <param name="cell">Coordinate cella</param>
+        /// <returns>Posizione world center della cella</returns>
+        Vector3 CellToWorld(Vector3Int cell);
+        
+        /// <summary>
+        /// Verifica se un'area di celle è libera e disponibile per il piazzamento.
+        /// </summary>
+        /// <param name="originCell">Cella di origine (angolo bottom-left)</param>
+        /// <param name="width">Larghezza in celle</param>
+        /// <param name="height">Altezza in celle</param>
+        /// <returns>True se tutte le celle sono libere, False altrimenti</returns>
+        bool AreCellsFree(Vector3Int originCell, int width, int height);
+        
+        /// <summary>
+        /// Marca un'area di celle come occupate da un edificio.
+        /// </summary>
+        /// <param name="originCell">Cella di origine</param>
+        /// <param name="width">Larghezza in celle</param>
+        /// <param name="height">Altezza in celle</param>
+        /// <param name="building">Riferimento all'edificio che occupa le celle</param>
+        void OccupyCells(Vector3Int originCell, int width, int height, Building building);
+        
+        /// <summary>
+        /// Libera un'area di celle precedentemente occupate.
+        /// </summary>
+        /// <param name="originCell">Cella di origine</param>
+        /// <param name="width">Larghezza in celle</param>
+        /// <param name="height">Altezza in celle</param>
+        void FreeCells(Vector3Int originCell, int width, int height);
+        
+        /// <summary>
+        /// Imposta la preview visuale su un'area di celle.
+        /// Mostra feedback visivo (verde/rosso) durante il piazzamento.
+        /// </summary>
+        /// <param name="originCell">Cella di origine</param>
+        /// <param name="width">Larghezza in celle (0 per cancellare preview)</param>
+        /// <param name="height">Altezza in celle (0 per cancellare preview)</param>
+        /// <param name="isValid">True per preview verde (valido), False per rosso (invalido)</param>
+        void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid);
+    }
+}
+

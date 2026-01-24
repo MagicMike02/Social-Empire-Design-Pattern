@@ -82,3 +82,8 @@ StreamingAssets/aa/
 
 # Local test results
 TestResults/
+
+# Documentation (local development only)
+Documentation/
+*.md
+!README.md

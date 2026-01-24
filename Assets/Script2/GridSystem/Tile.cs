@@ -10,12 +10,17 @@ namespace Script2.GridSystem
         [SerializeField] private Color _hoverColor = Color.yellow;
         
         [SerializeField] private Color _lockedColor = Color.grey; //verde grigio
-        [SerializeField] private Color _buyableColor = Color.green; //verde verde;
+        [SerializeField] private Color _buyableColor = Color.grey; //verde verde;
         [SerializeField] private Color _unlockedColor = Color.white;//verde normale;
         
-        public TileState State { get; private set; }
+        public TileState State { private set; get; }
         
         private SpriteRenderer _renderer;
+        private Color _savedColorBeforePreview; // Salva colore prima della preview
+        private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
+
+
+        public event System.Action<Tile> OnBuildingPlaced;
 
         void Awake()
         {
@@ -37,24 +42,34 @@ namespace Script2.GridSystem
         {
             name = $"Tile_{gridPosition.x}_{gridPosition.y}";
             transform.position = worldPosition;
+            
+            // Imposta sorting order per rendering isometrico corretto
+            if (_renderer != null)
+            {
+                _renderer.sortingOrder = sortingOrder;
+            }
 
-            _coordinatesText.text = $"{(int)gridPosition.x},{(int)gridPosition.y}";
-            _coordinatesText.sortingOrder = sortingOrder + 1; //sopra il Tile
-            _renderer.sortingOrder = sortingOrder;
+            // Text sopra il tile per debug coordinate
+            if (_coordinatesText != null)
+            {
+                _coordinatesText.text = $"{(int)gridPosition.x},{(int)gridPosition.y}";
+                _coordinatesText.sortingOrder = sortingOrder + 1;
+            }
 
             State = TileState.Locked;
         }
 
         void OnMouseEnter()
         {
+            if (_isShowingPreview) return;
             _renderer.color = _hoverColor;
-            //Debug.Log($"Tile OnMouseEnter: {name}");
         }
 
         void OnMouseExit()
         {
-            _renderer.color = State == TileState.Unlocked ? _normalColor : _lockedColor;
-            //Debug.Log($"Tile OnMouseExit: {name}");
+            if (_isShowingPreview) return;
+
+            ResetTint();
         }
         
         void OnMouseDown()
@@ -66,19 +81,14 @@ namespace Script2.GridSystem
         public void SetState(TileState state)
         {
             State = state;
-
-            switch (state)
+            
+            _renderer.color = state switch
             {
-                case TileState.Locked:
-                    _renderer.color = _lockedColor;
-                    break;
-                case TileState.Buyable:
-                    _renderer.color = _buyableColor;
-                    break;
-                case TileState.Unlocked:
-                    _renderer.color = _unlockedColor;
-                    break;
-            }
+                TileState.Locked => _lockedColor,
+                TileState.Buyable => _buyableColor,
+                TileState.Unlocked => _unlockedColor,
+                _ => _renderer.color
+            };
         }
         
         // Funzione per "acquistare" il Tile
@@ -87,10 +97,34 @@ namespace Script2.GridSystem
             if (State == TileState.Buyable)
             {
                 SetState(TileState.Unlocked);
-                // Logica per sbloccare tile (ad esempio, aggiungi monete, notifiche, ecc.)
             }
         }
+       
+        public void PreviewTint(Color color)
+        {
+            if (_renderer == null) return;
+            if (!_isShowingPreview)
+            {
+                _savedColorBeforePreview = _renderer.color;
+            }
+            _isShowingPreview = true;
+            _renderer.color = color;
+        }
 
+        public void ResetTint()
+        {
+            if (_renderer == null) return;
+
+            _renderer.color = State switch
+            {
+                TileState.Locked => _lockedColor,
+                TileState.Buyable => _buyableColor,
+                TileState.Unlocked => _unlockedColor,
+                _ => _normalColor
+            };
+            
+            _isShowingPreview = false;
+        }
     }
     
     

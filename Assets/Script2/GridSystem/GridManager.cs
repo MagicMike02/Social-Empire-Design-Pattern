@@ -1,184 +1,213 @@
-﻿using System.Collections.Generic;
-using Script2.Economy;
-using Script2.ResourceSystem;
+﻿using Script2.ResourceSystem;
 using UnityEngine;
+using Script2.BuildingSystem;
+using System.Collections.Generic;
 
 namespace Script2.GridSystem
 {
-    public class GridManager : MonoBehaviour
+    /// <summary>
+    /// Gestisce la griglia di gioco, integrando TileManager e ZoneManager.
+    /// REFACTORED: Usa Dependency Injection invece di Singleton pattern.
+    /// Implementa IGridService per fornire operazioni sulla griglia al BuildingSystem.
+    /// </summary>
+    public class GridManager : MonoBehaviour, IGridService
     {
-        public static GridManager Instance;
-
         [SerializeField] private TileManager _tileManager;
         [SerializeField] private ZoneManager _zoneManager;
-        [SerializeField] private GameEconomyManager _economyManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
+
+        private readonly List<Vector2Int> _lastPreviewCells = new();
+        private readonly HashSet<Vector2Int> _occupiedCells = new();
+        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new(); 
 
         private void Awake()
         {
-            // Singleton pattern
-            if (Instance == null)
-            {
-                Instance = this;
-                DontDestroyOnLoad(gameObject); // Mantiene tra le scene, se necessario
-            }
-            else if (Instance != this)
-            {
-                Destroy(gameObject);
-            }
+            ValidateDependencies();
+            InitializeGrid();
+        }
 
+
+        private void ValidateDependencies()
+        {
             if (_tileManager == null)
             {
-                Debug.LogError(
-                    "[GridManager] TileManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                Debug.LogError("[GridManager] TileManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
 
             if (_zoneManager == null)
             {
-                Debug.LogError(
-                    "[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
+        }
 
+        private void InitializeGrid()
+        {
+            if (_tileManager == null) return;
+            
             // Inizializza la griglia tramite TileManager
             _tileManager.CreateGrid();
             var grid = _tileManager.GetGrid();
+
+            if (_zoneManager == null) return;
+            
             _zoneManager.Initialize(grid);
             _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
-
-        }
-    }
-
-
-    public class Grid<T>
-    {
-        private int _width;
-        private int _height;
-        private float _cellSize;
-
-        private Vector3 _originPosition;
-
-        private T[,] _gridT;
-
-        private Matrix4x4 _matrix;
-
-        public Grid(int width, int height, float cellSize)
-        {
-            _width = width;
-            _height = height;
-            _cellSize = cellSize;
-            this._gridT = new T[width, height];
-
-            _originPosition = new Vector3(0, 0, 1);
-
-            InitMatrix4x4();
         }
 
-        private void InitMatrix4x4()
+        // IGridService implementation
+        public bool TryWorldToCell(Vector3 worldPos, out Vector3Int cell)
         {
-            _matrix = Matrix4x4.identity;
-            _matrix.SetColumn(0, new Vector4(1f, 0.5f, 0f, 0f)); // Colonna per x
-            _matrix.SetColumn(1, new Vector4(-1f, 0.5f, 0f, 0f)); // Colonna per y
-            _matrix.SetColumn(2, new Vector4(0f, 0f, 1f, 0f)); // Colonna per z  
+            var grid = _tileManager.GetGrid();
+            grid.GetWorldToIsoPosition(worldPos, out int x, out int y);
+            cell = new Vector3Int(x, y, 0);
+
+            bool inside = x >= 0 && y >= 0 && x < _tileManager.Width && y < _tileManager.Height;
+            
+            return inside;
         }
 
-        private void ShowDebugLines()
+        public Vector3 CellToWorld(Vector3Int cell)
         {
-            for (int x = 0; x < _gridT.GetLength(0); x++)
+            var grid = _tileManager.GetGrid();
+            return grid.GetIsoToWorldPosition(cell.x, cell.y);
+        }
+
+        public bool AreCellsFree(Vector3Int originCell, int width, int height)
+        {
+            for (int dx = 0; dx < width; dx++)
             {
-                for (int y = 0; y < _gridT.GetLength(1); y++)
+                for (int dy = 0; dy < height; dy++)
                 {
-                    Vector3 worldPos = GetIsoToWorldPosition(x, y);
-                    Vector3 worldPosX = GetIsoToWorldPosition(x + 1, y);
-                    Vector3 worldPosY = GetIsoToWorldPosition(x, y + 1);
+                    int x = originCell.x + dx;
+                    int y = originCell.y + dy;
+                    if (x < 0 || y < 0 || x >= _tileManager.Width || y >= _tileManager.Height) return false;
 
-                    // piccolo offset Z per rendere le linee visibili sopra i tile
-                    worldPos.z -= 0.1f;
-                    worldPosX.z -= 0.1f;
-                    worldPosY.z -= 0.1f;
+                    var p = new Vector2Int(x, y);
+                    if (_occupiedCells.Contains(p)) return false;
 
-                    Debug.DrawLine(worldPos, worldPosX, Color.black, 100f);
-                    Debug.DrawLine(worldPos, worldPosY, Color.black, 100f);
+                    var tile = _tileManager.GetGrid().GetValue(x, y);
+                    if (tile == null || tile.State != TileState.Unlocked) return false;
+                }
+            }
+            return true;
+        }
+
+        public void OccupyCells(Vector3Int originCell, int width, int height, Building building)
+        {
+            for (int dx = 0; dx < width; dx++)
+            {
+                for (int dy = 0; dy < height; dy++)
+                {
+                    var p = new Vector2Int(originCell.x + dx, originCell.y + dy);
+                    _occupiedCells.Add(p);
+                }
+            }
+        }
+
+        public void FreeCells(Vector3Int originCell, int width, int height)
+        {
+            for (int dx = 0; dx < width; dx++)
+            {
+                for (int dy = 0; dy < height; dy++)
+                {
+                    var p = new Vector2Int(originCell.x + dx, originCell.y + dy);
+                    _occupiedCells.Remove(p);
+                }
+            }
+        }
+
+        public void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid)
+        {
+            ClearPreviousPreview();
+
+            // Cache riferimento griglia per performance
+            var grid = _tileManager.GetGrid();
+            if (grid == null) return;
+
+            var newPreviewCells = new List<Vector2Int>();
+            
+            // richiesta di clear-only
+            if (width <= 0 || height <= 0)
+            {
+                // Reset solo celle precedenti usando cache
+                foreach (var p in _lastPreviewCells)
+                {
+                    if (!_previewTileCache.TryGetValue(p, out var tile)) continue;
+
+                    if (tile) tile.ResetTint();
+                }
+                _lastPreviewCells.Clear();
+                _previewTileCache.Clear();
+                return;
+            }
+
+            // Calcola nuove celle da evidenziare
+            for (int dx = 0; dx < width; dx++)
+            {
+                for (int dy = 0; dy < height; dy++)
+                {
+                    int x = originCell.x + dx;
+                    int y = originCell.y + dy;
+                    if (x >= 0 && y >= 0 && x < _tileManager.Width && y < _tileManager.Height)
+                    {
+                        newPreviewCells.Add(new Vector2Int(x, y));
+                    }
                 }
             }
 
-            // Disegna le linee di bordo
-            Vector3 topLeft = GetIsoToWorldPosition(0, _height);
-            Vector3 topRight = GetIsoToWorldPosition(_width, _height);
-            Vector3 bottomRight = GetIsoToWorldPosition(_width, 0);
-
-            topLeft.z -= 0.1f;
-            topRight.z -= 0.1f;
-            bottomRight.z -= 0.1f;
-
-            Debug.DrawLine(topLeft, topRight, Color.black, 100f);
-            Debug.DrawLine(topRight, bottomRight, Color.black, 100f);
-        }
-
-        #region Grid
-
-        public Vector3 GetIsoToWorldPosition(int x, int y)
-        {
-            Vector3 cartesianPos = new Vector3(x, y) * _cellSize;
-            Vector3 isoPos = _matrix.MultiplyPoint3x4(cartesianPos);
-            return new Vector3(isoPos.x, isoPos.y, 0) + _originPosition;
-        }
-
-        public void GetWorldToIsoPosition(Vector3 worldPosition, out int x, out int y)
-        {
-            Vector3 localPos = worldPosition - _originPosition;
-
-            Vector3 cartesianPos = _matrix.inverse.MultiplyPoint3x4(localPos);
-            x = Mathf.FloorToInt(cartesianPos.x / _cellSize);
-            y = Mathf.FloorToInt(cartesianPos.y / _cellSize);
-        }
-
-        public void SetValue(int x, int y, T value)
-        {
-            if (x >= 0 && y >= 0 && x < _width && y < _height)
+            // Reset SOLO celle che non sono più nella preview
+            foreach (var p in _lastPreviewCells)
             {
-                _gridT[x, y] = value;
-            }
-        }
-
-        public void SetValue(Vector3 worldPosition, T value)
-        {
-            GetWorldToIsoPosition(worldPosition, out int x, out int y);
-            SetValue(x, y, value);
-        }
-
-        public T GetValue(int x, int y)
-        {
-            if (x >= 0 && x < _width && y >= 0 && y < _height)
-            {
-                return _gridT[x, y];
+                if (!newPreviewCells.Contains(p))
+                {
+                    if (_previewTileCache.TryGetValue(p, out var tile))
+                    {
+                        tile?.ResetTint();
+                        _previewTileCache.Remove(p);
+                    }
+                }
             }
 
-            return default(T);
-        }
-
-        public T GetValue(Vector3 worldPosition)
-        {
-            GetWorldToIsoPosition(worldPosition, out int x, out int y);
-            return GetValue(x, y);
-        }
-
-        public Vector3 SnapWorldToGridWorld(Vector3 worldPosition)
-        {
-            GetWorldToIsoPosition(worldPosition, out int x, out int y);
-            return GetIsoToWorldPosition(x, y);
-        }
-
-        public List<T> ToList()
-        {
-            List<T> listT = new();
-            foreach (var tile in _gridT)
+            // Colori PURI che sostituiscono completamente il tile (no alpha, no moltiplicazione)
+            var greenPreview = new Color(0f, 1f, 0f, 1f); // Verde puro opaco
+            var redPreview = new Color(1f, 0f, 0f, 1f);   // Rosso puro opaco
+            
+            var color = isValid ? greenPreview : redPreview;
+            
+            // Applica colore SOLO alle nuove celle usando cache
+            foreach (var p in newPreviewCells)
             {
-                listT.Add(tile);
+                // Usa cache o recupera e cachea
+                if (!_previewTileCache.TryGetValue(p, out var tile))
+                {
+                    tile = grid.GetValue(p.x, p.y);
+                    if (tile != null)
+                    {
+                        _previewTileCache[p] = tile;
+                    }
+                }
+                
+                tile?.PreviewTint(color);
             }
 
-            return listT;
+            // Aggiorna cache celle
+            _lastPreviewCells.Clear();
+            _lastPreviewCells.AddRange(newPreviewCells);
+        }
+        
+        private void ClearPreviousPreview()
+        {
+            foreach (var cell in _lastPreviewCells)
+            {
+                var tile = _tileManager.GetGrid().GetValue(cell.x, cell.y);
+                if (tile)
+                {
+                    tile.ResetTint();
+                }
+            }
+            _lastPreviewCells.Clear();
         }
 
-        #endregion
+        
     }
 }

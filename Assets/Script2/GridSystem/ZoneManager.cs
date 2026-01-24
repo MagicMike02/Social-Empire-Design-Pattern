@@ -79,7 +79,8 @@ namespace Script2.GridSystem
                 zone.isUnlocked = true;
                 foreach (var tile in zone.tiles)
                 {
-                    if (tile) tile.SetState(TileState.Unlocked);
+                    // if (tile) tile.SetState(TileState.Unlocked);
+                    if (tile) tile.Unlock();
                 }
                 if (zone.purchaseSign) 
                 {
@@ -105,14 +106,21 @@ namespace Script2.GridSystem
         {
             Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
             Vector3 worldPos = _grid.GetIsoToWorldPosition(centerTilePos.x, centerTilePos.y);
-            GameObject signObj = Instantiate(_purchaseSignPrefab, worldPos + new Vector3(0, 0.45f, 0), Quaternion.identity, transform);
+            
+            Vector3 signOffset = new Vector3(0, 0.45f, 0);
+            Vector3 signPosition = worldPos + signOffset;
+            
+            GameObject signObj = Instantiate(_purchaseSignPrefab, signPosition, Quaternion.identity, transform);
+            
             occupiedTiles.Add(centerTilePos, signObj);
+           
             var sign = signObj.GetComponent<PurchaseSign>();
             sign.Setup(zone.start, _economyManager, this, new() { { ResourceType.Gold, 15 } });
             zone.purchaseSign = signObj;
+            
             foreach (var tile in zone.tiles)
             {
-                if (tile != null) tile.SetState(TileState.Locked);
+                if (tile != null) tile.SetState(TileState.Buyable);
             }
         }
 
