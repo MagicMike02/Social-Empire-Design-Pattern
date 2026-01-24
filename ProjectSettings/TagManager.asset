@@ -19,11 +19,11 @@ TagManager:
   - UI
   - 
   - 
-  - 
-  - 
-  - 
-  - 
-  - 
+  - Tile
+  - Building
+  - Unit
+  - Resource
+  - ZoneSign
   - 
   - 
   - 

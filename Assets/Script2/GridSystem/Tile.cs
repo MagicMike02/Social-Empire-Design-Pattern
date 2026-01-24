@@ -1,9 +1,10 @@
 ﻿using TMPro;
 using UnityEngine;
+using Script2.InputSystem;
 
 namespace Script2.GridSystem
 {
-    public class Tile : MonoBehaviour
+    public class Tile : MonoBehaviour, IHoverable
     {
         [SerializeField] private TextMeshPro _coordinatesText;
         [SerializeField] private Color _normalColor = Color.white;
@@ -59,25 +60,30 @@ namespace Script2.GridSystem
             State = TileState.Locked;
         }
 
-        void OnMouseEnter()
+        public void OnHoverEnter()
         {
             if (_isShowingPreview) return;
             _renderer.color = _hoverColor;
         }
 
-        void OnMouseExit()
+        public void OnHoverExit()
         {
             if (_isShowingPreview) return;
 
             ResetTint();
         }
         
-        void OnMouseDown()
+        public void OnClick()
         {
             Debug.Log($"Tile clicked: {name}");
             // Aggiungi qui logica per selezione, pathfinding, ecc
         }
 
+        public void OnRightClick(Vector3 worldPosition)
+        {
+            // Future: dispatch command (e.g., move unit here)
+        }
+        
         public void SetState(TileState state)
         {
             State = state;
