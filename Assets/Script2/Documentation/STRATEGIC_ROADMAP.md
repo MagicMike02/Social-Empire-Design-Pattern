@@ -1,122 +1,98 @@
 ﻿# STRATEGIC DEVELOPMENT ROADMAP
-## Social Empire - 2.5D Isometric RTS/Citybuilder
+## Social Empire - RTS/Citybuilder
 
-**Status**: Phase 2 Complete (InputManager + IHoverable + Prefab Layers)  
-**Next Sprint**: Pathfinding System (RTS Foundation)
-
----
-
-## CURRENT ACTIVE SPRINT
-
-### ✅ PHASE 1-2: INPUT SYSTEM (COMPLETED)
-- ✅ InputManager: Centralized input, non-alloc raycast (1 per frame)
-- ✅ IHoverable: Interface for Tile, ResourceInstance, PurchaseSign
-- ✅ LayerRegistry: Static registry (Tile, Building, Unit, Resource, ZoneSign)
-- ✅ Tile.cs: Migrated to IHoverable
-- ✅ ResourceInstance.cs: Migrated to IHoverable (OnClick → CollectResource)
-- ✅ PurchaseSign.cs: Migrated to IHoverable (OnClick → Purchase, OnHover → Animate)
-- ✅ All prefabs: Correct layer assignments
-- **Performance**: 220x faster than OnMouse* (22ms → 0.1ms on 100×100 grid)
+**Status**: Phase 2 Complete (InputManager + IHoverable live)  
+**Current Sprint**: Sprint 1 - Pathfinding System  
+**Updated**: 2026-01-25  
 
 ---
 
-## UPCOMING SPRINTS
+## ACTIVE SPRINT: PATHFINDING SYSTEM (Week 4-5)
 
-### 🎯 SPRINT 1: PATHFINDING SYSTEM (Week 4-5)
-**Goal**: A* pathfinding on isometric grid for unit navigation
+**Goal**: A* pathfinding on isometric grid for unit movement (async, non-blocking)
 
 **Parent Task**: Implement Pathfinding Foundation
 - **Subtask 1.1**: Extend IGridService → IsCellWalkable(), GetNeighbors()
 - **Subtask 1.2**: Create PathfindingManager → A* algorithm
-- **Subtask 1.3**: Async pathfinding via Unity Jobs (non-blocking)
-- **Subtask 1.4**: Unit tests + profiling (target: < 5ms per path)
+- **Subtask 1.3**: Async execution via Unity Jobs
+- **Subtask 1.4**: Integration testing
 
-**Effort**: 16-20 hours | **Dependency**: InputManager (DONE)
+**Effort**: 16-20 hours | **Dependency**: InputManager (DONE) | **Blocks**: Unit System, Drag-Box
 
 ---
 
-### 🎯 SPRINT 2: UNIT SYSTEM (Week 6-8)
-**Goal**: Selectable, movable units with RTS mechanics
+## SPRINT 2: UNIT SYSTEM (Week 6-8)
+
+**Goal**: Selectable, movable units with click + right-click commands
 
 **Parent Task**: Implement Unit & Selection System
-- **Subtask 2.1**: UnitConfigSO → data-driven unit templates
-- **Subtask 2.2**: Unit.cs → IHoverable, movement, sorting
-- **Subtask 2.3**: UnitSelectionManager → click selection + right-click move command
-- **Subtask 2.4**: UnitFactory → spawn/despawn units
+- **Subtask 2.1**: UnitConfigSO data asset
+- **Subtask 2.2**: Unit.cs component (IHoverable)
+- **Subtask 2.3**: UnitSelectionManager
+- **Subtask 2.4**: UnitFactory
 
-**Effort**: 20-24 hours | **Dependency**: Pathfinding (SPRINT 1)
-
----
-
-### 🎯 SPRINT 3: DRAG-BOX SELECTION (Week 9)
-**Goal**: Multi-unit selection for RTS gameplay
-
-**Parent Task**: Extend InputManager for drag-box selection
-- **Subtask 3.1**: InputManager → drag detection + box drawing
-- **Subtask 3.2**: Physics2D.OverlapArea → select units in box
-- **Subtask 3.3**: Visual feedback → selection box + unit highlights
-
-**Effort**: 4 hours | **Dependency**: Unit System (SPRINT 2)
+**Effort**: 20-24 hours | **Dependency**: Pathfinding | **Blocks**: Drag-Box, Combat
 
 ---
 
-### 🎯 SPRINT 4: BUILDING PRODUCTION (Week 10)
+## SPRINT 3: DRAG-BOX SELECTION (Week 9)
+
+**Goal**: Multi-unit selection via mouse drag
+
+**Parent Task**: Extend InputManager for drag selection
+- **Subtask 3.1**: Drag detection in InputManager
+- **Subtask 3.2**: Area-based unit selection
+- **Subtask 3.3**: Selection feedback
+
+**Effort**: 4 hours | **Dependency**: Unit System
+
+---
+
+## SPRINT 4: BUILDING PRODUCTION (Week 10)
+
 **Goal**: Passive resource generation from buildings
 
-**Parent Task**: Implement Building Production System
-- **Subtask 4.1**: ProductionConfigSO → production data (Food, Gold, etc.)
-- **Subtask 4.2**: ProductionBuilding.cs → timer-based resource generation
-- **Subtask 4.3**: UI progress bar → show production cycle progress
-- **Subtask 4.4**: Events → trigger visual/audio feedback on production
+**Parent Task**: Production System
+- **Subtask 4.1**: ProductionConfigSO
+- **Subtask 4.2**: ProductionBuilding component
+- **Subtask 4.3**: Integration
 
-**Effort**: 8 hours | **Dependency**: None (can start anytime)
-
----
-
-### 🎯 SPRINT 5: SAVE/LOAD SYSTEM (Week 11-13)
-**Goal**: Persistent game state management
-
-**Parent Task**: Implement Save/Load Architecture
-- **Subtask 5.1**: SaveData schema → efficient serialization
-- **Subtask 5.2**: SaveManager.cs → serialize/deserialize grid + entities
-- **Subtask 5.3**: ISaveable interface → Buildings, Units implement export state
-- **Subtask 5.4**: Autosave system → periodic saves + versioning
-
-**Effort**: 20-24 hours | **Dependency**: Production System (SPRINT 4)
+**Effort**: 8 hours | **Dependency**: None (parallel track)
 
 ---
 
-### 🎯 SPRINT 6: COMBAT SYSTEM (Week 14-17)
-**Goal**: Unit combat mechanics
+## SPRINT 5: SAVE/LOAD SYSTEM (Week 11-13)
 
-**Parent Task**: Implement Combat Framework
-- **Subtask 6.1**: Unit health, damage, defense properties
-- **Subtask 6.2**: CombatManager.cs → attack resolution
-- **Subtask 6.3**: Target selection → manual or automatic
-- **Subtask 6.4**: Combat UI → health bars, damage numbers
+**Goal**: Persistent game state (grid, buildings, units, resources)
 
-**Effort**: 24-32 hours | **Dependency**: Unit System (SPRINT 2)
+**Parent Task**: Serialization Architecture
+- **Subtask 5.1**: SaveData schema (delta compression)
+- **Subtask 5.2**: SaveManager
+- **Subtask 5.3**: ISaveable interface
+- **Subtask 5.4**: Autosave (5 min intervals)
 
----
-
-## COMPLETED SYSTEMS (Archive)
-
-### ✅ BUILDING SYSTEM (Phase 0-1)
-- Grid system, building placement, zone management
-- Economy system, resource collection
-- VContainer DI integration
-- Event-driven architecture
+**Effort**: 20-24 hours | **Dependency**: None (parallel track)
 
 ---
 
-## PERFORMANCE TARGETS
+## SPRINT 6: COMBAT SYSTEM (Week 14-17)
 
-| System | Current | Target | Status |
-|--------|---------|--------|--------|
-| Input (InputManager) | 0.1ms | < 0.5ms | ✅ Met |
-| Pathfinding (async) | N/A | < 5ms | 🔄 To Implement |
-| Frame Time (60 FPS) | 16.6ms | 16.6ms | ✅ Met |
-| Save/Load | N/A | < 2s | 🔄 To Implement |
+**Goal**: Unit combat mechanics (health, damage, attack range)
+
+**Parent Task**: Combat Framework
+- **Subtask 6.1**: Unit combat stats
+- **Subtask 6.2**: CombatManager
+- **Subtask 6.3**: UI feedback
+
+**Effort**: 24-32 hours | **Dependency**: Unit System
+
+---
+
+## COMPLETED PHASES
+
+✅ **Phase 0-1**: Building System (placement, validation, preview, zones, economy)  
+✅ **Phase 2**: InputManager + IHoverable (centralized raycasting, no OnMouse*)  
+✅ **Infrastructure**: VContainer DI, event architecture, resource pooling
 
 ---
 
@@ -125,27 +101,18 @@
 ```
 Building System (DONE)
   ↓
-InputManager + IHoverable (DONE)
+InputManager (DONE)
   ↓
-Pathfinding (SPRINT 1) → Async via Jobs
+Pathfinding (SPRINT 1) → async via Jobs
   ↓
-Unit System (SPRINT 2) → Uses Pathfinding
-  ↓
-Drag-Box Selection (SPRINT 3)
-  ↓
-Building Production (SPRINT 4) → Parallel track
-  ↓
-Save/Load (SPRINT 5)
-  ↓
-Combat (SPRINT 6) → Uses Unit System
+Unit System (SPRINT 2)
+  ├→ Drag-Box (SPRINT 3)
+  └→ Combat (SPRINT 6)
+
+Building Production (SPRINT 4) → parallel
+Save/Load (SPRINT 5) → parallel
 ```
 
 ---
 
-## MAINTENANCE RULES
-
-- Update this file FIRST before implementing any new feature
-- Mark completed sprints as ✅ DONE
-- Remove sprints from active list once merged to main
-- Reference code via: `FileName.cs → MethodName()`
-- NO code snippets in this document (keep minimalist)
+**Maintenance**: Update BEFORE implementing. No code snippets (see PROJECT_KNOWLEDGE_BASE.md). Keep JIRA format.
