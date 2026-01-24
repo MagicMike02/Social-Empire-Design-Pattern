@@ -1,4 +1,4 @@
-﻿﻿using TMPro;
+﻿using TMPro;
 using UnityEngine;
 
 namespace Script2.GridSystem
@@ -10,8 +10,8 @@ namespace Script2.GridSystem
         [SerializeField] private Color _hoverColor = Color.yellow;
         
         [SerializeField] private Color _lockedColor = Color.grey; //verde grigio
-        [SerializeField] private Color _buyableColor = Color.green; //verde verde;
-        [SerializeField] private Color _unlockedColor = Color.white; //verde normale;
+        [SerializeField] private Color _buyableColor = Color.grey; //verde verde;
+        [SerializeField] private Color _unlockedColor = Color.white;//verde normale;
         
         public TileState State { private set; get; }
         
@@ -31,10 +31,9 @@ namespace Script2.GridSystem
             }
             else
             {
+                _renderer.material = new Material(Shader.Find("Sprites/Default"));
                 _renderer.color = _normalColor;
-                SetState(TileState.Locked); 
-                _renderer.sortingLayerName = "Tiles";
-                tag = "Tiles";
+                SetState(TileState.Locked); // Inizialmente bloccato
             }
             
         }

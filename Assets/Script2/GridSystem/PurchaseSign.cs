@@ -56,18 +56,23 @@ namespace Script2.GridSystem
 
         private void OnMouseDown()
         {
-            if (_purchaseCost == null)
+           
+            if (_purchaseCost == null || _purchaseCost.Count == 0)
             {
                 _zoneManager.PurchaseZone(_zoneCoord);
+                #if UNITY_EDITOR
                 Debug.Log("TEST: Zona sbloccata senza costi!");
+                #endif
                 return;
             }
+
             if (_economyManager == null)
             {
                 Debug.LogWarning("GameEconomyManager non è stato assegnato! Chiama Setup() dopo l'instanziazione del prefab.");
                 return;
             }
 
+            // Zone con costo
             if (_economyManager.CanAfford(_purchaseCost))
             {
                 _zoneManager.PurchaseZone(_zoneCoord);

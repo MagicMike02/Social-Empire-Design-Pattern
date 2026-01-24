@@ -137,15 +137,28 @@ namespace Script2.ResourceSystem
 
         private void OnDestroy()
         {
-            // Ferma tutte le rigenerazioni attive
+            // Previene orphaned coroutines e memory leaks su scene transitions
             foreach (var coroutine in _regenerationCoroutines.Values)
             {
-                StopCoroutine(coroutine);
+                if (coroutine != null)
+                {
+                    StopCoroutine(coroutine);
+                }
             }
 
             _regenerationCoroutines.Clear();
+            
+            // Disiscrivi dall'evento per prevenire stale references
             if (_resourceSpawner != null)
+            {
                 _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
+            }
+            
+            // Cleanup eventi per prevenire memory leaks
+            OnResourceCollected = null;
+            OnResourceGenerated = null;
+            OnRegenerationStarted = null;
+            OnResourceRegenerated = null;
         }
 
         #region editor

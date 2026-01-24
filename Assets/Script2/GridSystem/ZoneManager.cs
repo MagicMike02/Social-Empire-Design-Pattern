@@ -120,7 +120,7 @@ namespace Script2.GridSystem
             
             foreach (var tile in zone.tiles)
             {
-                if (tile != null) tile.SetState(TileState.Locked);
+                if (tile != null) tile.SetState(TileState.Buyable);
             }
         }
 
