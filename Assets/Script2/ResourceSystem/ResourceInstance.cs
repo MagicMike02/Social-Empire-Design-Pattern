@@ -1,8 +1,9 @@
-﻿﻿using UnityEngine;
+﻿using UnityEngine;
+using Script2.InputSystem;
 
 namespace Script2.ResourceSystem
 {
-    public class ResourceInstance : MonoBehaviour
+    public class ResourceInstance : MonoBehaviour, IHoverable
     {
         private ResourceDataSO _data;
         private Vector2Int _gridPosition;
@@ -46,6 +47,26 @@ namespace Script2.ResourceSystem
         private void OnMouseDown()
         {
             CollectResource();
+        }
+
+        public void OnHoverEnter()
+        {
+            // Optional: future visual feedback (glow, outline, etc.)
+        }
+
+        public void OnHoverExit()
+        {
+            // Optional: remove visual feedback
+        }
+
+        public void OnClick()
+        {
+            CollectResource();
+        }
+
+        public void OnRightClick(Vector3 worldPosition)
+        {
+            // Future: right-click commands if needed
         }
 
         private void CollectResource()
