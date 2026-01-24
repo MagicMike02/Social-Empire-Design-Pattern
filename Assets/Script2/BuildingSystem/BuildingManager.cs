@@ -20,8 +20,10 @@ namespace Script2.BuildingSystem
         {
             if (_root == null) _root = transform;
             if (_factory == null) _factory = GetComponent<BuildingFactory>();
-            
-            // Usa Singleton pattern per accesso coerente
+        }
+
+        private void Start()
+        {
             _economy = GameEconomyManager.Instance;
             _grid = GridManager.Instance;
             

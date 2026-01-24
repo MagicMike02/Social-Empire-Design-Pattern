@@ -5,8 +5,6 @@ namespace Script2.Common
     /// <summary>
     /// Sistema generico per preview di GameObject durante placement/selezione.
     /// Ottimizzato per 2D isometrico (SpriteRenderer).
-    /// Riutilizzabile per: Edifici, Unità, Risorse, Decorazioni, ecc.
-    /// Features: Colori puri RGB, trasparenza diretta, anti-glitch.
     /// </summary>
     public class GenericPreviewSystem : MonoBehaviour
     {
@@ -18,10 +16,11 @@ namespace Script2.Common
         [Tooltip("Sorting layer per preview")]
         [SerializeField] private string _previewSortingLayer = "OnTiles";
         [Tooltip("Sorting order offset per preview")]
-        [SerializeField] private int _previewSortingOrderOffset = 100;
-        [Tooltip("Tint verde per stato valido (moltiplicativo, mantiene texture)")]
+        
+         [SerializeField] private int _previewSortingOrderOffset = 100;
+        [Tooltip("Tint verde per stato Valido (moltiplicativo, mantiene texture)")]
         [SerializeField] private Color _validColor = new Color(0.7f, 1f, 0.7f, 0.8f);
-        [Tooltip("Tint rosso per stato invalido (moltiplicativo, mantiene texture)")]
+        [Tooltip("Tint rosso per stato Invalido (moltiplicativo, mantiene texture)")]
         [SerializeField] private Color _invalidColor = new Color(1f, 0.7f, 0.7f, 0.8f);
         [Tooltip("Tint neutro (nessuna validazione, mantiene texture)")]
         [SerializeField] private Color _neutralColor = new Color(1f, 1f, 1f, 0.8f);
@@ -31,6 +30,7 @@ namespace Script2.Common
         private GameObject _currentPreview;
         private SpriteRenderer _previewSpriteRenderer;
         private Vector3 _lastPosition = Vector3.one * -9999f;
+        private Vector3Int _lastGridCell = new Vector3Int(-9999, -9999, -9999);
         private bool _lastValidState = true;
         private string _previewName = "Preview";
         #endregion
@@ -50,7 +50,9 @@ namespace Script2.Common
                 wasJustCreated = true;
             }
             if (_currentPreview == null) return;
+            
             SetPosition(worldPosition);
+            
             if (wasJustCreated || (isValid.HasValue && _lastValidState != isValid.Value))
             {
                 if (isValid.HasValue)
@@ -72,38 +74,28 @@ namespace Script2.Common
             return true;
         }
 
-        public void HidePreview()
+        /// <summary>
+        /// Aggiorna la preview solo se la cella della griglia è cambiata.
+        /// Wrapper per compatibilità con BuildingPlacer.
+        /// Questo metodo è specifico per l'ottimizzazione grid-based (cella anziché distanza).
+        /// </summary>
+        public bool UpdatePreviewIfCellChanged(Vector3Int gridCell, Vector3 worldPosition, bool isValid)
         {
-            if (_currentPreview != null)
+            // Se cella non è cambiata E validità è la stessa, non aggiornare
+            if (gridCell == _lastGridCell && _lastValidState == isValid)
             {
-                Destroy(_currentPreview);
-                _currentPreview = null;
-                _previewSpriteRenderer = null;
+                return false;
             }
-            _lastPosition = Vector3.one * -9999f;
-        }
 
-        public void SetValidationState(bool isValid)
-        {
-            if (_lastValidState == isValid) return;
-            _lastValidState = isValid;
-            UpdatePreviewColor(isValid ? _validColor : _invalidColor);
-        }
+            _lastGridCell = gridCell;
+            SetPosition(worldPosition);
 
-        public void SetNeutralState()
-        {
-            UpdatePreviewColor(_neutralColor);
-        }
+            if (_lastValidState != isValid)
+            {
+                SetValidationState(isValid);
+            }
 
-        public void SetCustomColor(Color color)
-        {
-            UpdatePreviewColor(color);
-        }
-
-        public void SetRotation(Quaternion rotation)
-        {
-            if (_currentPreview != null)
-                _currentPreview.transform.rotation = rotation;
+            return true;
         }
 
         public void SetScale(Vector3 scale)
@@ -145,7 +137,17 @@ namespace Script2.Common
             }
             _previewSpriteRenderer.sortingLayerName = _previewSortingLayer;
             _previewSpriteRenderer.sortingOrder = _previewSortingOrderOffset;
+            
+            // Disabilita collider per preview - non deve essere interagibile
             DisableCollider();
+        }
+
+        private void DisableCollider()
+        {
+            if (_currentPreview == null) return;
+            Collider2D col2D = _currentPreview.GetComponent<Collider2D>();
+            if (col2D != null)
+                col2D.enabled = false;
         }
         private void SetPosition(Vector3 worldPosition)
         {
@@ -159,12 +161,33 @@ namespace Script2.Common
             if (_previewSpriteRenderer == null) return;
             _previewSpriteRenderer.color = targetColor;
         }
-        private void DisableCollider()
+       
+       
+        public void HidePreview()
         {
-            if (_currentPreview == null) return;
-            Collider2D col2D = _currentPreview.GetComponent<Collider2D>();
-            if (col2D != null) col2D.enabled = false;
+            if (_currentPreview != null)
+            {
+                Destroy(_currentPreview);
+                _currentPreview = null;
+                _previewSpriteRenderer = null;
+            }
+            _lastPosition = Vector3.one * -9999f;
+            _lastGridCell = new Vector3Int(-9999, -9999, -9999);
         }
+
+        private void SetValidationState(bool isValid)
+        {
+            if (_lastValidState == isValid) return;
+            _lastValidState = isValid;
+            UpdatePreviewColor(isValid ? _validColor : _invalidColor);
+        }
+
+        private void SetNeutralState()
+        {
+            UpdatePreviewColor(_neutralColor);
+        }
+
+        
         #endregion
 
         #region Unity Lifecycle

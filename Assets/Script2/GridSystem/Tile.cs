@@ -1,4 +1,4 @@
-﻿using TMPro;
+﻿﻿using TMPro;
 using UnityEngine;
 
 namespace Script2.GridSystem
@@ -11,7 +11,7 @@ namespace Script2.GridSystem
         
         [SerializeField] private Color _lockedColor = Color.grey; //verde grigio
         [SerializeField] private Color _buyableColor = Color.green; //verde verde;
-        [SerializeField] private Color _unlockedColor = Color.white;//verde normale;
+        [SerializeField] private Color _unlockedColor = Color.white; //verde normale;
         
         public TileState State { private set; get; }
         
@@ -19,10 +19,6 @@ namespace Script2.GridSystem
         private Color _savedColorBeforePreview; // Salva colore prima della preview
         private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
 
-        [SerializeField] private GameObject _buildingInstance;
-        public GameObject BuildingInstance => _buildingInstance;
-
-        private bool HasBuilding => _buildingInstance != null;
 
         public event System.Action<Tile> OnBuildingPlaced;
 
@@ -73,7 +69,8 @@ namespace Script2.GridSystem
         void OnMouseExit()
         {
             if (_isShowingPreview) return;
-            _renderer.color = State == TileState.Unlocked ? _normalColor : _lockedColor;
+
+            ResetTint();
         }
         
         void OnMouseDown()
@@ -85,19 +82,14 @@ namespace Script2.GridSystem
         public void SetState(TileState state)
         {
             State = state;
-
-            switch (state)
+            
+            _renderer.color = state switch
             {
-                case TileState.Locked:
-                    _renderer.color = _lockedColor;
-                    break;
-                case TileState.Buyable:
-                    _renderer.color = _buyableColor;
-                    break;
-                case TileState.Unlocked:
-                    _renderer.color = _unlockedColor;
-                    break;
-            }
+                TileState.Locked => _lockedColor,
+                TileState.Buyable => _buyableColor,
+                TileState.Unlocked => _unlockedColor,
+                _ => _renderer.color
+            };
         }
         
         // Funzione per "acquistare" il Tile
@@ -108,17 +100,7 @@ namespace Script2.GridSystem
                 SetState(TileState.Unlocked);
             }
         }
-        public void PlaceBuilding(GameObject buildingPrefab)
-        {
-            if (State != TileState.Unlocked || HasBuilding)
-                return;
-            var t = transform;
-            _buildingInstance = Instantiate(buildingPrefab, t.position, Quaternion.identity, t);
-            OnBuildingPlaced?.Invoke(this);
-        }
-
-        public void AssignBuilding(GameObject building) => _buildingInstance = building;
-
+       
         public void PreviewTint(Color color)
         {
             if (_renderer == null) return;
@@ -133,22 +115,16 @@ namespace Script2.GridSystem
         public void ResetTint()
         {
             if (_renderer == null) return;
-            if (_isShowingPreview)
+
+            _renderer.color = State switch
             {
-                _renderer.color = _savedColorBeforePreview;
-                _isShowingPreview = false;
-            }
-            else
-            {
-                Color targetColor = State switch
-                {
-                    TileState.Locked => _lockedColor,
-                    TileState.Buyable => _buyableColor,
-                    TileState.Unlocked => _unlockedColor,
-                    _ => _normalColor
-                };
-                _renderer.color = targetColor;
-            }
+                TileState.Locked => _lockedColor,
+                TileState.Buyable => _buyableColor,
+                TileState.Unlocked => _unlockedColor,
+                _ => _normalColor
+            };
+            
+            _isShowingPreview = false;
         }
     }
     

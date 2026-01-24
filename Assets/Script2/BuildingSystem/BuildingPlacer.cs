@@ -1,11 +1,11 @@
-﻿﻿﻿﻿using UnityEngine;
+﻿using UnityEngine;
 using Script2.Common;
 
 namespace Script2.BuildingSystem
 {
     /// <summary>
     /// Gestisce il processo di piazzamento degli edifici con preview visiva e validazione in tempo reale.
-    /// REFACTORED: Usa PreviewSystem dedicato per eliminare glitch e fix colori viola.
+    /// Usa GenericPreviewSystem (consolidato) per visualizzazione del preview.
     /// </summary>
     public sealed class BuildingPlacer : MonoBehaviour
     {
@@ -14,14 +14,13 @@ namespace Script2.BuildingSystem
         [Header("Dependencies")]
         [SerializeField] private BuildingManager _manager;
         [SerializeField] private Camera _camera;
-        [SerializeField] private PreviewSystem _previewSystem;
+        [SerializeField] private GenericPreviewSystem _previewSystem; 
 
         [Header("State (Debug Only)")]
         [SerializeField] private BuildingConfigSO _selectedConfig;
         [SerializeField] private bool _isPlacing;
         [SerializeField] private Vector3Int _currentCell;
-
-        // Cache per ottimizzazione Update (FIX GLITCH)
+        
         private Vector3Int _lastCell = Vector3Int.one * -1000;
         private bool _lastValidState = true;
         
@@ -42,7 +41,7 @@ namespace Script2.BuildingSystem
         {
             if (_manager == null) _manager = GetComponent<BuildingManager>();
             if (_camera == null) _camera = Camera.main;
-            if (_previewSystem == null) _previewSystem = GetComponent<PreviewSystem>();
+            if (_previewSystem == null) _previewSystem = GetComponent<GenericPreviewSystem>(); 
             
             ValidateDependencies();
         }
@@ -184,7 +183,7 @@ namespace Script2.BuildingSystem
 
             if (_previewSystem == null)
             {
-                Debug.LogError("[BuildingPlacer] PreviewSystem non trovato! Aggiungi il componente PreviewSystem allo stesso GameObject.");
+                Debug.LogError("[BuildingPlacer] GenericPreviewSystem non trovato! Aggiungi il componente GenericPreviewSystem allo stesso GameObject.");  // ← Aggiornato
             }
         }
 
@@ -213,7 +212,7 @@ namespace Script2.BuildingSystem
                 return;
             }
 
-            // OTTIMIZZAZIONE CRITICA: Aggiorna solo se cella cambiata (FIX GLITCH)
+
             if (cell == _lastCell)
             {
                 return;

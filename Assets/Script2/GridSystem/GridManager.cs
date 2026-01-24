@@ -19,7 +19,7 @@ namespace Script2.GridSystem
 
         private readonly List<Vector2Int> _lastPreviewCells = new();
         private readonly HashSet<Vector2Int> _occupiedCells = new();
-        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new(); // Cache tile preview per performance
+        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new(); 
 
         private void Awake()
         {
@@ -27,17 +27,7 @@ namespace Script2.GridSystem
             if (Instance == null)
             {
                 Instance = this;
-                
-                // DontDestroyOnLoad solo se è root GameObject
-                if (transform.parent == null)
-                {
-                    DontDestroyOnLoad(gameObject);
-                }
-                else
-                {
-                    // Se ha un parent, applica a root
-                    DontDestroyOnLoad(transform.root.gameObject);
-                }
+                DontDestroyOnLoad(transform.parent == null ? gameObject : transform.root.gameObject);
             }
             else if (Instance != this)
             {
@@ -78,12 +68,11 @@ namespace Script2.GridSystem
             // Inizializza la griglia tramite TileManager
             _tileManager.CreateGrid();
             var grid = _tileManager.GetGrid();
+
+            if (_zoneManager == null) return;
             
-            if (_zoneManager != null)
-            {
-                _zoneManager.Initialize(grid);
-                _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
-            }
+            _zoneManager.Initialize(grid);
+            _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
         }
 
         // IGridService implementation
@@ -92,8 +81,9 @@ namespace Script2.GridSystem
             var grid = _tileManager.GetGrid();
             grid.GetWorldToIsoPosition(worldPos, out int x, out int y);
             cell = new Vector3Int(x, y, 0);
-            // Limita ai bounds
+
             bool inside = x >= 0 && y >= 0 && x < _tileManager.Width && y < _tileManager.Height;
+            
             return inside;
         }
 
@@ -149,8 +139,10 @@ namespace Script2.GridSystem
 
         public void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid)
         {
+            ClearPreviousPreview();
+
             // Cache riferimento griglia per performance
-            var grid = _tileManager?.GetGrid();
+            var grid = _tileManager.GetGrid();
             if (grid == null) return;
 
             var newPreviewCells = new List<Vector2Int>();
@@ -161,10 +153,9 @@ namespace Script2.GridSystem
                 // Reset solo celle precedenti usando cache
                 foreach (var p in _lastPreviewCells)
                 {
-                    if (_previewTileCache.TryGetValue(p, out var tile))
-                    {
-                        tile?.ResetTint();
-                    }
+                    if (!_previewTileCache.TryGetValue(p, out var tile)) continue;
+                    
+                    if (tile) tile.ResetTint();
                 }
                 _lastPreviewCells.Clear();
                 _previewTileCache.Clear();
@@ -224,5 +215,20 @@ namespace Script2.GridSystem
             _lastPreviewCells.Clear();
             _lastPreviewCells.AddRange(newPreviewCells);
         }
+        
+        private void ClearPreviousPreview()
+        {
+            foreach (var cell in _lastPreviewCells)
+            {
+                var tile = _tileManager.GetGrid().GetValue(cell.x, cell.y);
+                if (tile)
+                {
+                    tile.ResetTint();  
+                }
+            }
+            _lastPreviewCells.Clear();
+        }
+
+        
     }
 }
