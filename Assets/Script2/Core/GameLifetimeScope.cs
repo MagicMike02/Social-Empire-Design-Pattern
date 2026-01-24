@@ -19,30 +19,24 @@ namespace Script2.Core
 
         protected override void Awake()
         {
-            if (debugMode) Debug.Log("[DI] ==================== AWAKE START ====================");
-            
             // CRITICO: Forza AutoRun = true
             autoRun = true;
-            
-            if (debugMode) Debug.Log($"[DI] AutoRun set to: {autoRun}");
             
             try
             {
                 base.Awake();
-                if (debugMode) Debug.Log("[DI] base.Awake() completed - Container should be built");
+                if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Inizializzato");
             }
             catch (System.Exception ex)
             {
-                Debug.LogError($"[DI] EXCEPTION in Awake(): {ex.Message}\n{ex.StackTrace}");
+                Debug.LogError($"[GameLifetimeScope] ERRORE durante l'inizializzazione: {ex.Message}\n{ex.StackTrace}");
                 throw;
             }
-            
-            if (debugMode) Debug.Log("[DI] ==================== AWAKE END ====================");
         }
 
         protected override void Configure(IContainerBuilder builder)
         {
-            Debug.Log("[DI] ========== CONFIGURE START ==========");
+            if (debugMode) Debug.Log("[GameLifetimeScope] Configurazione dei servizi in corso...");
 
             // CORE - Economy
             RegisterIfExists<GameEconomyManager>(builder);
@@ -69,10 +63,14 @@ namespace Script2.Core
             if (camera != null)
             {
                 builder.RegisterInstance(camera);
-                Debug.Log("[DI] ✓ Camera");
+                if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Camera registrata");
+            }
+            else
+            {
+                Debug.LogWarning("[GameLifetimeScope] Camera.main non trovata!");
             }
 
-            Debug.Log("[DI] ========== CONFIGURE COMPLETE ==========");
+            if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Configurazione completata");
         }
 
         private void RegisterIfExists<T>(IContainerBuilder builder, System.Action<RegistrationBuilder> configure = null) where T : Component
@@ -83,11 +81,11 @@ namespace Script2.Core
             {
                 var registration = builder.RegisterComponent(component);
                 configure?.Invoke(registration);
-                Debug.Log($"[DI] ✓ {typeof(T).Name}");
+                if (debugMode) Debug.Log($"[GameLifetimeScope] ✓ {typeof(T).Name}");
             }
             else
             {
-                Debug.LogError($"[DI] ✗ {typeof(T).Name} NOT FOUND!");
+                Debug.LogError($"[GameLifetimeScope] ✗ {typeof(T).Name} non trovato in scena!");
             }
         }
     }
