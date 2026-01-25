@@ -1,11 +1,11 @@
-﻿using UnityEngine;
+﻿﻿﻿using UnityEngine;
 using VContainer;
 using Script2.BuildingSystem;
+using Script2.GridSystem;
 using System.Collections.Generic;
 using Unity.Jobs;
 using Unity.Collections;
 using System.Collections;
-using Script2.GridSystem;
 
 namespace Script2.PathfindingSystem
 {
@@ -204,28 +204,54 @@ namespace Script2.PathfindingSystem
 
             Debug.Log($"[PathfindingManager] DEBUG: Path found with {path.Count} cells");
 
+            // DEBUG: Trova TileManager in scena
+            var tileManager = FindFirstObjectByType<TileManager>();
+            if (tileManager == null)
+            {
+                Debug.LogError("[PathfindingManager] DEBUG: TileManager not found in scene!");
+                return;
+            }
+
+            var grid = tileManager.GetGrid();
+            if (grid == null)
+            {
+                Debug.LogError("[PathfindingManager] DEBUG: Grid is null!");
+                return;
+            }
+
             // Color per tile sul percorso
             var pathColor = new Color(0f, 0.5f, 1f, 0.6f); // Blu semi-trasparente
             var startColor = new Color(0f, 1f, 0f, 0.8f);   // Verde
             var goalColor = new Color(1f, 0f, 0f, 0.8f);    // Rosso
-
-            var grid = _tileManager?.GetGrid();
-            if (grid == null) return;
 
             // Colora il percorso
             for (int i = 0; i < path.Count; i++)
             {
                 var cell = path[i];
                 var tile = grid.GetValue(cell.x, cell.y);
-                if (tile == null) continue;
+                if (tile == null)
+                {
+                    Debug.LogWarning($"[PathfindingManager] DEBUG: Tile at {cell} is null!");
+                    continue;
+                }
 
                 if (i == 0)
-                    tile.PreviewTint(startColor); // Start (verde)
+                {
+                    tile.DebugSetColor(startColor); // Start (verde)
+                    Debug.Log($"[PathfindingManager] DEBUG: START tile {cell} colored GREEN");
+                }
                 else if (i == path.Count - 1)
-                    tile.PreviewTint(goalColor); // Goal (rosso)
+                {
+                    tile.DebugSetColor(goalColor); // Goal (rosso)
+                    Debug.Log($"[PathfindingManager] DEBUG: GOAL tile {cell} colored RED");
+                }
                 else
-                    tile.PreviewTint(pathColor); // Path (blu)
+                {
+                    tile.DebugSetColor(pathColor); // Path (blu)
+                }
             }
+
+            Debug.Log($"[PathfindingManager] DEBUG: ✓ Colored {path.Count} tiles");
         }
 
         /// <summary>

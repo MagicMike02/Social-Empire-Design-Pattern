@@ -1,23 +1,30 @@
-﻿﻿using UnityEngine;
+﻿using UnityEngine;
 using VContainer;
 using Script2.BuildingSystem;
 using Script2.Core;
+using System;
 
 namespace Script2.InputSystem
 {
-    // Centralized input handler: single non-alloc raycast per frame
-    // Priority: Unit > Building > Resource > ZoneSign > Tile
-    // GC-friendly: reuse arrays, avoid Linq/allocations in Update
+    /// <summary>
+    /// Centralized input handler for grid-based interactions.
+    /// Uses Collider-First approach: raycast hits determine object identity and grid position (Source of Truth).
+    /// No mathematical projections for cell detection - relys on IGridEntity.GridPosition from collider hit.
+    /// Priority: Unit > Building > Resource > ZoneSign > Tile.
+    /// GC-friendly: reuse arrays, avoid allocations in Update.
+    /// </summary>
     public sealed class InputManager : MonoBehaviour
     {
         [Inject] private Camera _camera;
-        [Inject] private IGridService _grid;
 
-        [SerializeField] private bool _debugMode = false;
+        [SerializeField] private bool _debugMode;
 
-        // Non-alloc hit buffers (tunable size)
-        private const int MaxHits = 8;
-        private readonly RaycastHit2D[] _hitsBuffer = new RaycastHit2D[MaxHits];
+        // Event: dispatches tile click - subscriber reads tile.GridPosition directly (Source of Truth)
+        public event Action<Script2.GridSystem.Tile> OnTileClicked;
+
+        // Non-alloc overlap buffers (tunable size)
+        private const int MaxOverlaps = 16;
+        private readonly Collider2D[] _overlapBuffer = new Collider2D[MaxOverlaps];
 
         private IHoverable _lastHovered;
         private Vector3 _lastMousePos;
@@ -25,80 +32,73 @@ namespace Script2.InputSystem
         private void Update()
         {
             var mousePos = Input.mousePosition;
-            
-            // Micro-optimization: skip if mouse hasn't moved
-            if (mousePos == _lastMousePos) return;
-            _lastMousePos = mousePos;
+            bool mouseMoved = mousePos != _lastMousePos;
 
-            // Screen → Ray
-            var ray = _camera.ScreenPointToRay(mousePos);
-
-            // Non-alloc raycast (ALL layers), then apply priority filter manually
-            int hitCount = Physics2D.RaycastNonAlloc(ray.origin, ray.direction, _hitsBuffer, Mathf.Infinity);
-
-            if (_debugMode && hitCount > 0)
+            if (mouseMoved)
             {
-                Debug.Log($"[InputManager] Raycast hits: {hitCount}");
-                for (int i = 0; i < hitCount; i++)
+                _lastMousePos = mousePos;
+                Vector3 wp = _camera.ScreenToWorldPoint(mousePos);
+                Vector2 point = new Vector2(wp.x, wp.y);
+
+                int hitCount = Physics2D.OverlapPointNonAlloc(point, _overlapBuffer);
+                if (_debugMode && hitCount > 0)
                 {
-                    Debug.Log($"  [{i}] {_hitsBuffer[i].collider.gameObject.name} (layer {_hitsBuffer[i].collider.gameObject.layer})");
+                    Debug.Log($"[InputManager] OverlapPoint hits: {hitCount}");
+                    for (int i = 0; i < hitCount; i++)
+                    {
+                        if (_overlapBuffer[i])
+                            Debug.Log($"  [{i}] {_overlapBuffer[i].gameObject.name} (layer {_overlapBuffer[i].gameObject.layer})");
+                    }
+                }
+
+                IHoverable target = FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Unit)
+                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Building)
+                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Resource)
+                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.ZoneSign)
+                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Tile);
+
+                if (target != _lastHovered)
+                {
+                    _lastHovered?.OnHoverExit();
+                    target?.OnHoverEnter();
+                    _lastHovered = target;
                 }
             }
 
-            IHoverable target = null;
-            Vector3 worldPos = _camera.ScreenToWorldPoint(mousePos);
-
-            // Priority search: Unit > Building > Resource > ZoneSign > Tile
-            target = FindFirstHoverable(_hitsBuffer, hitCount, LayerRegistry.Unit)
-                  ?? FindFirstHoverable(_hitsBuffer, hitCount, LayerRegistry.Building)
-                  ?? FindFirstHoverable(_hitsBuffer, hitCount, LayerRegistry.Resource)
-                  ?? FindFirstHoverable(_hitsBuffer, hitCount, LayerRegistry.ZoneSign)
-                  ?? FindFirstHoverable(_hitsBuffer, hitCount, LayerRegistry.Tile);
-
-            // Handle hover transitions
-            if (target != _lastHovered)
-            {
-                _lastHovered?.OnHoverExit();
-                target?.OnHoverEnter();
-                _lastHovered = target;
-                
-                if (target != null)
-                    Debug.Log($"[InputManager] Hovering: {target.GetType().Name}");
-            }
-
-            // Clicks
             if (Input.GetMouseButtonDown(0))
             {
-                target?.OnClick();
-                if (target != null)
-                    Debug.Log($"[InputManager] Click on {target.GetType().Name}");
+                _lastHovered?.OnClick();
+                if (_debugMode && _lastHovered != null) 
+                    Debug.Log($"[InputManager] Click on {_lastHovered.GetType().Name}");
+
+                // Collider-First: pass the Tile itself, not a calculated cell
+                // Subscriber reads tile.GridPosition (cached at Initialize, authoritative Source of Truth)
+                if (_lastHovered is Script2.GridSystem.Tile tile)
+                {
+                    OnTileClicked?.Invoke(tile);
+                }
             }
             if (Input.GetMouseButtonDown(1))
             {
-                // Right-click passes precise world position (used for commands)
-                target?.OnRightClick(worldPos);
-                if (target != null)
-                    Debug.Log($"[InputManager] RightClick on {target.GetType().Name} at {worldPos}");
+                Vector3 wp = _camera.ScreenToWorldPoint(_lastMousePos);
+                _lastHovered?.OnRightClick(wp);
+                if (_debugMode && _lastHovered != null) 
+                    Debug.Log($"[InputManager] RightClick on {_lastHovered.GetType().Name} at {wp}");
             }
         }
 
-        private IHoverable FindFirstHoverable(RaycastHit2D[] hits, int hitCount, int layerId)
+        private IHoverable FindFirstHoverable(Collider2D[] colliders, int count, int layerId)
         {
-            if (layerId == -1) return null; // Layer non esiste
-            
-            for (int i = 0; i < hitCount; i++)
+            if (layerId == -1) return null;
+            for (int i = 0; i < count; i++)
             {
-                var col = hits[i].collider;
+                var col = colliders[i];
                 if (col == null) continue;
-                
-                // Semplice confronto diretto: il layer del gameobject deve corrispondere
                 if (col.gameObject.layer != layerId) continue;
-                
+
                 var hover = col.GetComponent<IHoverable>();
-                if (_debugMode)
-                {
-                    Debug.Log($"[InputManager] Checking {col.gameObject.name}: IHoverable = {(hover != null ? "YES" : "NO")}");
-                }
+                if (_debugMode && hover != null)
+                    Debug.Log($"[InputManager] {col.gameObject.name} is IHoverable");
                 
                 if (hover != null) return hover;
             }

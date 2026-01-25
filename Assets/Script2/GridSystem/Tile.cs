@@ -1,10 +1,15 @@
-﻿using TMPro;
+﻿﻿using TMPro;
 using UnityEngine;
 using Script2.InputSystem;
 
 namespace Script2.GridSystem
 {
-    public class Tile : MonoBehaviour, IHoverable
+    /// <summary>
+    /// Represents a single tile in the isometric grid.
+    /// Implements IGridEntity to provide authoritative grid position (no mathematical conversion needed).
+    /// Implements IHoverable for input system integration.
+    /// </summary>
+    public class Tile : MonoBehaviour, IHoverable, Script2.BuildingSystem.IGridEntity
     {
         [SerializeField] private TextMeshPro _coordinatesText;
         [SerializeField] private Color _normalColor = Color.white;
@@ -16,10 +21,13 @@ namespace Script2.GridSystem
         
         public TileState State { private set; get; }
         
+        // Source of Truth: grid position (cached at Initialize, never computed)
+        private Vector2Int _gridPosition;
+        public Vector2Int GridPosition => _gridPosition;
+        
         private SpriteRenderer _renderer;
         private Color _savedColorBeforePreview; // Salva colore prima della preview
         private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
-
 
         public event System.Action<Tile> OnBuildingPlaced;
 
@@ -36,24 +44,25 @@ namespace Script2.GridSystem
                 _renderer.color = _normalColor;
                 SetState(TileState.Locked); // Inizialmente bloccato
             }
-            
+
         }
         
         public void Initialize(Vector2 gridPosition, Vector3 worldPosition, int sortingOrder)
         {
-            name = $"Tile_{gridPosition.x}_{gridPosition.y}";
+            // Cache grid position as Source of Truth
+            _gridPosition = new Vector2Int((int)gridPosition.x, (int)gridPosition.y);
+            
+            name = $"Tile_{_gridPosition.x}_{_gridPosition.y}";
             transform.position = worldPosition;
             
             // Imposta sorting order per rendering isometrico corretto
             if (_renderer != null)
-            {
                 _renderer.sortingOrder = sortingOrder;
-            }
 
             // Text sopra il tile per debug coordinate
             if (_coordinatesText != null)
             {
-                _coordinatesText.text = $"{(int)gridPosition.x},{(int)gridPosition.y}";
+                _coordinatesText.text = $"{_gridPosition.x},{_gridPosition.y}";
                 _coordinatesText.sortingOrder = sortingOrder + 1;
             }
 
@@ -128,8 +137,18 @@ namespace Script2.GridSystem
                 TileState.Unlocked => _unlockedColor,
                 _ => _normalColor
             };
-            
+
             _isShowingPreview = false;
+        }
+
+        /// <summary>
+        /// DEBUG ONLY: Forza colore per pathfinding debug (ignora hover state)
+        /// </summary>
+        public void DebugSetColor(Color color)
+        {
+            if (_renderer == null) return;
+            _renderer.color = color;
+            // Non settare _isShowingPreview per non bloccare hover
         }
     }
     

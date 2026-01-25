@@ -1,4 +1,4 @@
-﻿﻿using System;
+﻿using System;
 using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
@@ -211,6 +211,16 @@ namespace Script2.ResourceSystem
         {
             var ri = go.GetComponent<ResourceInstance>();
             return ri != null ? _resourceSpawner.GetResourceDataSO(ri.Data.resourceType) : null;
+        }
+
+        // ========== PATHFINDING SUPPORT ==========
+        
+        /// <summary>
+        /// Verifica se una cella contiene una risorsa (ostacolo per pathfinding).
+        /// </summary>
+        public bool HasResourceAt(Vector2Int cell)
+        {
+            return _activeResources.ContainsKey(cell);
         }
     }
 }

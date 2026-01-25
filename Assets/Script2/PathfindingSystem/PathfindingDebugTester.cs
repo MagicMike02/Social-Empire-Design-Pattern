@@ -1,9 +1,7 @@
 ﻿using UnityEngine;
-using VContainer;
-using Script2.PathfindingSystem;
 using Script2.BuildingSystem;
-using Script2.InputSystem;
 using Script2.GridSystem;
+using Script2.InputSystem;
 
 namespace Script2.PathfindingSystem
 {
@@ -15,74 +13,97 @@ namespace Script2.PathfindingSystem
     /// </summary>
     public class PathfindingDebugTester : MonoBehaviour
     {
-        [Inject] private IGridService _gridService;
-        [Inject] private PathfindingManager _pathfinding;
+        private static PathfindingDebugTester _instance;
 
-        private Vector2Int? _startCell = null;
-        private Vector2Int? _goalCell = null;
+        private IGridService _gridService;
+        private PathfindingManager _pathfinding;
+        private InputManager _input; // Aggiunto riferimento a InputManager
+
+        private Vector2Int? _startCell;
+        private Vector2Int? _goalCell;
 
         [SerializeField] private bool _debugEnabled = true;
+
+        private void Awake()
+        {
+            // Singleton pattern - distruggi duplicati
+            if (_instance != null && _instance != this)
+            {
+                Debug.LogWarning("[PathfindingDebugTester] Duplicate instance detected - destroying this one");
+                Destroy(gameObject);
+                return;
+            }
+
+            _instance = this;
+        }
 
         private void Start()
         {
             if (_debugEnabled)
             {
+                // Ottieni dipendenze manualmente
+                _gridService = FindFirstObjectByType<GridManager>() as IGridService;
+                _pathfinding = FindFirstObjectByType<PathfindingManager>();
+                _input = FindFirstObjectByType<InputManager>(); // Inizializza InputManager
+
+                if (_gridService == null)
+                {
+                    Debug.LogError("[PathfindingDebugTester] GridManager not found in scene!");
+                    _debugEnabled = false;
+                    return;
+                }
+
+                if (_pathfinding == null)
+                {
+                    Debug.LogError("[PathfindingDebugTester] PathfindingManager not found in scene!");
+                    _debugEnabled = false;
+                    return;
+                }
+
                 Debug.Log("[PathfindingDebugTester] ✓ Initialized");
-                Debug.Log("[PathfindingDebugTester] Instructions: Click first tile for START, second tile for GOAL, right-click to reset");
+                Debug.Log("[PathfindingDebugTester] Instructions: Click tiles to set START → GOAL → Auto-reset");
                 
-                // Hook into InputManager to capture tile clicks
-                HookIntoTileClicks();
+                // Hook sui tile clicks
+                SubscribeToTileClicks();
             }
         }
 
-        private void HookIntoTileClicks()
+        private void SubscribeToTileClicks()
         {
-            // Find all tiles in scene and hook their click events
-            var tiles = FindObjectsOfType<Tile>();
-            Debug.Log($"[PathfindingDebugTester] Found {tiles.Length} tiles. Hooking click events...");
-            
-            foreach (var tile in tiles)
-            {
-                // Create a closure to capture tile reference
-                var tileRef = tile;
-                // We'll handle this via Update() checking for tile clicks instead
-            }
+            // Sottoscrivi al click centralizato di InputManager
+            if (_input != null)
+                _input.OnTileClicked += OnTileClicked;
+        }
+
+        private void OnTileClicked(Script2.GridSystem.Tile tile)
+        {
+            // Collider-First approach: read grid position directly from tile (Source of Truth)
+            // No mathematical conversion - tile.GridPosition is cached at Initialize
+            Vector2Int cell = tile.GridPosition;
+            HandleTileClick(cell);
         }
 
         private void Update()
         {
             if (!_debugEnabled) return;
 
-            // Check for mouse clicks
-            if (Input.GetMouseButtonDown(0)) // Left click
-            {
-                HandleTileClick();
-            }
-            else if (Input.GetMouseButtonDown(1)) // Right click
+            // Right-click = reset
+            if (Input.GetMouseButtonDown(1))
             {
                 HandleReset();
             }
         }
 
-        private void HandleTileClick()
+        private void HandleTileClick(Vector2Int cell)
         {
-            // Ottieni la cella clickata
-            var mousePos = Input.mousePosition;
-            var worldPos = Camera.main.ScreenToWorldPoint(mousePos);
-
-            if (!_gridService.TryWorldToCell(worldPos, out Vector3Int cellInt))
-            {
-                Debug.LogWarning("[PathfindingDebugTester] Click fuori dalla griglia");
-                return;
-            }
-
-            var cell = new Vector2Int(cellInt.x, cellInt.y);
-
             // Primo click = start
             if (_startCell == null)
             {
                 _startCell = cell;
                 Debug.Log($"[PathfindingDebugTester] ✓ START: {cell}");
+                
+                // COLORA START SUBITO (verde)
+                ColorStartCell(cell);
                 return;
             }
 
@@ -97,15 +118,60 @@ namespace Script2.PathfindingSystem
                 return;
             }
 
-            // Reset su terzo click
-            HandleReset();
+            // Terzo click = reset tutto
+            Debug.Log("[PathfindingDebugTester] ✓ Reset - clearing path visualization");
+            ClearPathVisualization();
+            _startCell = null;
+            _goalCell = null;
+        }
+
+        private void ColorStartCell(Vector2Int startCell)
+        {
+            var tileManager = FindFirstObjectByType<TileManager>();
+            if (tileManager == null) return;
+
+            var grid = tileManager.GetGrid();
+            if (grid == null) return;
+
+            var tile = grid.GetValue(startCell.x, startCell.y);
+            if (tile != null)
+            {
+                var startColor = new Color(0f, 1f, 0f, 0.8f); // Verde
+                tile.DebugSetColor(startColor);
+                Debug.Log($"[PathfindingDebugTester] START cell {startCell} colored GREEN");
+            }
+        }
+
+        private void ClearPathVisualization()
+        {
+            var tileManager = FindFirstObjectByType<TileManager>();
+            if (tileManager == null) return;
+
+            var grid = tileManager.GetGrid();
+            if (grid == null) return;
+
+            // Reset tutti i tile (forza reset di tutti)
+            for (int y = 0; y < 100; y++) // Assumo max 100x100 grid
+            {
+                for (int x = 0; x < 100; x++)
+                {
+                    var tile = grid.GetValue(x, y);
+                    if (tile != null)
+                    {
+                        tile.ResetTint();
+                    }
+                }
+            }
+
+            Debug.Log("[PathfindingDebugTester] ✓ All tiles reset");
         }
 
         private void HandleReset()
         {
+            ClearPathVisualization();
             _startCell = null;
             _goalCell = null;
-            Debug.Log("[PathfindingDebugTester] ✓ Reset. Click first tile for new START");
+            Debug.Log("[PathfindingDebugTester] ✓ Reset via right-click. Ready for new START");
         }
 
         private void TestPathfinding(Vector2Int start, Vector2Int goal)
@@ -136,6 +202,12 @@ namespace Script2.PathfindingSystem
             {
                 Debug.Log($"[PathfindingDebugTester] ✓ Path length: {path.Count} cells");
             }
+        }
+
+        private void OnDestroy()
+        {
+            if (_input != null)
+                _input.OnTileClicked -= OnTileClicked;
         }
     }
 }

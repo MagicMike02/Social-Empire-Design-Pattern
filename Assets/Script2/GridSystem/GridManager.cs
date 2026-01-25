@@ -1,4 +1,4 @@
-﻿﻿﻿using Script2.ResourceSystem;
+﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
 using System.Collections.Generic;
@@ -208,6 +208,74 @@ namespace Script2.GridSystem
             _lastPreviewCells.Clear();
         }
 
+        // Helper: trova la cella il cui centro è più vicino a worldPos (considera 9 candidate attorno a quella grezza)
+        private bool TryWorldToNearestCell(Vector3 worldPos, out Vector3Int bestCell)
+        {
+            bestCell = default;
+            // Conversione grezza
+            if (!TryWorldToCell(worldPos, out var approx)) return false;
+
+            float bestDist = float.MaxValue;
+            var grid = _tileManager.GetGrid();
+
+            // Esamina le 9 celle attorno a approx (inclusa)
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    int cx = approx.x + dx;
+                    int cy = approx.y + dy;
+                    if (cx < 0 || cy < 0 || cx >= _tileManager.Width || cy >= _tileManager.Height) continue;
+
+                    var candidate = new Vector3Int(cx, cy, 0);
+
+                    // Centro VISIVO del tile (non il pivot): usa SpriteRenderer.bounds.center se disponibile
+                    Vector3 center;
+                    var tile = grid.GetValue(cx, cy);
+                    if (tile != null)
+                    {
+                        var sr = tile.GetComponent<SpriteRenderer>();
+                        center = sr != null ? sr.bounds.center : tile.transform.position;
+                    }
+                    else
+                    {
+                        // Fallback: centro matematico della cella
+                        center = CellToWorld(candidate);
+                    }
+
+                    // Distanza 2D su piano di gioco (x,y)
+                    float d2 = (new Vector2(center.x, center.y) - new Vector2(worldPos.x, worldPos.y)).sqrMagnitude;
+                    if (d2 < bestDist)
+                    {
+                        bestDist = d2;
+                        bestCell = candidate;
+                    }
+                }
+            }
+
+            return bestDist < float.MaxValue;
+        }
+
+        // ========== SCREEN->CELL precise mapping ==========
+        public bool TryScreenToCell(Camera cam, Vector3 screenPos, out Vector3Int cell)
+        {
+            cell = default;
+            if (cam == null) return false;
+
+            // Ray dal mouse
+            var ray = cam.ScreenPointToRay(screenPos);
+
+            // Intersezione col piano z=0 (mondo) → t = -ray.origin.z / ray.direction.z
+            if (Mathf.Approximately(ray.direction.z, 0f)) return false; // Parallelo al piano
+            float t = -ray.origin.z / ray.direction.z;
+            if (t < 0f) return false; // Dietro la camera
+
+            Vector3 worldOnPlane = ray.origin + ray.direction * t; // Punto world proiettato sul piano di gioco
+
+            // Usa snapping alla cella con centro più vicino per correggere bordi del diamante
+            return TryWorldToNearestCell(worldOnPlane, out cell);
+        }
+
         // ========== PATHFINDING SUPPORT (SPRINT 1) ==========
         
         public bool IsCellWalkable(Vector2Int cell)
@@ -221,10 +289,16 @@ namespace Script2.GridSystem
             if (tile == null)
                 return false;
 
-            // Cell must not be occupied by building (ONLY check this)
-            // ALL tile states (Locked/Buyable/Unlocked) are walkable for pathfinding
+            // OBSTACLES - Block pathfinding:
+            // - Buildings (occupied cells)
+            // - Resources (trees, stones, gold, etc.)
+            // - Units, Enemies, Objects (future - tracked by their own managers)
             if (_occupiedCells.Contains(cell))
-                return false;
+                return false; // Building occupies this cell
+
+            var resourceManager = FindFirstObjectByType<ResourceManager>();
+            if (resourceManager != null && resourceManager.HasResourceAt(cell))
+                return false; // Resource occupies this cell
 
             return true;
         }

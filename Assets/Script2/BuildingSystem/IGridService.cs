@@ -61,7 +61,7 @@ namespace Script2.BuildingSystem
         /// <param name="isValid">True per preview verde (valido), False per rosso (invalido)</param>
         void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid);
         
-        // ========== PATHFINDING SUPPORT ==========
+        // ========== PATHFINDING SUPPORT (SPRINT 1) ==========
         
         /// <summary>
         /// Verifica se una cella è percorribile da un'unità.
@@ -77,6 +77,6 @@ namespace Script2.BuildingSystem
         /// </summary>
         /// <param name="cell">Cella di partenza</param>
         /// <returns>Lista di celle vicine percorribili (max 4)</returns>
-        List<Vector2Int> GetWalkableNeighbors(Vector2Int cell);
+        System.Collections.Generic.List<Vector2Int> GetWalkableNeighbors(Vector2Int cell);
     }
 }
