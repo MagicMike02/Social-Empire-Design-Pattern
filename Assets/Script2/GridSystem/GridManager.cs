@@ -1,4 +1,4 @@
-﻿using Script2.ResourceSystem;
+﻿﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
 using System.Collections.Generic;
@@ -208,6 +208,44 @@ namespace Script2.GridSystem
             _lastPreviewCells.Clear();
         }
 
+        // ========== PATHFINDING SUPPORT (SPRINT 1) ==========
         
+        public bool IsCellWalkable(Vector2Int cell)
+        {
+            // Bounds check
+            if (cell.x < 0 || cell.y < 0 || cell.x >= _tileManager.Width || cell.y >= _tileManager.Height)
+                return false;
+
+            // Tile must be unlocked
+            var tile = _tileManager.GetGrid().GetValue(cell.x, cell.y);
+            if (tile == null || tile.State != TileState.Unlocked)
+                return false;
+
+            // Cell must not be occupied by building
+            if (_occupiedCells.Contains(cell))
+                return false;
+
+            // Cell must not have resources (check ResourceManager if needed)
+            // TODO: Extend this check if ResourceManager tracks resource positions
+            
+            return true;
+        }
+
+        public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
+        {
+            // 4-directional cross pattern (isometric compatible)
+            var neighbors = new List<Vector2Int>(4)
+            {
+                new Vector2Int(cell.x + 1, cell.y),  // East
+                new Vector2Int(cell.x - 1, cell.y),  // West
+                new Vector2Int(cell.x, cell.y + 1),  // North
+                new Vector2Int(cell.x, cell.y - 1)   // South
+            };
+
+            // Filter only walkable neighbors
+            neighbors.RemoveAll(n => !IsCellWalkable(n));
+            return neighbors;
+        }
     }
 }
+

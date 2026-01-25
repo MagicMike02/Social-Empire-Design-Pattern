@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿﻿using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using Script2.BuildingSystem;
@@ -7,6 +7,7 @@ using Script2.GridSystem;
 using Script2.ResourceSystem;
 using Script2.Common;
 using Script2.InputSystem;
+using Script2.PathfindingSystem;
 
 namespace Script2.Core
 {
@@ -61,6 +62,10 @@ namespace Script2.Core
             
             // INPUT SYSTEM
             RegisterIfExists<InputManager>(builder);
+            
+            // PATHFINDING SYSTEM (SPRINT 1)
+            RegisterIfExists<PathfindingManager>(builder);
+            
             // CAMERA
             var camera = Camera.main;
             if (camera != null)
@@ -93,5 +98,3 @@ namespace Script2.Core
         }
     }
 }
-
-

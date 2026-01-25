@@ -1,4 +1,5 @@
-﻿﻿using UnityEngine;
+﻿using System.Collections.Generic;
+using UnityEngine;
 
 namespace Script2.BuildingSystem
 {
@@ -59,6 +60,23 @@ namespace Script2.BuildingSystem
         /// <param name="height">Altezza in celle (0 per cancellare preview)</param>
         /// <param name="isValid">True per preview verde (valido), False per rosso (invalido)</param>
         void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid);
+        
+        // ========== PATHFINDING SUPPORT ==========
+        
+        /// <summary>
+        /// Verifica se una cella è percorribile da un'unità.
+        /// Una cella è walkable se: TileState.Unlocked + non occupata + no risorse.
+        /// </summary>
+        /// <param name="cell">Coordinate cella da verificare</param>
+        /// <returns>True se la cella è percorribile, False altrimenti</returns>
+        bool IsCellWalkable(Vector2Int cell);
+        
+        /// <summary>
+        /// Restituisce le celle vicine percorribili (4-directional cross pattern per isometric).
+        /// Utilizzato da PathfindingManager per A* neighbor expansion.
+        /// </summary>
+        /// <param name="cell">Cella di partenza</param>
+        /// <returns>Lista di celle vicine percorribili (max 4)</returns>
+        List<Vector2Int> GetWalkableNeighbors(Vector2Int cell);
     }
 }
-
