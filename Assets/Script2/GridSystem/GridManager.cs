@@ -1,4 +1,4 @@
-﻿﻿using Script2.ResourceSystem;
+﻿﻿﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
 using System.Collections.Generic;
@@ -216,18 +216,16 @@ namespace Script2.GridSystem
             if (cell.x < 0 || cell.y < 0 || cell.x >= _tileManager.Width || cell.y >= _tileManager.Height)
                 return false;
 
-            // Tile must be unlocked
+            // Tile must exist
             var tile = _tileManager.GetGrid().GetValue(cell.x, cell.y);
-            if (tile == null || tile.State != TileState.Unlocked)
+            if (tile == null)
                 return false;
 
-            // Cell must not be occupied by building
+            // Cell must not be occupied by building (ONLY check this)
+            // ALL tile states (Locked/Buyable/Unlocked) are walkable for pathfinding
             if (_occupiedCells.Contains(cell))
                 return false;
 
-            // Cell must not have resources (check ResourceManager if needed)
-            // TODO: Extend this check if ResourceManager tracks resource positions
-            
             return true;
         }
 

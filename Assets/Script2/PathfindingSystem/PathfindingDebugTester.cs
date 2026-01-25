@@ -3,6 +3,7 @@ using VContainer;
 using Script2.PathfindingSystem;
 using Script2.BuildingSystem;
 using Script2.InputSystem;
+using Script2.GridSystem;
 
 namespace Script2.PathfindingSystem
 {
@@ -12,7 +13,7 @@ namespace Script2.PathfindingSystem
     /// Click su secondo tile = goal
     /// Visualizza il percorso colorando i tile (blu = path, verde = start, rosso = goal)
     /// </summary>
-    public class PathfindingDebugTester : MonoBehaviour, IHoverable
+    public class PathfindingDebugTester : MonoBehaviour
     {
         [Inject] private IGridService _gridService;
         [Inject] private PathfindingManager _pathfinding;
@@ -25,24 +26,46 @@ namespace Script2.PathfindingSystem
         private void Start()
         {
             if (_debugEnabled)
-                Debug.Log("[PathfindingDebugTester] Ready. Click first tile for START, second tile for GOAL");
+            {
+                Debug.Log("[PathfindingDebugTester] ✓ Initialized");
+                Debug.Log("[PathfindingDebugTester] Instructions: Click first tile for START, second tile for GOAL, right-click to reset");
+                
+                // Hook into InputManager to capture tile clicks
+                HookIntoTileClicks();
+            }
         }
 
-        // Implementazione IHoverable (per ricevere click da InputManager)
-        public void OnHoverEnter()
+        private void HookIntoTileClicks()
         {
-            // No visual feedback needed for debug
+            // Find all tiles in scene and hook their click events
+            var tiles = FindObjectsOfType<Tile>();
+            Debug.Log($"[PathfindingDebugTester] Found {tiles.Length} tiles. Hooking click events...");
+            
+            foreach (var tile in tiles)
+            {
+                // Create a closure to capture tile reference
+                var tileRef = tile;
+                // We'll handle this via Update() checking for tile clicks instead
+            }
         }
 
-        public void OnHoverExit()
-        {
-            // No cleanup needed
-        }
-
-        public void OnClick()
+        private void Update()
         {
             if (!_debugEnabled) return;
 
+            // Check for mouse clicks
+            if (Input.GetMouseButtonDown(0)) // Left click
+            {
+                HandleTileClick();
+            }
+            else if (Input.GetMouseButtonDown(1)) // Right click
+            {
+                HandleReset();
+            }
+        }
+
+        private void HandleTileClick()
+        {
             // Ottieni la cella clickata
             var mousePos = Input.mousePosition;
             var worldPos = Camera.main.ScreenToWorldPoint(mousePos);
@@ -59,7 +82,7 @@ namespace Script2.PathfindingSystem
             if (_startCell == null)
             {
                 _startCell = cell;
-                Debug.Log($"[PathfindingDebugTester] START set: {cell}");
+                Debug.Log($"[PathfindingDebugTester] ✓ START: {cell}");
                 return;
             }
 
@@ -67,7 +90,7 @@ namespace Script2.PathfindingSystem
             if (_goalCell == null)
             {
                 _goalCell = cell;
-                Debug.Log($"[PathfindingDebugTester] GOAL set: {cell}");
+                Debug.Log($"[PathfindingDebugTester] ✓ GOAL: {cell}");
 
                 // Calcola e visualizza il percorso
                 TestPathfinding(_startCell.Value, _goalCell.Value);
@@ -75,28 +98,44 @@ namespace Script2.PathfindingSystem
             }
 
             // Reset su terzo click
-            _startCell = null;
-            _goalCell = null;
-            Debug.Log("[PathfindingDebugTester] Reset. Click again for new START");
+            HandleReset();
         }
 
-        public void OnRightClick(Vector3 worldPosition)
+        private void HandleReset()
         {
-            // Right click = reset
             _startCell = null;
             _goalCell = null;
-            Debug.Log("[PathfindingDebugTester] Reset via right-click");
+            Debug.Log("[PathfindingDebugTester] ✓ Reset. Click first tile for new START");
         }
 
         private void TestPathfinding(Vector2Int start, Vector2Int goal)
         {
-            Debug.Log($"[PathfindingDebugTester] Testing pathfinding: {start} → {goal}");
+            Debug.Log($"[PathfindingDebugTester] 🔍 Pathfinding: {start} → {goal}");
+
+            // DEBUG: Verifica walkability
+            bool startWalkable = _gridService.IsCellWalkable(start);
+            bool goalWalkable = _gridService.IsCellWalkable(goal);
+            Debug.Log($"[PathfindingDebugTester] Walkability - START: {startWalkable}, GOAL: {goalWalkable}");
+
+            if (!startWalkable)
+                Debug.LogWarning($"[PathfindingDebugTester] ⚠️ START cell {start} is NOT walkable!");
+            if (!goalWalkable)
+                Debug.LogWarning($"[PathfindingDebugTester] ⚠️ GOAL cell {goal} is NOT walkable!");
 
             // Usa versione SYNC per testing (più facile da debuggare)
             var path = _pathfinding.FindPath(start, goal);
 
             // Visualizza il percorso
             _pathfinding.DebugVisualizePath(path);
+            
+            if (path.Count == 0)
+            {
+                Debug.LogWarning("[PathfindingDebugTester] ❌ No path found!");
+            }
+            else
+            {
+                Debug.Log($"[PathfindingDebugTester] ✓ Path length: {path.Count} cells");
+            }
         }
     }
 }
