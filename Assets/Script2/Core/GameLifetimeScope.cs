@@ -65,6 +65,7 @@ namespace Script2.Core
             
             // PATHFINDING SYSTEM (SPRINT 1)
             RegisterIfExists<PathfindingManager>(builder);
+            RegisterIfExists<PathfindingDebugTester>(builder); // DEBUG ONLY
             
             // CAMERA
             var camera = Camera.main;

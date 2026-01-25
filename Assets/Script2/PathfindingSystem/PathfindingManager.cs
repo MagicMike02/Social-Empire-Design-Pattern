@@ -186,6 +186,60 @@ namespace Script2.PathfindingSystem
             }
             return path;
         }
+
+        // ========== DEBUG VISUALIZATION ==========
+        
+        /// <summary>
+        /// DEBUG ONLY: Visualizza il percorso calcolato colorando i tile.
+        /// Mostra il path in blu, start in verde, goal in rosso.
+        /// Disabilita questa chiamata in produzione.
+        /// </summary>
+        public void DebugVisualizePath(List<Vector2Int> path)
+        {
+            if (path == null || path.Count == 0)
+            {
+                Debug.Log("[PathfindingManager] DEBUG: No path found");
+                return;
+            }
+
+            Debug.Log($"[PathfindingManager] DEBUG: Path found with {path.Count} cells");
+
+            // Color per tile sul percorso
+            var pathColor = new Color(0f, 0.5f, 1f, 0.6f); // Blu semi-trasparente
+            var startColor = new Color(0f, 1f, 0f, 0.8f);   // Verde
+            var goalColor = new Color(1f, 0f, 0f, 0.8f);    // Rosso
+
+            var grid = _tileManager?.GetGrid();
+            if (grid == null) return;
+
+            // Colora il percorso
+            for (int i = 0; i < path.Count; i++)
+            {
+                var cell = path[i];
+                var tile = grid.GetValue(cell.x, cell.y);
+                if (tile == null) continue;
+
+                if (i == 0)
+                    tile.PreviewTint(startColor); // Start (verde)
+                else if (i == path.Count - 1)
+                    tile.PreviewTint(goalColor); // Goal (rosso)
+                else
+                    tile.PreviewTint(pathColor); // Path (blu)
+            }
+        }
+
+        /// <summary>
+        /// DEBUG ONLY: Pulisce la visualizzazione del percorso.
+        /// </summary>
+        public void DebugClearPathVisualization()
+        {
+            var grid = _tileManager?.GetGrid();
+            if (grid == null) return;
+
+            // Trova tutti i tile e resetta il tint
+            // TODO: Traccia quali tile sono stati colorati per pulirli efficacemente
+            // Per ora, una soluzione semplice: aspetta che Tile.ResetTint venga chiamato
+        }
     }
 
     /// <summary>
