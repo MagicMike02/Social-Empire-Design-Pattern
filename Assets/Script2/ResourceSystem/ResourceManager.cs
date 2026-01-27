@@ -104,25 +104,9 @@ namespace Script2.ResourceSystem
 
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
-            Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
-            if (!tile) return;
-
-            Vector3 worldPos = tile.transform.position;
-            GameObject regenPrefab = data._regenPrefab;
-            if (!regenPrefab) return;
-
-            //Instanzio il prefab di regen
-            GameObject regenResource = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
-                Quaternion.identity, transform);
-            // Debug.Log($"RegenResource {data.name} created at {tile.name} -> Regenerating in {data.regenerationTime} seconds at {pos}");
-
-            _activeResources[pos] = regenResource;
-            _zoneManager.occupiedTiles.Add(pos, regenResource);
-
             if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
             {
                 StopCoroutine(existingCoroutine);
-                // Debug.LogWarning($"Stopped existing regeneration at {pos}");
             }
 
             _regenerationCoroutines[pos] = StartCoroutine(RegenResourceAfterDelay(pos, data));
@@ -131,25 +115,36 @@ namespace Script2.ResourceSystem
 
         private IEnumerator RegenResourceAfterDelay(Vector2Int pos, ResourceDataSO data)
         {
+            //Istanzio il prefab di regen (visual only, no ResourceInstance needed)
+            Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
+            if (!tile) yield break;
+
+            Vector3 worldPos = tile.transform.position;
+            GameObject regenPrefab = data._regenPrefab;
+            GameObject regenVisual = null;
+            
+            if (regenPrefab)
+            {
+                regenVisual = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
+                    Quaternion.identity, transform);
+                _activeResources[pos] = regenVisual;  // Track visual temporarily
+            }
+
             yield return new WaitForSeconds(data.regenerationTime);
 
-            //Elimino risorsa di regen
-            _activeResources.TryGetValue(pos, out GameObject go);
+            // Cleanup regen visual
+            if (regenVisual)
+            {
+                Destroy(regenVisual);
+            }
+            
             _zoneManager.occupiedTiles.Remove(pos);
             _activeResources.Remove(pos);
-            if (_poolManager && data)
-                _poolManager.ReturnToPool(go, data);
-            else
-                Destroy(go);
 
-            //Rigenero la risorsa nella posizione originaria tramite ResourceSpawner
+            // Spawn the actual resource (original prefab with ResourceInstance)
             _resourceSpawner.SpawnResourceAtPosition(pos, data);
             
-            // Notifica agli osservatori che la risorsa è stata rigenerata
             OnResourceRegenerated?.Invoke(pos, data.resourceType);
-            // Debug.Log($"--> Resource {data.name} regenerated at {pos}");
-            
-            // Cleanup della coroutine terminata
             _regenerationCoroutines.Remove(pos);
         }
 
