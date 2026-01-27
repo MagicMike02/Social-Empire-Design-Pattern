@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Unity.Jobs;
 using Unity.Collections;
 using System.Collections;
+using System.Linq;
 
 namespace Script2.PathfindingSystem
 {
@@ -20,39 +21,91 @@ namespace Script2.PathfindingSystem
 
         // Cache per evitare allocazioni ripetute
         private TileManager _tileManager; // Will be set via GridManager inspection
+        
+        // OPTIMIZATION: Path result cache (avoid recomputing same paths)
+        private readonly Dictionary<(Vector2Int, Vector2Int), List<Vector2Int>> _pathCache = new();
+        private const int MaxCacheSize = 100; // LRU limit
+
+        private void Start()
+        {
+            // Cache TileManager per debug visualization
+            _tileManager = FindFirstObjectByType<TileManager>();
+        }
 
         /// <summary>
         /// Trova il percorso più breve tra start e goal usando A*.
-        /// Versione SYNC (blocking) - sarà sostituita da async in Subtask 1.3.
+        /// OPTIMIZED: Binary Heap O(log n), path caching, early exits.
         /// </summary>
         /// <param name="start">Cella di partenza</param>
         /// <param name="goal">Cella obiettivo</param>
         /// <returns>Lista di celle da percorrere (include start e goal), vuota se nessun percorso</returns>
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal)
         {
+            #if UNITY_EDITOR
+            var sw = System.Diagnostics.Stopwatch.StartNew();
+            #endif
+
             // Early exit: start == goal
             if (start == goal)
                 return new List<Vector2Int> { start };
 
+            // OPTIMIZATION: Check cache
+            var cacheKey = (start, goal);
+            if (_pathCache.TryGetValue(cacheKey, out var cachedPath))
+            {
+                #if UNITY_EDITOR
+                sw.Stop();
+                Debug.Log($"[PathfindingManager] Cache HIT: {sw.ElapsedMilliseconds}ms");
+                #endif
+                return new List<Vector2Int>(cachedPath); // Return copy to avoid external mutation
+            }
+
             // Early exit: goal not walkable
             if (!_gridService.IsCellWalkable(goal))
+            {
+                #if UNITY_EDITOR
+                sw.Stop();
+                Debug.Log($"[PathfindingManager] Goal not walkable: {sw.ElapsedMilliseconds}ms");
+                #endif
                 return new List<Vector2Int>(); // No path
+            }
 
-            // A* data structures
-            var openSet = new PriorityQueue<Vector2Int>();
+            // A* data structures - OPTIMIZED with BinaryHeap
+            var openSet = new BinaryHeapPriorityQueue<Vector2Int>();
             var cameFrom = new Dictionary<Vector2Int, Vector2Int>();
             var gScore = new Dictionary<Vector2Int, float> { [start] = 0 };
             var fScore = new Dictionary<Vector2Int, float> { [start] = Heuristic(start, goal) };
 
             openSet.Enqueue(start, fScore[start]);
 
+            int iterations = 0;
+
             while (openSet.Count > 0)
             {
+                iterations++;
                 Vector2Int current = openSet.Dequeue();
 
                 // Goal reached
                 if (current == goal)
-                    return ReconstructPath(cameFrom, current);
+                {
+                    var path = ReconstructPathOptimized(cameFrom, current);
+                    
+                    // OPTIMIZATION: Cache result
+                    if (_pathCache.Count >= MaxCacheSize)
+                    {
+                        // Simple LRU: rimuovi primo elemento
+                        var firstKey = _pathCache.Keys.First();
+                        _pathCache.Remove(firstKey);
+                    }
+                    _pathCache[cacheKey] = new List<Vector2Int>(path);
+                    
+                    #if UNITY_EDITOR
+                    sw.Stop();
+                    Debug.Log($"[PathfindingManager] Path found: {path.Count} cells, {iterations} iterations, {sw.ElapsedMilliseconds}ms");
+                    #endif
+                    
+                    return path;
+                }
 
                 // Expand neighbors
                 foreach (var neighbor in _gridService.GetWalkableNeighbors(current))
@@ -64,18 +117,27 @@ namespace Script2.PathfindingSystem
                         // This path to neighbor is better
                         cameFrom[neighbor] = current;
                         gScore[neighbor] = tentativeGScore;
-                        fScore[neighbor] = gScore[neighbor] + Heuristic(neighbor, goal);
+                        float newFScore = gScore[neighbor] + Heuristic(neighbor, goal);
+                        fScore[neighbor] = newFScore;
 
-                        // Add to open set if not already there
-                        if (!openSet.Contains(neighbor))
+                        // OPTIMIZATION: Use UpdatePriority instead of re-enqueue
+                        if (openSet.Contains(neighbor))
                         {
-                            openSet.Enqueue(neighbor, fScore[neighbor]);
+                            openSet.UpdatePriority(neighbor, newFScore);
+                        }
+                        else
+                        {
+                            openSet.Enqueue(neighbor, newFScore);
                         }
                     }
                 }
             }
 
             // No path found
+            #if UNITY_EDITOR
+            sw.Stop();
+            Debug.LogWarning($"[PathfindingManager] NO PATH FOUND: {iterations} iterations, {sw.ElapsedMilliseconds}ms");
+            #endif
             return new List<Vector2Int>();
         }
 
@@ -128,10 +190,7 @@ namespace Script2.PathfindingSystem
 
             // Step 4: Copia risultato a managed List e cleanup
             var path = new List<Vector2Int>(resultPath.Length);
-            for (int i = 0; i < resultPath.Length; i++)
-            {
-                path.Add(resultPath[i]);
-            }
+            path.AddRange(resultPath);
 
             resultPath.Dispose();
             walkableGrid.Dispose();
@@ -146,10 +205,8 @@ namespace Script2.PathfindingSystem
         /// </summary>
         private NativeArray<bool> GenerateWalkableGridNativeArray(out int width, out int height)
         {
-            // TODO: Get grid size from GridManager (need reference)
-            // For now, assume 50x50 (configurabile)
-            width = 50;
-            height = 50;
+            width = _gridService.Width;
+            height = _gridService.Height;
 
             var walkable = new NativeArray<bool>(width * height, Allocator.TempJob);
 
@@ -174,16 +231,23 @@ namespace Script2.PathfindingSystem
         }
 
         /// <summary>
-        /// Ricostruisce il percorso dal dictionary cameFrom
+        /// OPTIMIZED: Ricostruisce il percorso O(n) senza Insert inefficiente.
+        /// Usa List.Add (O(1)) invece di List.Insert(0, ...) (O(n)).
         /// </summary>
-        private List<Vector2Int> ReconstructPath(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int current)
+        private List<Vector2Int> ReconstructPathOptimized(Dictionary<Vector2Int, Vector2Int> cameFrom, Vector2Int current)
         {
-            var path = new List<Vector2Int> { current };
-            while (cameFrom.ContainsKey(current))
+            var path = new List<Vector2Int>();
+            var node = current;
+            
+            // Build path backwards (O(n))
+            while (cameFrom.ContainsKey(node))
             {
-                current = cameFrom[current];
-                path.Insert(0, current); // Prepend
+                path.Add(node);
+                node = cameFrom[node];
             }
+            path.Add(node); // Add start
+            
+            path.Reverse(); // Reverse once at end - O(n)
             return path;
         }
 
@@ -265,46 +329,6 @@ namespace Script2.PathfindingSystem
             // Trova tutti i tile e resetta il tint
             // TODO: Traccia quali tile sono stati colorati per pulirli efficacemente
             // Per ora, una soluzione semplice: aspetta che Tile.ResetTint venga chiamato
-        }
-    }
-
-    /// <summary>
-    /// Simple priority queue for A* open set.
-    /// Elements stored with priority (fScore), dequeued in ascending order.
-    /// </summary>
-    public class PriorityQueue<T>
-    {
-        private readonly List<(T item, float priority)> _elements = new();
-
-        public int Count => _elements.Count;
-
-        public void Enqueue(T item, float priority)
-        {
-            _elements.Add((item, priority));
-        }
-
-        public T Dequeue()
-        {
-            int bestIndex = 0;
-            for (int i = 1; i < _elements.Count; i++)
-            {
-                if (_elements[i].priority < _elements[bestIndex].priority)
-                    bestIndex = i;
-            }
-
-            T bestItem = _elements[bestIndex].item;
-            _elements.RemoveAt(bestIndex);
-            return bestItem;
-        }
-
-        public bool Contains(T item)
-        {
-            foreach (var element in _elements)
-            {
-                if (EqualityComparer<T>.Default.Equals(element.item, item))
-                    return true;
-            }
-            return false;
         }
     }
 }

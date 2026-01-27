@@ -15,6 +15,7 @@ namespace Script2.GridSystem
         [SerializeField] private TileManager _tileManager;
         [SerializeField] private ZoneManager _zoneManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
+        [SerializeField] private ResourceManager _resourceManager; // CACHED - evita FindFirstObjectByType!
 
         private readonly List<Vector2Int> _lastPreviewCells = new();
         private readonly HashSet<Vector2Int> _occupiedCells = new();
@@ -38,6 +39,14 @@ namespace Script2.GridSystem
             {
                 Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
+
+            // Cache ResourceManager per pathfinding (evita FindFirstObjectByType in hot path!)
+            if (_resourceManager == null)
+            {
+                _resourceManager = FindFirstObjectByType<ResourceManager>();
+                if (_resourceManager == null)
+                    Debug.LogWarning("[GridManager] ResourceManager non trovato - pathfinding potrebbe non escludere le risorse correttamente.");
+            }
         }
 
         private void InitializeGrid()
@@ -54,7 +63,9 @@ namespace Script2.GridSystem
             _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
         }
 
-        // IGridService implementation
+        public int Width  => _tileManager.Width;
+        public int Height => _tileManager.Height;
+
         public bool TryWorldToCell(Vector3 worldPos, out Vector3Int cell)
         {
             var grid = _tileManager.GetGrid();
@@ -296,8 +307,8 @@ namespace Script2.GridSystem
             if (_occupiedCells.Contains(cell))
                 return false; // Building occupies this cell
 
-            var resourceManager = FindFirstObjectByType<ResourceManager>();
-            if (resourceManager != null && resourceManager.HasResourceAt(cell))
+            // CRITICAL OPTIMIZATION: Use cached ResourceManager (O(1) lookup, no FindFirstObjectByType!)
+            if (_resourceManager != null && _resourceManager.HasResourceAt(cell))
                 return false; // Resource occupies this cell
 
             return true;
@@ -305,18 +316,37 @@ namespace Script2.GridSystem
 
         public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
         {
-            // 4-directional cross pattern (isometric compatible)
-            var neighbors = new List<Vector2Int>(4)
-            {
-                new Vector2Int(cell.x + 1, cell.y),  // East
-                new Vector2Int(cell.x - 1, cell.y),  // West
-                new Vector2Int(cell.x, cell.y + 1),  // North
-                new Vector2Int(cell.x, cell.y - 1)   // South
-            };
-
-            // Filter only walkable neighbors
-            neighbors.RemoveAll(n => !IsCellWalkable(n));
+            // OPTIMIZED: Allocate ONCE, add only walkable neighbors (no RemoveAll!)
+            var neighbors = new List<Vector2Int>(4); // Max 4 neighbors in cross pattern
+            
+            // Check all 4 directions - inline checks (NO lambda allocation)
+            Vector2Int east = new Vector2Int(cell.x + 1, cell.y);
+            if (IsValidCell(east) && IsCellWalkable(east))
+                neighbors.Add(east);
+            
+            Vector2Int west = new Vector2Int(cell.x - 1, cell.y);
+            if (IsValidCell(west) && IsCellWalkable(west))
+                neighbors.Add(west);
+            
+            Vector2Int north = new Vector2Int(cell.x, cell.y + 1);
+            if (IsValidCell(north) && IsCellWalkable(north))
+                neighbors.Add(north);
+            
+            Vector2Int south = new Vector2Int(cell.x, cell.y - 1);
+            if (IsValidCell(south) && IsCellWalkable(south))
+                neighbors.Add(south);
+            
             return neighbors;
+        }
+
+        /// <summary>
+        /// Verifica se una cella è all'interno dei limiti della griglia.
+        /// CRITICAL: Fast bounds check before IsCellWalkable (avoids out-of-bounds access).
+        /// </summary>
+        private bool IsValidCell(Vector2Int cell)
+        {
+            return cell.x >= 0 && cell.x < _tileManager.Width && 
+                   cell.y >= 0 && cell.y < _tileManager.Height;
         }
     }
 }

@@ -10,6 +10,9 @@ namespace Script2.BuildingSystem
     /// </summary>
     public interface IGridService
     {
+        
+        int Width { get; }
+        int Height { get; }
         /// <summary>
         /// Converte una posizione world in coordinate di cella della griglia.
         /// </summary>
