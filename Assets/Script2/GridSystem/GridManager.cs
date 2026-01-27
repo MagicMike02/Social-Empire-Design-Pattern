@@ -316,10 +316,11 @@ namespace Script2.GridSystem
 
         public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
         {
-            // OPTIMIZED: Allocate ONCE, add only walkable neighbors (no RemoveAll!)
-            var neighbors = new List<Vector2Int>(4); // Max 4 neighbors in cross pattern
+            // OPTIMIZED: 8-directional movement (4 cardinal + 4 diagonal)
+            // Allocate max capacity (8 neighbors)
+            var neighbors = new List<Vector2Int>(8);
             
-            // Check all 4 directions - inline checks (NO lambda allocation)
+            // ===== CARDINAL DIRECTIONS (cost = 1) =====
             Vector2Int east = new Vector2Int(cell.x + 1, cell.y);
             if (IsValidCell(east) && IsCellWalkable(east))
                 neighbors.Add(east);
@@ -335,6 +336,24 @@ namespace Script2.GridSystem
             Vector2Int south = new Vector2Int(cell.x, cell.y - 1);
             if (IsValidCell(south) && IsCellWalkable(south))
                 neighbors.Add(south);
+            
+            // ===== DIAGONAL DIRECTIONS (cost = sqrt(2) ≈ 1.414) =====
+            // Only allow diagonal if BOTH adjacent cardinals are walkable (prevent corner-cutting)
+            Vector2Int northEast = new Vector2Int(cell.x + 1, cell.y + 1);
+            if (IsValidCell(northEast) && IsCellWalkable(northEast) && IsCellWalkable(east) && IsCellWalkable(north))
+                neighbors.Add(northEast);
+            
+            Vector2Int northWest = new Vector2Int(cell.x - 1, cell.y + 1);
+            if (IsValidCell(northWest) && IsCellWalkable(northWest) && IsCellWalkable(west) && IsCellWalkable(north))
+                neighbors.Add(northWest);
+            
+            Vector2Int southEast = new Vector2Int(cell.x + 1, cell.y - 1);
+            if (IsValidCell(southEast) && IsCellWalkable(southEast) && IsCellWalkable(east) && IsCellWalkable(south))
+                neighbors.Add(southEast);
+            
+            Vector2Int southWest = new Vector2Int(cell.x - 1, cell.y - 1);
+            if (IsValidCell(southWest) && IsCellWalkable(southWest) && IsCellWalkable(west) && IsCellWalkable(south))
+                neighbors.Add(southWest);
             
             return neighbors;
         }

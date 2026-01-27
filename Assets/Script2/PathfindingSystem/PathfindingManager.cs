@@ -110,7 +110,12 @@ namespace Script2.PathfindingSystem
                 // Expand neighbors
                 foreach (var neighbor in _gridService.GetWalkableNeighbors(current))
                 {
-                    float tentativeGScore = gScore[current] + 1f; // Uniform cost
+                    // Calculate cost based on direction (cardinal=1, diagonal=sqrt(2)≈1.414)
+                    float movementCost = Mathf.Abs(neighbor.x - current.x) + Mathf.Abs(neighbor.y - current.y) == 2 
+                        ? 1.414f  // Diagonal movement
+                        : 1f;     // Cardinal movement
+                    
+                    float tentativeGScore = gScore[current] + movementCost;
 
                     if (!gScore.ContainsKey(neighbor) || tentativeGScore < gScore[neighbor])
                     {
@@ -223,11 +228,14 @@ namespace Script2.PathfindingSystem
         }
 
         /// <summary>
-        /// Heuristic per A*: Manhattan distance (isometric compatible)
+        /// Heuristic per A*: Chebyshev distance (optimal per 8-directional movement)
+        /// Calcola il numero minimo di mosse diagonali+cardinali per raggiungere il goal
         /// </summary>
         private float Heuristic(Vector2Int a, Vector2Int b)
         {
-            return Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
+            // Chebyshev: max(|dx|, |dy|) - optimal per 8-directional
+            // Ogni mossa diagonale copre 1 in x e 1 in y, quindi max(|dx|, |dy|) è il minimo
+            return Mathf.Max(Mathf.Abs(a.x - b.x), Mathf.Abs(a.y - b.y));
         }
 
         /// <summary>
