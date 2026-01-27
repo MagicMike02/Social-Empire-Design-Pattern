@@ -3825,6 +3825,7 @@ MonoBehaviour:
   _tileManager: {fileID: 818887541}
   _zoneManager: {fileID: 1277000307}
   _resourceSpawner: {fileID: 1912292307}
+  _resourceManager: {fileID: 0}
 --- !u!4 &2027393991
 Transform:
   m_ObjectHideFlags: 0

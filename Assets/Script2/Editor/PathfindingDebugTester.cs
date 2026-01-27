@@ -2,14 +2,17 @@
 using Script2.BuildingSystem;
 using Script2.GridSystem;
 using Script2.InputSystem;
+using Script2.PathfindingSystem;
 
-namespace Script2.PathfindingSystem
+namespace Script2.Editor
 {
     /// <summary>
     /// DEBUG TEST SCRIPT: Testare pathfinding senza Units.
     /// Click su primo tile = start
     /// Click su secondo tile = goal
     /// Visualizza il percorso colorando i tile (blu = path, verde = start, rosso = goal)
+    /// 
+    /// LOCATION: Assets/Script2/Editor/ - Solo in Unity Editor, escluso dai build
     /// </summary>
     public class PathfindingDebugTester : MonoBehaviour
     {
@@ -17,7 +20,7 @@ namespace Script2.PathfindingSystem
 
         private IGridService _gridService;
         private PathfindingManager _pathfinding;
-        private InputManager _input; // Aggiunto riferimento a InputManager
+        private InputManager _input;
 
         private Vector2Int? _startCell;
         private Vector2Int? _goalCell;
@@ -42,9 +45,9 @@ namespace Script2.PathfindingSystem
             if (_debugEnabled)
             {
                 // Ottieni dipendenze manualmente
-                _gridService = FindFirstObjectByType<GridManager>() as IGridService;
+                _gridService = FindFirstObjectByType<GridManager>();
                 _pathfinding = FindFirstObjectByType<PathfindingManager>();
-                _input = FindFirstObjectByType<InputManager>(); // Inizializza InputManager
+                _input = FindFirstObjectByType<InputManager>();
 
                 if (_gridService == null)
                 {
@@ -75,10 +78,9 @@ namespace Script2.PathfindingSystem
                 _input.OnTileClicked += OnTileClicked;
         }
 
-        private void OnTileClicked(Script2.GridSystem.Tile tile)
+        private void OnTileClicked(Tile tile)
         {
             // Collider-First approach: read grid position directly from tile (Source of Truth)
-            // No mathematical conversion - tile.GridPosition is cached at Initialize
             Vector2Int cell = tile.GridPosition;
             HandleTileClick(cell);
         }
@@ -101,8 +103,6 @@ namespace Script2.PathfindingSystem
             {
                 _startCell = cell;
                 Debug.Log($"[PathfindingDebugTester] ✓ START: {cell}");
-                
-                // COLORA START SUBITO (verde)
                 ColorStartCell(cell);
                 return;
             }
@@ -112,8 +112,6 @@ namespace Script2.PathfindingSystem
             {
                 _goalCell = cell;
                 Debug.Log($"[PathfindingDebugTester] ✓ GOAL: {cell}");
-
-                // Calcola e visualizza il percorso
                 TestPathfinding(_startCell.Value, _goalCell.Value);
                 return;
             }
@@ -150,8 +148,8 @@ namespace Script2.PathfindingSystem
             var grid = tileManager.GetGrid();
             if (grid == null) return;
 
-            // Reset tutti i tile (forza reset di tutti)
-            for (int y = 0; y < 100; y++) // Assumo max 100x100 grid
+            // Reset tutti i tile
+            for (int y = 0; y < 100; y++)
             {
                 for (int x = 0; x < 100; x++)
                 {
@@ -188,11 +186,10 @@ namespace Script2.PathfindingSystem
             if (!goalWalkable)
                 Debug.LogWarning($"[PathfindingDebugTester] ⚠️ GOAL cell {goal} is NOT walkable!");
 
-            // Usa versione SYNC per testing (più facile da debuggare)
+            // Usa versione SYNC per testing
             var path = _pathfinding.FindPath(start, goal);
 
-            // Visualizza il percorso
-            _pathfinding.DebugVisualizePath(path);
+            // Visualization happens automatically via DebugPathfindingDecorator in editor
             
             if (path.Count == 0)
             {
