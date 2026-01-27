@@ -1,4 +1,4 @@
-﻿﻿using UnityEngine;
+﻿using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using Script2.BuildingSystem;
@@ -12,7 +12,7 @@ using Script2.PathfindingSystem;
 namespace Script2.Core
 {
     /// <summary>
-    /// VContainer LifetimeScope - IMPLEMENTAZIONE CORRETTA.
+    /// VContainer LifetimeScope 
     /// </summary>
     [DefaultExecutionOrder(-10000)] // Esegui PRIMA di tutti gli altri MonoBehaviour
     public class GameLifetimeScope : LifetimeScope
@@ -63,15 +63,14 @@ namespace Script2.Core
             // INPUT SYSTEM
             RegisterIfExists<InputManager>(builder);
             
-            // PATHFINDING SYSTEM (SPRINT 1)
+            // PATHFINDING SYSTEM
             RegisterIfExists<PathfindingManager>(builder);
-            RegisterIfExists<PathfindingDebugTester>(builder); // DEBUG ONLY
-            
+
             // CAMERA
-            var camera = Camera.main;
-            if (camera != null)
+            var mainCamera = Camera.main;
+            if (mainCamera != null)
             {
-                builder.RegisterInstance(camera);
+                builder.RegisterInstance(mainCamera);
                 if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Camera registrata");
             }
             else
