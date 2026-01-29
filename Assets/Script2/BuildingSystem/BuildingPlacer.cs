@@ -12,13 +12,13 @@ namespace Script2.BuildingSystem
     public sealed class BuildingPlacer : MonoBehaviour
     {
         #region Dependencies (Injected)
-        
+
         private BuildingManager _manager;
         private Camera _camera;
         private GenericPreviewSystem _previewSystem;
         private BuildingEventBus _eventBus;
         private ZoneManager _zoneManager;
-        
+
         [Inject]
         public void Construct(
             BuildingManager manager,
@@ -33,30 +33,29 @@ namespace Script2.BuildingSystem
             _eventBus = eventBus;
             _zoneManager = zoneManager;
         }
-        
-        #endregion 
 
-        [Header("State (Debug Only)")]
-        [SerializeField] private BuildingConfigSO _selectedConfig;
+        #endregion
+
+        [Header("State (Debug Only)")] [SerializeField]
+        private BuildingConfigSO _selectedConfig;
+
         [SerializeField] private bool _isPlacing;
         [SerializeField] private Vector3Int _currentCell;
-        
+
         private Vector3Int _lastCell = Vector3Int.one * -1000;
         private bool _lastValidState = true;
-        
-        
+
 
         #region Properties
-        
+
         /// <summary>
         /// Indica se il placer è attualmente in modalità placement.
         /// </summary>
         public bool IsPlacing => _isPlacing;
-        
+
         #endregion
 
         #region Unity Lifecycle
-        
 
         private void Update()
         {
@@ -71,15 +70,15 @@ namespace Script2.BuildingSystem
             {
                 _previewSystem.HidePreview();
             }
-            
+
             // Rimuovi preview griglia tile
             CleanupGridPreview();
         }
-        
+
         #endregion
 
         #region Public Methods
-        
+
         /// <summary>
         /// Inizia il processo di piazzamento per una configurazione di edificio specificata.
         /// </summary>
@@ -130,7 +129,7 @@ namespace Script2.BuildingSystem
             // Crea edificio reale
             var worldPos = _manager.Grid.CellToWorld(_currentCell);
             var building = _manager.Factory.CreateBuilding(_selectedConfig, worldPos, _manager.Root);
-            
+
             if (building == null)
             {
                 Debug.LogError("[BuildingPlacer] Creazione building fallita.");
@@ -142,7 +141,7 @@ namespace Script2.BuildingSystem
             _manager.Grid.OccupyCells(_currentCell, _selectedConfig.Width, _selectedConfig.Height, building);
 
             Debug.Log($"[BuildingPlacer] Edificio piazzato: {_selectedConfig.name} alla posizione {worldPos}");
-            
+
             // Notifica evento tramite EventBus (no static events!)
             _eventBus.RaiseBuildingPlaced(building);
 
@@ -168,17 +167,16 @@ namespace Script2.BuildingSystem
 
             // Pulisci preview griglia tile
             CleanupGridPreview();
-            
+
             _isPlacing = false;
             _selectedConfig = null;
 
             Debug.Log("[BuildingPlacer] ✓ Placement annullato");
         }
-        
+
         #endregion
 
         #region Private Methods
-
 
         private void CleanupGridPreview()
         {
@@ -195,32 +193,34 @@ namespace Script2.BuildingSystem
                 return;
             }
 
-            // Conversione mouse → world
+            // STEP 1: Conversione mouse → world
             var mousePos = Input.mousePosition;
             var worldPos = _camera.ScreenToWorldPoint(mousePos);
-            worldPos.z = 0f;
+            worldPos.z = 1f;
 
-            // Converti a cella per validazione
+            // STEP 2: Converti a cella della griglia
             if (!_manager.Grid.TryWorldToCell(worldPos, out var cell))
             {
                 return;
             }
 
-            // Se cella non è cambiata, non aggiornare
+            // STEP 3: Se cella non è cambiata, non aggiornare (ottimizzazione)
             if (cell == _lastCell)
             {
                 return;
             }
 
             _currentCell = cell;
-            
+
             // Calcola posizione world snappata per il building finale
             var snapPos = _manager.Grid.CellToWorld(cell);
 
-            // Validazione
+
+            // STEP 5: Validazione (il building può essere piazzato qui?)
             bool isValid = CanPlaceBuilding(_selectedConfig, cell);
 
-            // Aggiorna preview edificio con posizione snappata
+
+            // STEP 6: Aggiorna il preview visivo del building con posizione snappata
             bool updated = _previewSystem.UpdatePreviewIfCellChanged(cell, snapPos, isValid);
 
             // Se prima volta o cella cambiata, mostra preview
@@ -245,20 +245,20 @@ namespace Script2.BuildingSystem
         /// </summary>
         private bool CanPlaceBuilding(BuildingConfigSO config, Vector3Int originCell)
         {
-            if (_manager?.Grid == null || config == null)
+            if (_manager.Grid == null || config == null)
             {
                 return false;
             }
 
             // Controllo 1: Celle libere (non occupate da altri edifici)
             bool cellsFree = _manager.Grid.AreCellsFree(originCell, config.Width, config.Height);
-            
+
             // Controllo 2: Risorse sufficienti
             bool canAfford = _manager.Economy == null || _manager.Economy.CanAfford(config.ToDictionary());
-            
+
             // Controllo 3: Nessuna risorsa sulle celle
             bool noResourcesOnCells = AreCellsFreeOfResources(originCell, config.Width, config.Height);
-            
+
             return cellsFree && canAfford && noResourcesOnCells;
         }
 
@@ -275,7 +275,7 @@ namespace Script2.BuildingSystem
                 for (int dy = 0; dy < height; dy++)
                 {
                     var checkCell = new Vector2Int(originCell.x + dx, originCell.y + dy);
-                    
+
                     // Controlla se la cella è occupata in occupiedTiles (risorse/decorazioni)
                     if (_zoneManager.occupiedTiles.ContainsKey(checkCell))
                     {
@@ -283,10 +283,10 @@ namespace Script2.BuildingSystem
                     }
                 }
             }
-            
+
             return true;
         }
-        
+
         #endregion
     }
 }

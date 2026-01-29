@@ -1321,7 +1321,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fa88fa2bd5354ad6adfa65b9c6349edd, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.PathfindingSystem.PathfindingDebugTester
-  _debugEnabled: 1
 --- !u!1 &703124903
 GameObject:
   m_ObjectHideFlags: 0
@@ -1608,7 +1607,7 @@ MonoBehaviour:
   _tilePrefab: {fileID: 8695224214221710384, guid: f49fb40436735a143a2c0214f97a15d6, type: 3}
   width: 100
   height: 100
-  cellSize: 1
+  cellSize: 0.5
 --- !u!4 &818887542
 Transform:
   m_ObjectHideFlags: 0
@@ -3825,7 +3824,7 @@ MonoBehaviour:
   _tileManager: {fileID: 818887541}
   _zoneManager: {fileID: 1277000307}
   _resourceSpawner: {fileID: 1912292307}
-  _resourceManager: {fileID: 0}
+  _resourceManager: {fileID: 1770461061}
 --- !u!4 &2027393991
 Transform:
   m_ObjectHideFlags: 0

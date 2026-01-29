@@ -84,8 +84,13 @@ namespace Script2.GridSystem
             Vector3 localPos = worldPosition - _originPosition;
 
             Vector3 cartesianPos = _matrix.inverse.MultiplyPoint3x4(localPos);
-            x = Mathf.FloorToInt(cartesianPos.x / _cellSize);
-            y = Mathf.FloorToInt(cartesianPos.y / _cellSize);
+            //x = Mathf.FloorToInt(cartesianPos.x / _cellSize);
+            //y = Mathf.FloorToInt(cartesianPos.y / _cellSize);
+
+            // Usa Round invece di Floor per uno snap al centro della cella (diamante isometrico)
+            // Così il snap avviene al 50% del diamante, non al suo bordo inferiore
+            x = Mathf.RoundToInt(cartesianPos.x / _cellSize);
+            y = Mathf.RoundToInt(cartesianPos.y / _cellSize);
         }
 
         public void SetValue(int x, int y, T value)
