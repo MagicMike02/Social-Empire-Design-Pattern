@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0b0e57321f24816995c868a0e13ba21, type: 3}
   m_Name: BuildingConfig
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.BuildingConfigSO
-  Prefab: {fileID: 7937458878421881128, guid: 88b1dcb950c9b6347b52670fb05ffaad, type: 3}
+  Prefab: {fileID: 8148586854378400899, guid: 21a0668535ac4f345a5bdda8eb8c4d51, type: 3}
   SortingLayer: OnTiles
   BaseSortingOrder: 0
   Width: 2

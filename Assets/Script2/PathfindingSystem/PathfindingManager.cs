@@ -12,11 +12,13 @@ namespace Script2.PathfindingSystem
     /// - AStarAlgorithm: 8-directional A* with Chebyshev heuristic
     /// - CachedPathfindingDecorator: LRU caching (100 entry limit)
     /// - DebugPathfindingDecorator: Tile visualization (editor only)
-    /// Performance: 10ms for 193 cell paths on 100x100 grid
     /// </summary>
     public class PathfindingManager : MonoBehaviour
     {
         [Inject] private IGridService _gridService;
+
+        [SerializeField] private bool _enableDebugVisualization;
+        [Tooltip("Abilita visualizzazione debug del pathfinding anche in Build")]
 
         private IPathfindingAlgorithm _pathfindingAlgorithm;
 
@@ -27,7 +29,7 @@ namespace Script2.PathfindingSystem
 
         /// <summary>
         /// Inizializza il sistema di pathfinding con Strategy pattern.
-        /// Composizione: A* + Cache + Debug visualization (solo in editor).
+        /// Composizione: A* + Cache + Debug visualization (abilitabile).
         /// </summary>
         private void InitializePathfinding()
         {
@@ -37,30 +39,29 @@ namespace Script2.PathfindingSystem
             // Wrap with caching (always enabled)
             algorithm = new CachedPathfindingDecorator(algorithm);
 
-            // Wrap with debug visualization (only in editor)
-            #if UNITY_EDITOR
-            algorithm = new DebugPathfindingDecorator(algorithm);
-            #endif
+            // Wrap with debug visualization (se abilitato in Inspector)
+            if (_enableDebugVisualization)
+            {
+                algorithm = new DebugPathfindingDecorator(algorithm);
+                Debug.Log("[PathfindingManager] ✓ Debug visualization ENABLED");
+            }
 
             _pathfindingAlgorithm = algorithm;
 
-            Debug.Log("[PathfindingManager] ✓ Initialized with A* + Caching + Debug");
+            Debug.Log("[PathfindingManager] ✓ Initialized with A* + Caching" + 
+                      (_enableDebugVisualization ? " + Debug" : ""));
         }
 
         /// <summary>
-        /// Public API: Trova percorso delegando all'algoritmo scelto.
+        /// Trova percorso delegando all'algoritmo scelto.
         /// </summary>
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal)
         {
-            #if UNITY_EDITOR
             var sw = System.Diagnostics.Stopwatch.StartNew();
             var path = _pathfindingAlgorithm.FindPath(start, goal, _gridService);
             sw.Stop();
             Debug.Log($"[PathfindingManager] FindPath: {start} → {goal} = {path.Count} cells in {sw.ElapsedMilliseconds}ms");
             return path;
-            #else
-            return _pathfindingAlgorithm.FindPath(start, goal, _gridService);
-            #endif
         }
     }
 }

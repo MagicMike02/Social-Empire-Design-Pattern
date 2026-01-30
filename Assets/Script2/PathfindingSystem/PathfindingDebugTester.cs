@@ -2,17 +2,14 @@
 using Script2.BuildingSystem;
 using Script2.GridSystem;
 using Script2.InputSystem;
-using Script2.PathfindingSystem;
 
-namespace Script2.Editor
+namespace Script2.PathfindingSystem
 {
     /// <summary>
     /// DEBUG TEST SCRIPT: Testare pathfinding senza Units.
     /// Click su primo tile = start
     /// Click su secondo tile = goal
     /// Visualizza il percorso colorando i tile (blu = path, verde = start, rosso = goal)
-    /// 
-    /// LOCATION: Assets/Script2/Editor/ - Solo in Unity Editor, escluso dai build
     /// </summary>
     public class PathfindingDebugTester : MonoBehaviour
     {
@@ -64,7 +61,6 @@ namespace Script2.Editor
                 }
 
                 Debug.Log("[PathfindingDebugTester] ✓ Initialized");
-                Debug.Log("[PathfindingDebugTester] Instructions: Click tiles to set START → GOAL → Auto-reset");
                 
                 // Hook sui tile clicks
                 SubscribeToTileClicks();
@@ -103,20 +99,20 @@ namespace Script2.Editor
             {
                 _startCell = cell;
                 Debug.Log($"[PathfindingDebugTester] ✓ START: {cell}");
-                ColorStartCell(cell);
+                ColorStartCell(cell);  // Colora tile VERDE 🟢
                 return;
             }
 
-            // Secondo click = goal
+            // 🖱️ FASE 2: SECONDO CLICK → Imposta GOAL e calcola percorso
             if (_goalCell == null)
             {
                 _goalCell = cell;
                 Debug.Log($"[PathfindingDebugTester] ✓ GOAL: {cell}");
-                TestPathfinding(_startCell.Value, _goalCell.Value);
+                TestPathfinding(_startCell.Value, _goalCell.Value);  // Calcola A*
                 return;
             }
 
-            // Terzo click = reset tutto
+            // 🖱️ FASE 3: TERZO CLICK → Reset tutto e ricomincia
             Debug.Log("[PathfindingDebugTester] ✓ Reset - clearing path visualization");
             ClearPathVisualization();
             _startCell = null;

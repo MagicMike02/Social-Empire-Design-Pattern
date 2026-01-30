@@ -25,9 +25,9 @@ namespace Script2.PathfindingSystem
         {
             var path = _innerAlgorithm.FindPath(start, goal, gridService);
 
-            #if UNITY_EDITOR
+            // #if UNITY_EDITOR
             VisualizePathDebug(path);
-            #endif
+            // #endif
 
             return path;
         }
