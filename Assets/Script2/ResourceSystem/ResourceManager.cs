@@ -1,49 +1,111 @@
-﻿using System;
+﻿﻿using System;
 using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using Script2.GridSystem;
 using Script2.Economy;
 using Script2.ResourceSystem.Enums;
+using VContainer;
 
 namespace Script2.ResourceSystem
 {
+    /// <summary>
+    /// Gestisce risorse di gioco: spawning, collection, regeneration.
+    /// REFACTORED: Usa Dependency Injection (VContainer) invece di Inspector-driven dependencies.
+    /// </summary>
     public class ResourceManager : MonoBehaviour
     {
-        [SerializeField] private TileManager _tileManager;
-        [SerializeField] private Economy.GameEconomyManager _economyManager;
-        [SerializeField] private ZoneManager _zoneManager;
-        [SerializeField] private ResourceSpawner _resourceSpawner;
-        [SerializeField] private ResourcePoolManager _poolManager;
+        #region Dependencies (Injected by VContainer)
+        
+        private TileManager _tileManager;
+        private GameEconomyManager _economyManager;
+        private ZoneManager _zoneManager;
+        private ResourceSpawner _resourceSpawner;
+        private ResourcePoolManager _poolManager;
+
+        [Inject]
+        public void Construct(
+            TileManager tileManager,
+            GameEconomyManager economyManager,
+            ZoneManager zoneManager,
+            ResourceSpawner resourceSpawner,
+            ResourcePoolManager poolManager)
+        {
+            _tileManager = tileManager;
+            _economyManager = economyManager;
+            _zoneManager = zoneManager;
+            _resourceSpawner = resourceSpawner;
+            _poolManager = poolManager;
+        }
+        
+        #endregion
+        
+        #region Private Fields
         
         private Dictionary<Vector2Int, GameObject> _activeResources = new();
         private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
+        
+        #endregion
 
         #region Events
+        
         public event Action<ResourceType, int, Vector2Int> OnResourceCollected;
         public event Action<ResourceType, Vector2Int> OnResourceGenerated;
         public event Action<Vector2Int, float> OnRegenerationStarted;
         public event Action<Vector2Int, ResourceType> OnResourceRegenerated;
-        #endregion Events
         
-        void Start()
+        #endregion
+
+        #region Unity Lifecycle
+        
+        private void Awake()
         {
-            if (!_economyManager) Debug.LogError("[ResourceManager] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
-            if (!_resourceSpawner) Debug.LogError("[ResourceManager] ResourceSpawner non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
-            if (!_tileManager) Debug.LogError("[ResourceManager] TileManager non assegnato nell'Inspector!");
-            if (!_zoneManager) Debug.LogError("[ResourceManager] ZoneManager non assegnato nell'Inspector!");
-            
-            if (_resourceSpawner != null)
-            {
-                _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
-                Debug.Log("[ResourceManager] Generazione risorse in corso...");
-                _resourceSpawner.GenerateAllResources();
-            }
-            else
-            {
-                Debug.LogError("[ResourceManager] Impossibile generare risorse: ResourceSpawner è NULL!");
-            }
+            ValidateDependencies();
         }
+        
+        private void Start()
+        {
+            InitializeResourceSystem();
+        }
+        
+        #endregion
+
+        #region Initialization
+        
+        private void ValidateDependencies()
+        {
+            if (_tileManager == null)
+                Debug.LogError("[ResourceManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
+            
+            if (_economyManager == null)
+                Debug.LogError("[ResourceManager] GameEconomyManager non iniettato! VContainer dovrebbe averlo fornito.");
+            
+            if (_zoneManager == null)
+                Debug.LogError("[ResourceManager] ZoneManager non iniettato! VContainer dovrebbe averlo fornito.");
+            
+            if (_resourceSpawner == null)
+                Debug.LogError("[ResourceManager] ResourceSpawner non iniettato! VContainer dovrebbe averlo fornito.");
+            
+            if (_poolManager == null)
+                Debug.LogError("[ResourceManager] ResourcePoolManager non iniettato! VContainer dovrebbe averlo fornito.");
+        }
+
+        private void InitializeResourceSystem()
+        {
+            if (_resourceSpawner == null)
+            {
+                Debug.LogError("[ResourceManager] Impossibile inizializzare: ResourceSpawner è NULL!");
+                return;
+            }
+            
+            _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
+            Debug.Log("[ResourceManager] ✓ Generazione risorse in corso...");
+            _resourceSpawner.GenerateAllResources();
+        }
+        
+        #endregion
+
+        #region Resource Management
 
         private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
         {
@@ -54,7 +116,6 @@ namespace Script2.ResourceSystem
             if (ri)
             {
                 ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this);
-                // Debug.Log($"[ResourceManager] Risorsa {type} inizializzata a {pos}");
             }
             else
             {
@@ -89,18 +150,21 @@ namespace Script2.ResourceSystem
             _activeResources.Remove(pos);
         }
 
-        // Refactoring: UpdateEconomy ora è un metodo di istanza e usa la dipendenza iniettata
         private void UpdateEconomy(ResourceDataSO data)
         {
-            if (_economyManager)
+            if (_economyManager != null)
             {
                 _economyManager.AddResource(data.resourceType, data.collectedAmount);
             }
             else
             {
-                Debug.LogError("GameEconomyManager reference not set in ResourceManager! Resources will not be added to economy.");
+                Debug.LogError("[ResourceManager] GameEconomyManager non disponibile! Le risorse non verranno aggiunte all'economia.");
             }
         }
+        
+        #endregion
+
+        #region Regeneration System
 
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
@@ -115,7 +179,7 @@ namespace Script2.ResourceSystem
 
         private IEnumerator RegenResourceAfterDelay(Vector2Int pos, ResourceDataSO data)
         {
-            //Istanzio il prefab di regen (visual only, no ResourceInstance needed)
+            // Istanzia prefab regen (visual only, no ResourceInstance needed)
             Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
             if (!tile) yield break;
 
@@ -147,6 +211,10 @@ namespace Script2.ResourceSystem
             OnResourceRegenerated?.Invoke(pos, data.resourceType);
             _regenerationCoroutines.Remove(pos);
         }
+        
+        #endregion
+
+        #region Cleanup
 
         private void OnDestroy()
         {
@@ -173,15 +241,17 @@ namespace Script2.ResourceSystem
             OnRegenerationStarted = null;
             OnResourceRegenerated = null;
         }
+        
+        #endregion
 
-        #region editor
+        #region Editor Utilities
 
         [ContextMenu("Remove All Resources")]
         private void RemoveAllResources()
         {
             foreach (var resource in _activeResources)
             {
-                //Libero la cella occupata 
+                // Libero la cella occupata 
                 _zoneManager.occupiedTiles.Remove(resource.Key);
 
                 // Distruggo il GameObject
@@ -189,7 +259,7 @@ namespace Script2.ResourceSystem
             }
 
             _activeResources.Clear();
-            Debug.Log("All resources have been removed.");
+            Debug.Log("[ResourceManager] All resources have been removed.");
         }
 
         [ContextMenu("Regenerate All Resources")]
@@ -197,18 +267,22 @@ namespace Script2.ResourceSystem
         {
             RemoveAllResources(); // Elimina tutte le risorse
             _resourceSpawner.GenerateAllResources(); // Rigenera tutte le risorse
-            Debug.Log("All resources have been regenerated.");
+            Debug.Log("[ResourceManager] All resources have been regenerated.");
         }
 
-        #endregion editor
+        #endregion
+
+        #region Helper Methods
 
         private ResourceDataSO GetResourceDataForInstance(GameObject go)
         {
             var ri = go.GetComponent<ResourceInstance>();
             return ri != null ? _resourceSpawner.GetResourceDataSO(ri.Data.resourceType) : null;
         }
+        
+        #endregion
 
-        // ========== PATHFINDING SUPPORT ==========
+        #region Pathfinding Support
         
         /// <summary>
         /// Verifica se una cella contiene una risorsa (ostacolo per pathfinding).
@@ -217,5 +291,7 @@ namespace Script2.ResourceSystem
         {
             return _activeResources.ContainsKey(cell);
         }
+        
+        #endregion
     }
 }

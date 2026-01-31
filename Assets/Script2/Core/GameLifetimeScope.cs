@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿﻿using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using Script2.BuildingSystem;
@@ -50,6 +50,7 @@ namespace Script2.Core
             
             // RESOURCE SYSTEM
             RegisterIfExists<ResourceSpawner>(builder);
+            RegisterIfExists<ResourcePoolManager>(builder);
             RegisterIfExists<ResourceManager>(builder);
             
             // BUILDING SYSTEM

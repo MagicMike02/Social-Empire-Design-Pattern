@@ -1,32 +1,58 @@
-﻿using Script2.ResourceSystem;
+﻿﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
 using System.Collections.Generic;
+using VContainer;
 
 namespace Script2.GridSystem
 {
     /// <summary>
     /// Gestisce la griglia di gioco, integrando TileManager e ZoneManager.
-    /// REFACTORED: Usa Dependency Injection invece di Singleton pattern.
+    /// REFACTORED: Usa Dependency Injection per servizi globali (ResourceManager),
+    /// mantiene SerializeField per componenti locali (TileManager, ZoneManager).
     /// Implementa IGridService per fornire operazioni sulla griglia al BuildingSystem.
     /// </summary>
     public class GridManager : MonoBehaviour, IGridService
     {
+        #region Inspector References (Local Components)
+        
         [SerializeField] private TileManager _tileManager;
         [SerializeField] private ZoneManager _zoneManager;
         [SerializeField] private ResourceSpawner _resourceSpawner;
-        [SerializeField] private ResourceManager _resourceManager; // CACHED - evita FindFirstObjectByType!
+        
+        #endregion
 
+        #region Dependencies (Injected by VContainer)
+        
+        private ResourceManager _resourceManager;
+
+        [Inject]
+        public void Construct(ResourceManager resourceManager)
+        {
+            _resourceManager = resourceManager;
+        }
+        
+        #endregion
+
+        #region Private Fields
+        
         private readonly List<Vector2Int> _lastPreviewCells = new();
         private readonly HashSet<Vector2Int> _occupiedCells = new();
-        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new(); 
+        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new();
+        
+        #endregion
 
+        #region Unity Lifecycle
+        
         private void Awake()
         {
             ValidateDependencies();
             InitializeGrid();
         }
+        
+        #endregion
 
+        #region Initialization
 
         private void ValidateDependencies()
         {
@@ -40,12 +66,9 @@ namespace Script2.GridSystem
                 Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
             }
 
-            // Cache ResourceManager per pathfinding (evita FindFirstObjectByType in hot path!)
             if (_resourceManager == null)
             {
-                _resourceManager = FindFirstObjectByType<ResourceManager>();
-                if (_resourceManager == null)
-                    Debug.LogWarning("[GridManager] ResourceManager non trovato - pathfinding potrebbe non escludere le risorse correttamente.");
+                Debug.LogError("[GridManager] ResourceManager non iniettato! VContainer dovrebbe averlo fornito.");
             }
         }
 
@@ -62,6 +85,8 @@ namespace Script2.GridSystem
             _zoneManager.Initialize(grid);
             _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
         }
+        
+        #endregion
 
         public int Width  => _tileManager.Width;
         public int Height => _tileManager.Height;

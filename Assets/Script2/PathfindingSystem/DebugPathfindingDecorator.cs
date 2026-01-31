@@ -1,4 +1,4 @@
-﻿using System.Collections.Generic;
+﻿﻿using System.Collections.Generic;
 using UnityEngine;
 using Script2.BuildingSystem;
 using Script2.GridSystem;
@@ -8,26 +8,26 @@ namespace Script2.PathfindingSystem
     /// <summary>
     /// Decorator Pattern: Aggiunge debug visualization a qualsiasi algoritmo.
     /// Colora i tile del percorso (verde=start, rosso=goal, blu=path).
-    /// Disabilita in build di produzione (wrapping condizionale).
+    /// REFACTORED: TileManager iniettato nel costruttore invece di FindFirstObjectByType.
     /// </summary>
     public class DebugPathfindingDecorator : IPathfindingAlgorithm
     {
         private readonly IPathfindingAlgorithm _innerAlgorithm;
-        private TileManager _tileManager;
+        private readonly TileManager _tileManager;
 
-        public DebugPathfindingDecorator(IPathfindingAlgorithm algorithm)
+        public DebugPathfindingDecorator(IPathfindingAlgorithm algorithm, TileManager tileManager)
         {
             _innerAlgorithm = algorithm ?? throw new System.ArgumentNullException(nameof(algorithm));
-            _tileManager = Object.FindFirstObjectByType<TileManager>();
+            _tileManager = tileManager ?? throw new System.ArgumentNullException(nameof(tileManager));
         }
 
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService)
         {
             var path = _innerAlgorithm.FindPath(start, goal, gridService);
 
-            // #if UNITY_EDITOR
+            #if UNITY_EDITOR
             VisualizePathDebug(path);
-            // #endif
+            #endif
 
             return path;
         }
@@ -45,12 +45,7 @@ namespace Script2.PathfindingSystem
 
             if (_tileManager == null)
             {
-                _tileManager = Object.FindFirstObjectByType<TileManager>();
-            }
-
-            if (_tileManager == null)
-            {
-                Debug.LogError("[DebugPathfinding] TileManager not found");
+                Debug.LogError("[DebugPathfinding] TileManager is null");
                 return;
             }
 
