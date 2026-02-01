@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 using JetBrains.Annotations;
-using Script2.Economy;
+using Script2.EconomySystem;
 using Script2.ResourceSystem.Enums;
 using UnityEngine;
 using Script2.InputSystem;

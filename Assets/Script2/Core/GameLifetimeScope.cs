@@ -1,13 +1,16 @@
-﻿﻿using UnityEngine;
+﻿using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 using Script2.BuildingSystem;
-using Script2.Economy;
+using Script2.EconomySystem;
 using Script2.GridSystem;
 using Script2.ResourceSystem;
+using Script2.ResourceSystem.ResourceUI;
 using Script2.Common;
 using Script2.InputSystem;
 using Script2.PathfindingSystem;
+using Script2.Core.Commands;
+using Script2.UI;
 
 namespace Script2.Core
 {
@@ -43,6 +46,10 @@ namespace Script2.Core
             // CORE - Economy
             RegisterIfExists<GameEconomyManager>(builder);
             
+            // CORE - Command System (Undo/Redo universale)
+            builder.Register<CommandHistory>(Lifetime.Singleton);
+            RegisterIfExists<CommandInputHandler>(builder);
+            
             // GRID SYSTEM
             RegisterIfExists<TileManager>(builder);
             RegisterIfExists<ZoneManager>(builder);
@@ -56,16 +63,21 @@ namespace Script2.Core
             // BUILDING SYSTEM
             RegisterIfExists<BuildingFactory>(builder);
             RegisterIfExists<BuildingManager>(builder);
-            RegisterIfExists<BuildingEventBus>(builder);
+
             RegisterIfExists<GenericPreviewSystem>(builder);
             RegisterIfExists<BuildingPlacer>(builder);
-            RegisterIfExists<KeyboardPlacementInput>(builder);
+            RegisterIfExists<PlacementInputHandler>(builder);
             
             // INPUT SYSTEM
             RegisterIfExists<InputManager>(builder);
             
             // PATHFINDING SYSTEM
             RegisterIfExists<PathfindingManager>(builder);
+            
+            // UI SYSTEM
+            RegisterIfExists<UIManager>(builder);
+            RegisterIfExists<ResourceDisplayUI>(builder);
+            RegisterIfExists<ZoneFeedbackUI>(builder);
 
             // CAMERA
             var mainCamera = Camera.main;

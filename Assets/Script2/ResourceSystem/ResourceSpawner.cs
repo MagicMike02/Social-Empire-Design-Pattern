@@ -1,19 +1,40 @@
 ﻿using System.Collections.Generic;
 using UnityEngine;
+using VContainer;
 using Script2.GridSystem;
 using Script2.ResourceSystem.Enums;
 using Script2.ResourceSystem.ResourceGenerationStrategy;
 
 namespace Script2.ResourceSystem
 {
+    /// <summary>
+    /// Spawna risorse sulla griglia usando strategy pattern.
+    /// REFACTORED: Dependency Injection per Manager (VContainer).
+    /// </summary>
     public class ResourceSpawner : MonoBehaviour
     {
-        [SerializeField] private TileManager _tileManager;
-        [SerializeField] private ZoneManager _zoneManager;
-        [SerializeField] private ResourcePoolManager _poolManager;
+        #region Dependencies (Injected by VContainer)
+        
+        private TileManager _tileManager;
+        private ZoneManager _zoneManager;
+        private ResourcePoolManager _poolManager;
+
+        [Inject]
+        public void Construct(TileManager tileManager, ZoneManager zoneManager, ResourcePoolManager poolManager)
+        {
+            _tileManager = tileManager;
+            _zoneManager = zoneManager;
+            _poolManager = poolManager;
+        }
+        
+        #endregion
+
+        #region Configuration (ScriptableObjects - KEEP SerializeField)
         
         [SerializeField] private List<ResourceDataSO> _resourceTypes;
         
+        #endregion
+
         private IResourceGenerationStrategy _generationStrategy;
 
         public delegate void ResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance);

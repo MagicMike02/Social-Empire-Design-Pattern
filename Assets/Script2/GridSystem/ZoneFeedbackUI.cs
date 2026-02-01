@@ -1,50 +1,40 @@
-﻿using UnityEngine;
-using VContainer;
+﻿﻿using UnityEngine;
+using Script2.Core.Events;
 
 namespace Script2.GridSystem
 {
     /// <summary>
     /// Fornisce feedback UI per gli eventi delle zone (sblocco, acquisto fallito).
-    /// REFACTORED: Usa Dependency Injection invece di FindFirstObjectByType.
+    /// REFACTORED: Usa GlobalEventBus invece di eventi nativi ZoneManager.
     /// </summary>
     public class ZoneFeedbackUI : MonoBehaviour
     {
-        private ZoneManager _zoneManager;
-
-        [Inject]
-        public void Construct(ZoneManager zoneManager)
-        {
-            _zoneManager = zoneManager;
-        }
-
         private void OnEnable()
         {
-            if (_zoneManager != null)
-            {
-                _zoneManager.OnZoneUnlocked += HandleZoneUnlocked;
-                _zoneManager.OnZonePurchaseFailed += HandleZonePurchaseFailed;
-            }
+            // ✅ MIGRATO: GlobalEventBus
+            GlobalEventBus.Subscribe<ZoneUnlockedEvent>(HandleZoneUnlocked);
+            GlobalEventBus.Subscribe<ZonePurchaseFailedEvent>(HandleZonePurchaseFailed);
         }
 
         private void OnDisable()
         {
-            if (_zoneManager != null)
-            {
-                _zoneManager.OnZoneUnlocked -= HandleZoneUnlocked;
-                _zoneManager.OnZonePurchaseFailed -= HandleZonePurchaseFailed;
-            }
+            // ✅ MIGRATO: GlobalEventBus
+            GlobalEventBus.Unsubscribe<ZoneUnlockedEvent>(HandleZoneUnlocked);
+            GlobalEventBus.Unsubscribe<ZonePurchaseFailedEvent>(HandleZonePurchaseFailed);
         }
 
         #region Event Handlers
-        private void HandleZoneUnlocked(Vector2Int zoneCoord)
+        
+        private void HandleZoneUnlocked(ZoneUnlockedEvent evt)
         {
-            Debug.Log($"[UI] Zona sbloccata: {zoneCoord}");
+            Debug.Log($"[UI] Zona sbloccata: {evt.ZonePosition}");
         }
 
-        private void HandleZonePurchaseFailed(Vector2Int zoneCoord)
+        private void HandleZonePurchaseFailed(ZonePurchaseFailedEvent evt)
         {
-            Debug.LogWarning($"[UI] Acquisto zona fallito: {zoneCoord}");
+            Debug.LogWarning($"[UI] Acquisto zona fallito: {evt.ZoneCoord} - {evt.Reason}");
         }
+        
         #endregion
     }
 }

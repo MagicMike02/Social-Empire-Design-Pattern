@@ -1,4 +1,5 @@
-﻿﻿using UnityEngine;
+﻿﻿using Script2.Core.Events;
+ using UnityEngine;
 
 namespace Script2.BuildingSystem
 {
@@ -62,7 +63,7 @@ namespace Script2.BuildingSystem
         private void OnDestroy()
         {
             // Notifica distruzione edificio
-            BuildingEvents.OnBuildingDestroyed?.Invoke(this);
+            GlobalEventBus.Publish(new BuildingDestroyedEvent());
         }
     }
 }

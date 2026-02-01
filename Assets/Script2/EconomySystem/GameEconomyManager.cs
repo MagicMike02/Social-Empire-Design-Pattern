@@ -2,19 +2,20 @@
 using System.Collections.Generic;
 using System.Linq;
 using Script2.ResourceSystem.Enums;
+using Script2.Core.Events;
 using UnityEngine;
 
-namespace Script2.Economy
+namespace Script2.EconomySystem
 {
     /// <summary>
     /// Gestisce tutte le risorse del gioco.
     /// REFACTORED: Usa Dependency Injection invece di Singleton pattern.
-    /// Notifica i cambiamenti tramite eventi.
+    /// Notifica i cambiamenti tramite GlobalEventBus.
     /// </summary>
     public class GameEconomyManager : MonoBehaviour
     {
-        public event Action<ResourceType, int> OnResourceAmountChanged;
-        public event Action<IReadOnlyDictionary<ResourceType, int>> OnResourcesBatchChanged;
+        // ❌ DEPRECATED: Eventi locali rimossi, ora si usa GlobalEventBus
+        // Migrazione: OnResourceAmountChanged → GlobalEventBus.Publish(new ResourceAmountChangedEvent(...))
         
         private Dictionary<ResourceType, int> _resources = new();
 
@@ -33,13 +34,6 @@ namespace Script2.Economy
             }
         }
 
-        private void OnDestroy()
-        {
-            // Cleanup eventi per prevenire memory leak
-            OnResourceAmountChanged = null;
-            OnResourcesBatchChanged = null;
-        }
-
         public void AddResource(ResourceType type, int amount)
         {
             if (amount < 0)
@@ -48,8 +42,15 @@ namespace Script2.Economy
                 return;
             }
 
-            _resources[type] = GetResourceAmount(type) + amount;
-            OnResourceAmountChanged?.Invoke(type, _resources[type]);
+            int previousAmount = GetResourceAmount(type);
+            _resources[type] = previousAmount + amount;
+            
+            // Pubblica evento GlobalEventBus con delta positivo
+            GlobalEventBus.Publish(new ResourceAmountChangedEvent(
+                type, 
+                _resources[type], 
+                amount // delta = amount aggiunto
+            ));
         }
 
         public bool SpendResources(ResourceType type, int amount)
@@ -63,7 +64,13 @@ namespace Script2.Economy
             if (_resources.ContainsKey(type) && _resources[type] >= amount)
             {
                 _resources[type] -= amount;
-                OnResourceAmountChanged?.Invoke(type, _resources[type]);
+                
+                // Pubblica evento GlobalEventBus con delta negativo
+                GlobalEventBus.Publish(new ResourceAmountChangedEvent(
+                    type, 
+                    _resources[type], 
+                    -amount // delta = spesa negativa
+                ));
                 return true;
             }
 
@@ -78,9 +85,17 @@ namespace Script2.Economy
                 foreach (var cost in costs)
                 {
                     _resources[cost.Key] = GetResourceAmount(cost.Key) - cost.Value;
-                    OnResourceAmountChanged?.Invoke(cost.Key, _resources[cost.Key]);
+                    
+                    // Pubblica evento per ogni risorsa spesa
+                    GlobalEventBus.Publish(new ResourceAmountChangedEvent(
+                        cost.Key, 
+                        _resources[cost.Key], 
+                        -cost.Value
+                    ));
                 }
-                OnResourcesBatchChanged?.Invoke(GetResourcesSnapshot());
+                
+                // Pubblica evento batch
+                GlobalEventBus.Publish(new ResourcesBatchChangedEvent(GetResourcesSnapshot()));
                 return true;
             }
 
@@ -96,10 +111,17 @@ namespace Script2.Economy
             foreach (var cost in costs)
             {
                 _resources[cost.Key] = GetResourceAmount(cost.Key) - cost.Value;
-                OnResourceAmountChanged?.Invoke(cost.Key, _resources[cost.Key]);
+                
+                // Pubblica evento per ogni risorsa
+                GlobalEventBus.Publish(new ResourceAmountChangedEvent(
+                    cost.Key, 
+                    _resources[cost.Key], 
+                    -cost.Value
+                ));
             }
+            
             var snapshot = GetResourcesSnapshot();
-            OnResourcesBatchChanged?.Invoke(snapshot);
+            GlobalEventBus.Publish(new ResourcesBatchChangedEvent(snapshot));
             newBalances = new Dictionary<ResourceType, int>(snapshot);
             return true;
         }
@@ -116,9 +138,13 @@ namespace Script2.Economy
 
         public void SetResource(ResourceType type, int amount)
         {
+            int previousAmount = _resources.GetValueOrDefault(type, 0);
             _resources[type] = Mathf.Max(0, amount);
-            OnResourceAmountChanged?.Invoke(type, _resources[type]);
-            OnResourcesBatchChanged?.Invoke(GetResourcesSnapshot());
+            int delta = _resources[type] - previousAmount;
+            
+            // Pubblica entrambi gli eventi
+            GlobalEventBus.Publish(new ResourceAmountChangedEvent(type, _resources[type], delta));
+            GlobalEventBus.Publish(new ResourcesBatchChangedEvent(GetResourcesSnapshot()));
         }
 
         private bool CanAfford(ResourceType type, int amount)

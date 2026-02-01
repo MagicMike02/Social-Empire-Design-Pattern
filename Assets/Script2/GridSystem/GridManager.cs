@@ -1,6 +1,7 @@
 ﻿﻿using Script2.ResourceSystem;
 using UnityEngine;
 using Script2.BuildingSystem;
+using Script2.Core.Events;
 using System.Collections.Generic;
 using VContainer;
 
@@ -8,28 +9,26 @@ namespace Script2.GridSystem
 {
     /// <summary>
     /// Gestisce la griglia di gioco, integrando TileManager e ZoneManager.
-    /// REFACTORED: Usa Dependency Injection per servizi globali (ResourceManager),
-    /// mantiene SerializeField per componenti locali (TileManager, ZoneManager).
+    /// REFACTORED: Usa Dependency Injection (VContainer) per tutti i Manager.
     /// Implementa IGridService per fornire operazioni sulla griglia al BuildingSystem.
     /// </summary>
     public class GridManager : MonoBehaviour, IGridService
     {
-        #region Inspector References (Local Components)
-        
-        [SerializeField] private TileManager _tileManager;
-        [SerializeField] private ZoneManager _zoneManager;
-        [SerializeField] private ResourceSpawner _resourceSpawner;
-        
-        #endregion
-
         #region Dependencies (Injected by VContainer)
         
         private ResourceManager _resourceManager;
+        private TileManager _tileManager;
+        private ZoneManager _zoneManager;
 
         [Inject]
-        public void Construct(ResourceManager resourceManager)
+        public void Construct(
+            ResourceManager resourceManager,
+            TileManager tileManager,
+            ZoneManager zoneManager)
         {
             _resourceManager = resourceManager;
+            _tileManager = tileManager;
+            _zoneManager = zoneManager;
         }
         
         #endregion
@@ -119,8 +118,15 @@ namespace Script2.GridSystem
                     if (x < 0 || y < 0 || x >= _tileManager.Width || y >= _tileManager.Height) return false;
 
                     var p = new Vector2Int(x, y);
+                    
+                    // Check 1: Celle occupate da edifici
                     if (_occupiedCells.Contains(p)) return false;
+                    
+                    // Check 2: Celle occupate da risorse/sign/regen
+                    // Blocca placement sopra risorse in rigenerazione (sprite visibili)
+                    if (_zoneManager.occupiedTiles.ContainsKey(p)) return false;
 
+                    // Check 3: Tile valida e sbloccata
                     var tile = _tileManager.GetGrid().GetValue(x, y);
                     if (tile == null || tile.State != TileState.Unlocked) return false;
                 }
@@ -138,6 +144,14 @@ namespace Script2.GridSystem
                     _occupiedCells.Add(p);
                 }
             }
+            
+            // Pubblica evento GlobalEventBus per notificare occupazione celle
+            GlobalEventBus.Publish(new CellsOccupiedEvent(
+                originCell, 
+                width, 
+                height, 
+                building?.gameObject
+            ));
         }
 
         public void FreeCells(Vector3Int originCell, int width, int height)
@@ -150,6 +164,9 @@ namespace Script2.GridSystem
                     _occupiedCells.Remove(p);
                 }
             }
+            
+            // Pubblica evento GlobalEventBus per notificare liberazione celle
+            GlobalEventBus.Publish(new CellsFreedEvent(originCell, width, height));
         }
 
         public void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid)

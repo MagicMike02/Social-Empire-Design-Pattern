@@ -1,24 +1,41 @@
-﻿using System;
-using System.Collections.Generic;
-using Script2.Economy;
+﻿using System.Collections.Generic;
+using Script2.EconomySystem;
 using Script2.ResourceSystem.Enums;
+using Script2.Core.Events;
+using VContainer;
 using UnityEngine;
 
 namespace Script2.GridSystem
 {
+    /// <summary>
+    /// Gestisce le zone (unlock/purchase system).
+    /// REFACTORED: Dependency Injection per GameEconomyManager (VContainer).
+    /// </summary>
     public class ZoneManager : MonoBehaviour
     {
-        [SerializeField] private GameEconomyManager _economyManager;
+        #region Dependencies (Injected by VContainer)
+        
+        private GameEconomyManager _economyManager;
+
+        [Inject]
+        public void Construct(GameEconomyManager economyManager)
+        {
+            _economyManager = economyManager;
+        }
+        
+        #endregion
+
+        #region Configuration (Inspector)
         [SerializeField] private GameObject _purchaseSignPrefab;
-        [SerializeField] private int _zoneSize = 20;
+        #endregion Configuration (Inspector)
+        
+        private const int _zoneSize = 20;
 
         private Dictionary<Vector2Int, Zone> _zones = new();
         private Dictionary<ResourceType, int> _zoneCost = new() { { ResourceType.Gold, 10 } };
         private Grid<Tile> _grid;
         public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
 
-        public event Action<Vector2Int> OnZoneUnlocked;
-        public event Action<Vector2Int> OnZonePurchaseFailed;
 
         public int ZoneSize => _zoneSize;
 
@@ -73,28 +90,37 @@ namespace Script2.GridSystem
         public void PurchaseZone(Vector2Int zoneCoord)
         {
             if (!_zones.TryGetValue(zoneCoord, out var zone) || zone.isUnlocked) return;
+            
             if (_economyManager && _economyManager.CanAfford(_zoneCost))
             {
                 _economyManager.SpendResources(_zoneCost);
                 zone.isUnlocked = true;
+                
                 foreach (var tile in zone.tiles)
                 {
                     // if (tile) tile.SetState(TileState.Unlocked);
                     if (tile) tile.Unlock();
                 }
+                
                 if (zone.purchaseSign) 
                 {
                     Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
                     occupiedTiles.Remove(signGridPos);
                     Destroy(zone.purchaseSign);
                 }
+                
                 Debug.Log($"Zona sbloccata in {zoneCoord}");
-                OnZoneUnlocked?.Invoke(zoneCoord);
+                
+                // ✅ MIGRATO: GlobalEventBus invece di evento nativo
+                // ZoneIndex = 0 (placeholder, ZonePosition contiene coordinate reali)
+                GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
             }
             else if (_economyManager)
             {
                 Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
-                OnZonePurchaseFailed?.Invoke(zoneCoord);
+                
+                // ✅ MIGRATO: GlobalEventBus invece di evento nativo
+                GlobalEventBus.Publish(new ZonePurchaseFailedEvent(zoneCoord, "Insufficient Resources"));
             }
             else
             {

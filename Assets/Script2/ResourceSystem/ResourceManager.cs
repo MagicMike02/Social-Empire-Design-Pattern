@@ -1,10 +1,10 @@
-﻿﻿using System;
-using System.Collections;
+﻿﻿using System.Collections;
 using UnityEngine;
 using System.Collections.Generic;
 using Script2.GridSystem;
-using Script2.Economy;
+using Script2.EconomySystem;
 using Script2.ResourceSystem.Enums;
+using Script2.Core.Events;
 using VContainer;
 
 namespace Script2.ResourceSystem
@@ -47,12 +47,11 @@ namespace Script2.ResourceSystem
         
         #endregion
 
-        #region Events
+        #region Events (DEPRECATED - Use GlobalEventBus)
         
-        public event Action<ResourceType, int, Vector2Int> OnResourceCollected;
-        public event Action<ResourceType, Vector2Int> OnResourceGenerated;
-        public event Action<Vector2Int, float> OnRegenerationStarted;
-        public event Action<Vector2Int, ResourceType> OnResourceRegenerated;
+        // ❌ DEPRECATED: Eventi rimossi, ora si usa GlobalEventBus con eventi struct
+        // Migrazione: OnResourceCollected → GlobalEventBus.Publish(new ResourceCollectedEvent(...))
+        // See: Assets/Script2/Core/Events/GameEvents.cs per definizioni eventi
         
         #endregion
 
@@ -122,7 +121,8 @@ namespace Script2.ResourceSystem
                 Debug.LogError($"[ResourceManager] ResourceInstance component non trovato su {instance.name}!");
             }
             
-            OnResourceGenerated?.Invoke(type, pos);
+            // Pubblica evento GlobalEventBus
+            GlobalEventBus.Publish(new ResourceGeneratedEvent(type, pos));
         }
 
         public void HandleResourceCollected(Vector2Int pos, ResourceDataSO data)
@@ -130,10 +130,23 @@ namespace Script2.ResourceSystem
             UpdateEconomy(data);
             RemoveResource(pos);
 
-            OnResourceCollected?.Invoke(data.resourceType, data.collectedAmount, pos);
+            // Pubblica evento GlobalEventBus
+            GlobalEventBus.Publish(new ResourceCollectedEvent(
+                data.resourceType, 
+                data.collectedAmount, 
+                pos
+            ));
 
             if (!data.isDestroyedOnCollect)
+            {
+                // Risorsa rigenera → Mantieni occupiedTiles (verrà rimosso/aggiunto da RegenResourceAfterDelay)
                 ScheduleRegeneration(pos, data);
+            }
+            else
+            {
+                // Risorsa distrutta permanentemente → Libera cella
+                _zoneManager.occupiedTiles.Remove(pos);
+            }
         }
 
         private void RemoveResource(Vector2Int pos)
@@ -146,7 +159,11 @@ namespace Script2.ResourceSystem
                 else
                     Destroy(go);
             }
-            _zoneManager.occupiedTiles.Remove(pos);
+            
+            // ⚠️ NON rimuovere da occupiedTiles qui!
+            // Se risorsa rigenera, cella deve rimanere occupata durante regen
+            // occupiedTiles.Remove viene fatto in RegenResourceAfterDelay DOPO cleanup visual
+            
             _activeResources.Remove(pos);
         }
 
@@ -174,7 +191,9 @@ namespace Script2.ResourceSystem
             }
 
             _regenerationCoroutines[pos] = StartCoroutine(RegenResourceAfterDelay(pos, data));
-            OnRegenerationStarted?.Invoke(pos, data.regenerationTime);
+            
+            // Pubblica evento GlobalEventBus
+            GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
         }
 
         private IEnumerator RegenResourceAfterDelay(Vector2Int pos, ResourceDataSO data)
@@ -192,6 +211,13 @@ namespace Script2.ResourceSystem
                 regenVisual = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
                     Quaternion.identity, transform);
                 _activeResources[pos] = regenVisual;  // Track visual temporarily
+                
+                // ✅ CRITICAL FIX: Mantieni cella occupata durante rigenerazione
+                // Previene placement edifici sopra sprite regen
+                if (!_zoneManager.occupiedTiles.ContainsKey(pos))
+                {
+                    _zoneManager.occupiedTiles.Add(pos, regenVisual);
+                }
             }
 
             yield return new WaitForSeconds(data.regenerationTime);
@@ -208,7 +234,9 @@ namespace Script2.ResourceSystem
             // Spawn the actual resource (original prefab with ResourceInstance)
             _resourceSpawner.SpawnResourceAtPosition(pos, data);
             
-            OnResourceRegenerated?.Invoke(pos, data.resourceType);
+            // Pubblica evento GlobalEventBus
+            GlobalEventBus.Publish(new ResourceRegeneratedEvent(pos, data.resourceType));
+            
             _regenerationCoroutines.Remove(pos);
         }
         
@@ -235,11 +263,6 @@ namespace Script2.ResourceSystem
                 _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
             }
             
-            // Cleanup eventi per prevenire memory leaks
-            OnResourceCollected = null;
-            OnResourceGenerated = null;
-            OnRegenerationStarted = null;
-            OnResourceRegenerated = null;
         }
         
         #endregion

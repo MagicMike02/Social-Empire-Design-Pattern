@@ -1,13 +1,21 @@
-﻿using UnityEngine;
+﻿﻿using UnityEngine;
 using Script2.Common;
 using Script2.GridSystem;
+using Script2.Core.Events;
+using Script2.Core.Commands;
+using Script2.BuildingSystem.Commands;
+using Script2.BuildingSystem.States;
 using VContainer;
 
 namespace Script2.BuildingSystem
 {
     /// <summary>
     /// Gestisce il processo di piazzamento degli edifici con preview visiva e validazione in tempo reale.
-    /// REFACTORED: Usa Dependency Injection (VContainer) invece di Singleton pattern.
+    /// REFACTORED: 
+    /// - Dependency Injection (VContainer)
+    /// - Command Pattern per Undo/Redo
+    /// - State Machine (FSM) per gestione stati placement
+    /// - Event-driven (public API per Input handlers, facilmente sostituibile Mouse/Keyboard/UI)
     /// </summary>
     public sealed class BuildingPlacer : MonoBehaviour
     {
@@ -16,34 +24,45 @@ namespace Script2.BuildingSystem
         private BuildingManager _manager;
         private Camera _camera;
         private GenericPreviewSystem _previewSystem;
-        private BuildingEventBus _eventBus;
         private ZoneManager _zoneManager;
+        private CommandHistory _commandHistory;
 
         [Inject]
         public void Construct(
             BuildingManager manager,
             Camera mainCamera, 
             GenericPreviewSystem previewSystem,
-            BuildingEventBus eventBus,
-            ZoneManager zoneManager)
+            ZoneManager zoneManager,
+            CommandHistory commandHistory)
         {
             _manager = manager;
             _camera = mainCamera;
             _previewSystem = previewSystem;
-            _eventBus = eventBus;
             _zoneManager = zoneManager;
+            _commandHistory = commandHistory;
         }
 
         #endregion
 
+        #region State Machine
+
+        private IPlacementState _currentState;
+        private IPlacementState _idleState;
+
+        #endregion
+
+        #region Private Fields (State-managed)
+
+        // NOTE: Questi campi sono gestiti dagli Stati, non modificare direttamente
         [Header("State (Debug Only)")] [SerializeField]
         private BuildingConfigSO _selectedConfig;
 
-        [SerializeField] private bool _isPlacing;
         [SerializeField] private Vector3Int _currentCell;
 
         private Vector3Int _lastCell = Vector3Int.one * -1000;
         private bool _lastValidState = true;
+
+        #endregion
 
 
         #region Properties
@@ -51,20 +70,36 @@ namespace Script2.BuildingSystem
         /// <summary>
         /// Indica se il placer è attualmente in modalità placement.
         /// </summary>
-        public bool IsPlacing => _isPlacing;
+        public bool IsPlacing => _currentState != null && _currentState.StateName != "Idle";
+
+        /// <summary>
+        /// Stato corrente FSM (per debugging).
+        /// </summary>
+        public string CurrentStateName => _currentState?.StateName ?? "Uninitialized";
 
         #endregion
 
         #region Unity Lifecycle
 
+        private void Start()
+        {
+            // Inizializza FSM
+            _idleState = new IdlePlacementState(this);
+            _currentState = _idleState;
+            _currentState.OnEnter();
+        }
+
         private void Update()
         {
-            if (!_isPlacing) return;
-            UpdatePlacementPreview();
+            // Delega logica Update allo stato corrente
+            _currentState?.OnUpdate();
         }
 
         private void OnDestroy()
         {
+            // Exit stato corrente
+            _currentState?.OnExit();
+            
             // Cleanup: nascondi preview se ancora presente
             if (_previewSystem != null)
             {
@@ -77,101 +112,159 @@ namespace Script2.BuildingSystem
 
         #endregion
 
-        #region Public Methods
+        #region Public API (Event-Driven, chiamati da Input Handlers)
 
         /// <summary>
-        /// Inizia il processo di piazzamento per una configurazione di edificio specificata.
+        /// Seleziona edificio da piazzare.
+        /// Chiamato da: UI button, keyboard shortcut, etc.
+        /// Trigger: OnBuildingSelected event nello stato corrente.
         /// </summary>
-        public void StartPlacing(BuildingConfigSO config)
+        public void SelectBuilding(BuildingConfigSO config)
         {
-            if (config == null)
+            _currentState?.OnBuildingSelected(config);
+        }
+
+        /// <summary>
+        /// Conferma piazzamento edificio.
+        /// Chiamato da: Mouse left click, UI confirm button, etc.
+        /// Trigger: OnPlacementConfirmed event nello stato corrente.
+        /// </summary>
+        public void ConfirmPlacement()
+        {
+            _currentState?.OnPlacementConfirmed();
+        }
+
+        /// <summary>
+        /// Cancella piazzamento edificio.
+        /// Chiamato da: Mouse right click, ESC key, UI cancel button, etc.
+        /// Trigger: OnPlacementCancelled event nello stato corrente.
+        /// </summary>
+        public void CancelPlacement()
+        {
+            _currentState?.OnPlacementCancelled();
+        }
+
+        #endregion
+
+        #region FSM Transition
+
+        /// <summary>
+        /// Transizione a nuovo stato FSM.
+        /// Chiamato dagli stati stessi per navigare tra stati.
+        /// </summary>
+        public void TransitionTo(IPlacementState newState)
+        {
+            if (_currentState != null)
             {
-                Debug.LogWarning("[BuildingPlacer] Impossibile avviare placement: configurazione null.");
-                return;
+                _currentState.OnExit();
             }
 
-            if (config.Prefab == null)
+            _currentState = newState;
+
+            if (_currentState != null)
             {
-                Debug.LogWarning($"[BuildingPlacer] Impossibile creare preview: prefab mancante per '{config.name}'.");
-                return;
+                _currentState.OnEnter();
             }
 
-            // Se già in placement, annulla quello precedente
-            if (_isPlacing)
-            {
-                CancelPlacement();
-            }
+            #if UNITY_EDITOR
+            Debug.Log($"[BuildingPlacer] FSM Transition → {_currentState?.StateName ?? "null"}");
+            #endif
+        }
 
+        #endregion
+
+        #region Public Methods (per Stati FSM)
+
+        /// <summary>
+        /// Imposta configurazione edificio selezionato (chiamato da PreviewingState).
+        /// </summary>
+        public void SetSelectedConfig(BuildingConfigSO config)
+        {
             _selectedConfig = config;
-            _isPlacing = true;
             _lastCell = Vector3Int.one * -1000; // Reset cache
             _lastValidState = true;
         }
 
         /// <summary>
-        /// Conferma il piazzamento dell'edificio nella posizione corrente se valida.
+        /// Abilita/disabilita modalità preview (chiamato dagli Stati).
         /// </summary>
-        public void ConfirmPlacement()
+        public void EnablePreviewMode(bool isEnabled)
         {
-            if (!_isPlacing || _selectedConfig == null)
-            {
-                Debug.LogWarning("[BuildingPlacer] Impossibile confermare: non in modalità placement.");
-                return;
-            }
-
-            // Validazione finale
-            if (!CanPlaceBuilding(_selectedConfig, _currentCell))
-            {
-                Debug.Log("[BuildingPlacer] ✗ Piazzamento fallito: posizione non valida o risorse insufficienti.");
-                return;
-            }
-
-            // Crea edificio reale
-            var worldPos = _manager.Grid.CellToWorld(_currentCell);
-            var building = _manager.Factory.CreateBuilding(_selectedConfig, worldPos, _manager.Root);
-
-            if (building == null)
-            {
-                Debug.LogError("[BuildingPlacer] Creazione building fallita.");
-                return;
-            }
-
-            // Spendi risorse e occupa celle
-            _manager.Economy?.SpendResources(_selectedConfig.ToDictionary());
-            _manager.Grid.OccupyCells(_currentCell, _selectedConfig.Width, _selectedConfig.Height, building);
-
-            Debug.Log($"[BuildingPlacer] Edificio piazzato: {_selectedConfig.name} alla posizione {worldPos}");
-
-            // Notifica evento tramite EventBus (no static events!)
-            _eventBus.RaiseBuildingPlaced(building);
-
-            // Termina placement
-            CancelPlacement();
+            // Logica gestita da UpdatePlacementPreviewInternal
+            // Questo metodo esiste per compatibilità Stati
         }
 
         /// <summary>
-        /// Annulla il placement corrente e pulisce la preview.
+        /// Pulisce preview (chiamato da IdleState, ConfirmingState).
         /// </summary>
-        public void CancelPlacement()
+        public void ClearPreview()
         {
-            if (!_isPlacing)
-            {
-                return;
-            }
-
-            // Nascondi preview edificio
             if (_previewSystem != null)
             {
                 _previewSystem.HidePreview();
             }
-
-            // Pulisci preview griglia tile
+            
             CleanupGridPreview();
-
-            _isPlacing = false;
+            
             _selectedConfig = null;
+            _lastCell = Vector3Int.one * -1000;
+        }
 
-            Debug.Log("[BuildingPlacer] ✓ Placement annullato");
+        /// <summary>
+        /// Verifica se può piazzare edificio alla posizione corrente (chiamato da PreviewingState).
+        /// </summary>
+        public bool CanPlaceAtCurrentPosition()
+        {
+            if (_selectedConfig == null) return false;
+            return _lastValidState; // Cached da UpdatePlacementPreviewInternal
+        }
+
+        /// <summary>
+        /// Esegue placement via Command Pattern (chiamato da ConfirmingState).
+        /// </summary>
+        public bool ExecutePlacementCommand()
+        {
+            if (_selectedConfig == null)
+            {
+                Debug.LogWarning("[BuildingPlacer] ExecutePlacementCommand: nessun edificio selezionato");
+                return false;
+            }
+
+            // Crea comando PlaceBuilding
+            var command = new PlaceBuildingCommand(
+                _manager,
+                _manager.Grid,
+                _manager.Economy,
+                _selectedConfig,
+                _currentCell
+            );
+
+            // Esegui comando tramite CommandHistory (abilita Undo)
+            bool success = _commandHistory.ExecuteCommand(command);
+
+            if (success)
+            {
+                // Pubblica evento GlobalEventBus
+                GlobalEventBus.Publish(new BuildingPlacedEvent(
+                    null, // Building non accessibile da command (privacy)
+                    _currentCell,
+                    _selectedConfig.name
+                ));
+
+                Debug.Log($"[BuildingPlacer] ✓ Edificio piazzato: {_selectedConfig.name} at {_currentCell}");
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Update posizione preview (chiamato da PreviewingState.OnUpdate).
+        /// </summary>
+        public void UpdatePlacementPreviewInternal()
+        {
+            if (_selectedConfig == null) return;
+            
+            UpdatePlacementPreview();
         }
 
         #endregion

@@ -1,6 +1,5 @@
-﻿﻿﻿using Script2.Economy;
+﻿using Script2.EconomySystem;
 using UnityEngine;
-using Script2.GridSystem;
 using VContainer;
 
 namespace Script2.BuildingSystem
@@ -83,42 +82,4 @@ namespace Script2.BuildingSystem
 
         #endregion
     }
-
-    #region BuildingEvents (Consolidato)
-
-    /// <summary>
-    /// Hub centralizzato per eventi del sistema Building.
-    /// NOTA: Gli eventi statici devono essere gestiti con cura per evitare memory leak.
-    /// Assicurarsi di disiccrivere gli handler in OnDestroy/OnDisable.
-    /// </summary>
-    public static class BuildingEvents
-    {
-        /// <summary>
-        /// Invocato quando un edificio viene selezionato dall'utente.
-        /// </summary>
-        public static System.Action<Building> OnBuildingSelected;
-        
-        /// <summary>
-        /// Invocato quando un edificio viene distrutto/rimosso dalla scena.
-        /// </summary>
-        public static System.Action<Building> OnBuildingDestroyed;
-        
-        /// <summary>
-        /// Invocato quando un edificio viene piazzato con successo sulla griglia.
-        /// </summary>
-        public static System.Action<Building> OnBuildingPlaced;
-
-        /// <summary>
-        /// Pulisce tutti gli eventi sottoscritti.
-        /// ATTENZIONE: Usare solo per cleanup globale (es. cambio scena, reset).
-        /// </summary>
-        public static void ClearAllEvents()
-        {
-            OnBuildingSelected = null;
-            OnBuildingDestroyed = null;
-            OnBuildingPlaced = null;
-        }
-    }
-
-    #endregion
 }

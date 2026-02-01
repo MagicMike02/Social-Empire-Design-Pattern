@@ -239,6 +239,23 @@ namespace Script2.Core.Events
         }
     }
 
+    /// <summary>
+    /// Pubblicato quando il tentativo di acquisto zona fallisce.
+    /// Publisher: ZoneManager
+    /// Subscribers: ZoneFeedbackUI (mostra errore), AudioManager (suono errore)
+    /// </summary>
+    public readonly struct ZonePurchaseFailedEvent
+    {
+        public readonly Vector2Int ZoneCoord;
+        public readonly string Reason; // "Insufficient Resources", "Already Unlocked", etc.
+
+        public ZonePurchaseFailedEvent(Vector2Int zoneCoord, string reason)
+        {
+            ZoneCoord = zoneCoord;
+            Reason = reason;
+        }
+    }
+
     #endregion
 
     #region Input System Events

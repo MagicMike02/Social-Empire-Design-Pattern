@@ -1,12 +1,18 @@
 ﻿using UnityEngine;
 using UnityEngine.UI;
-using TMPro; // Richiede l'importazione di TextMeshPro
-using Script2.ResourceSystem.Enums; // Assicurati che il namespace sia corretto
-using Script2.Economy; // Assicurati che il namespace del GameEconomyManager sia corretto
-using System.Collections.Generic; // Necessario per List
+using TMPro;
+using VContainer;
+using Script2.ResourceSystem.Enums;
+using Script2.EconomySystem;
+using Script2.Core.Events;
+using System.Collections.Generic;
 
 namespace Script2.ResourceSystem.ResourceUI
 {
+    /// <summary>
+    /// UI Display per risorse (Gold, Wood, Stone, etc.).
+    /// REFACTORED: Dependency Injection per GameEconomyManager (VContainer).
+    /// </summary>
     public class ResourceDisplayUI : MonoBehaviour
     {
         [System.Serializable]
@@ -17,19 +23,43 @@ namespace Script2.ResourceSystem.ResourceUI
             public TextMeshProUGUI amountText;
         }
 
+        #region Dependencies (Injected by VContainer)
+        
+        private GameEconomyManager _economyManager;
+
+        [Inject]
+        public void Construct(GameEconomyManager economyManager)
+        {
+            _economyManager = economyManager;
+        }
+        
+        #endregion
+
+        #region Configuration (Inspector)
+        
         [SerializeField] private List<ResourceUIElement> uiElements;
-        [SerializeField] private ResourceIconsSO resourceIcons; // Riferimento all'asset ScriptableObject delle icone
-        [SerializeField] private Economy.GameEconomyManager _economyManager;
+        [SerializeField] private ResourceIconsSO resourceIcons;
+        
+        #endregion
 
         private void Start()
         {
-            if (!_economyManager || !resourceIcons || uiElements == null)
+            if (_economyManager == null)
             {
-                Debug.LogError("[ResourceDisplayUI] GameEconomyManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                Debug.LogError("[ResourceDisplayUI] GameEconomyManager non iniettato da VContainer!");
                 return;
             }
-            _economyManager.OnResourceAmountChanged += UpdateResourceUI;
-            // Aggiorna subito la UI con gli importi attuali all'attivazione
+            
+            if (resourceIcons == null || uiElements == null)
+            {
+                Debug.LogError("[ResourceDisplayUI] ResourceIcons o UIElements non assegnati nell'Inspector!");
+                return;
+            }
+            
+            // Subscribe a GlobalEventBus
+            GlobalEventBus.Subscribe<ResourceAmountChangedEvent>(OnResourceAmountChanged);
+            
+            // Aggiorna subito la UI con gli importi attuali
             foreach (var element in uiElements)
             {
                 UpdateResourceUI(element.resourceType, _economyManager.GetResourceAmount(element.resourceType)); 
@@ -38,13 +68,17 @@ namespace Script2.ResourceSystem.ResourceUI
 
         private void OnDestroy()
         {
-            if (_economyManager)
-            {
-                _economyManager.OnResourceAmountChanged -= UpdateResourceUI;
-            }
+            // CRITICAL: Unsubscribe per prevenire memory leak
+            GlobalEventBus.Unsubscribe<ResourceAmountChangedEvent>(OnResourceAmountChanged);
         }
 
-        // Il metodo per l'evento OnResourceAmountChanged
+        // Handler per GlobalEventBus (riceve struct invece di parametri separati)
+        private void OnResourceAmountChanged(ResourceAmountChangedEvent evt)
+        {
+            UpdateResourceUI(evt.Type, evt.CurrentAmount);
+        }
+
+        // Il metodo per aggiornare la UI
         private void UpdateResourceUI(ResourceType type, int newAmount)
         {
             foreach (var element in uiElements)
