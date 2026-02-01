@@ -1,47 +1,87 @@
-﻿using System.Collections.Generic;
+﻿﻿using System.Collections.Generic;
 using Script2.EconomySystem;
 using Script2.ResourceSystem.Enums;
 using Script2.Core.Events;
+using Script2.Core.Commands;
+using Script2.GridSystem.Commands;
 using VContainer;
 using UnityEngine;
 
 namespace Script2.GridSystem
 {
-    /// <summary>
-    /// Gestisce le zone (unlock/purchase system).
-    /// REFACTORED: Dependency Injection per GameEconomyManager (VContainer).
-    /// </summary>
     public class ZoneManager : MonoBehaviour
     {
-        #region Dependencies (Injected by VContainer)
+        #region Dependencies
         
         private GameEconomyManager _economyManager;
+        private CommandHistory _commandHistory;
 
         [Inject]
-        public void Construct(GameEconomyManager economyManager)
+        public void Construct(GameEconomyManager economyManager, CommandHistory commandHistory)
         {
             _economyManager = economyManager;
+            _commandHistory = commandHistory;
         }
         
         #endregion
 
-        #region Configuration (Inspector)
         [SerializeField] private GameObject _purchaseSignPrefab;
-        #endregion Configuration (Inspector)
         
         private const int _zoneSize = 20;
-
         private Dictionary<Vector2Int, Zone> _zones = new();
         private Dictionary<ResourceType, int> _zoneCost = new() { { ResourceType.Gold, 10 } };
         private Grid<Tile> _grid;
         public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
-
 
         public int ZoneSize => _zoneSize;
 
         public void Initialize(Grid<Tile> grid)
         {
             _grid = grid;
+        }
+        public void PurchaseZone(Vector2Int zoneCoord)
+        {
+            var command = new PurchaseZoneCommand(this, _economyManager, zoneCoord, _zoneCost);
+            if (_commandHistory.ExecuteCommand(command))
+            {
+                GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
+            }
+            else
+            {
+                GlobalEventBus.Publish(new ZonePurchaseFailedEvent(zoneCoord, "Purchase failed"));
+            }
+        }
+
+        public bool HasZone(Vector2Int coord) => _zones.ContainsKey(coord);
+
+        public bool IsZoneUnlocked(Vector2Int coord) => 
+            _zones.TryGetValue(coord, out var zone) && zone.isUnlocked;
+
+        public void UnlockZone(Vector2Int coord)
+        {
+            if (!_zones.TryGetValue(coord, out var zone)) return;
+
+            zone.isUnlocked = true;
+            foreach (var tile in zone.tiles)
+                if (tile) tile.Unlock();
+
+            if (zone.purchaseSign)
+            {
+                Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+                occupiedTiles.Remove(signGridPos);
+                Destroy(zone.purchaseSign);
+            }
+        }
+
+        public void LockZone(Vector2Int coord)
+        {
+            if (!_zones.TryGetValue(coord, out var zone)) return;
+
+            zone.isUnlocked = false;
+            foreach (var tile in zone.tiles)
+                if (tile) tile.SetState(TileState.Locked);
+
+            CreatePurchaseSign(zone);
         }
 
         public void CreateZones(int width, int height)
@@ -84,43 +124,6 @@ namespace Script2.GridSystem
                     }
                     _zones[zoneCoord] = zone;
                 }
-            }
-        }
-
-        public void PurchaseZone(Vector2Int zoneCoord)
-        {
-            if (!_zones.TryGetValue(zoneCoord, out var zone) || zone.isUnlocked) return;
-            
-            if (_economyManager && _economyManager.CanAfford(_zoneCost))
-            {
-                _economyManager.SpendResources(_zoneCost);
-                zone.isUnlocked = true;
-                
-                foreach (var tile in zone.tiles)
-                {
-                    if (tile) tile.Unlock();
-                }
-                
-                if (zone.purchaseSign) 
-                {
-                    Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-                    occupiedTiles.Remove(signGridPos);
-                    Destroy(zone.purchaseSign);
-                }
-                
-                Debug.Log($"Zona sbloccata in {zoneCoord}");
-                
-                // ZoneIndex = 0 (placeholder, ZonePosition contiene coordinate reali)
-                GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
-            }
-            else if (_economyManager)
-            {
-                Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
-                GlobalEventBus.Publish(new ZonePurchaseFailedEvent(zoneCoord, "Insufficient Resources"));
-            }
-            else
-            {
-                Debug.LogError("GameEconomyManager instance not found. Cannot check/spend resources.");
             }
         }
 
