@@ -14,9 +14,6 @@ namespace Script2.EconomySystem
     /// </summary>
     public class GameEconomyManager : MonoBehaviour
     {
-        // ❌ DEPRECATED: Eventi locali rimossi, ora si usa GlobalEventBus
-        // Migrazione: OnResourceAmountChanged → GlobalEventBus.Publish(new ResourceAmountChangedEvent(...))
-        
         private Dictionary<ResourceType, int> _resources = new();
 
         private void Awake()
@@ -27,11 +24,13 @@ namespace Script2.EconomySystem
                 if (!_resources.ContainsKey(type)) _resources[type] = 0;
             }
 
+#if UNITY_EDITOR
             Debug.Log("[GameEconomyManager] Initialized. Current Resources:");
             foreach (var resource in _resources)
             {
                 Debug.Log($"  - {resource.Key}: {resource.Value}");
             }
+#endif
         }
 
         public void AddResource(ResourceType type, int amount)

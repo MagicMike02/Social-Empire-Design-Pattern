@@ -44,10 +44,6 @@ namespace Script2.ResourceSystem
             }
         }
 
-        private void OnMouseDown()
-        {
-            CollectResource();
-        }
 
         public void OnHoverEnter()
         {
