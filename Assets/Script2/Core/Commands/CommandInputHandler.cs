@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿﻿using UnityEngine;
 using VContainer;
 
 namespace Script2.Core.Commands
@@ -26,6 +26,9 @@ namespace Script2.Core.Commands
 
         private void Update()
         {
+            if (_commandHistory == null)
+                return;
+
             // Ctrl+Shift+Z = Redo (priority su Ctrl+Z)
             if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.Z))
             {
@@ -49,6 +52,15 @@ namespace Script2.Core.Commands
 
         private void OnGUI()
         {
+            if (_commandHistory == null)
+            {
+                GUILayout.BeginArea(new Rect(10, 250, 350, 60));
+                GUILayout.Box("⚠️ CommandHistory NOT INITIALIZED");
+                GUILayout.Label("VContainer injection failed");
+                GUILayout.EndArea();
+                return;
+            }
+
             // UI on-screen per feedback (debug/development)
             var stats = _commandHistory.GetStats();
             

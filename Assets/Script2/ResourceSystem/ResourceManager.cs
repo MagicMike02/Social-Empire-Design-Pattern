@@ -22,6 +22,7 @@ namespace Script2.ResourceSystem
         private ZoneManager _zoneManager;
         private ResourceSpawner _resourceSpawner;
         private ResourcePoolManager _poolManager;
+        private GridManager _gridManager;
 
         [Inject]
         public void Construct(
@@ -29,13 +30,15 @@ namespace Script2.ResourceSystem
             GameEconomyManager economyManager,
             ZoneManager zoneManager,
             ResourceSpawner resourceSpawner,
-            ResourcePoolManager poolManager)
+            ResourcePoolManager poolManager,
+            GridManager gridManager)
         {
             _tileManager = tileManager;
             _economyManager = economyManager;
             _zoneManager = zoneManager;
             _resourceSpawner = resourceSpawner;
             _poolManager = poolManager;
+            _gridManager = gridManager;
         }
         
         #endregion
@@ -109,7 +112,7 @@ namespace Script2.ResourceSystem
         private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
         {
             _activeResources[pos] = instance;
-            _zoneManager.occupiedTiles.Add(pos, instance);
+            _gridManager.OccupyCell(pos, instance);
             var ri = instance.GetComponent<ResourceInstance>();
             
             if (ri)
@@ -139,13 +142,13 @@ namespace Script2.ResourceSystem
 
             if (!data.isDestroyedOnCollect)
             {
-                // Risorsa rigenera → Mantieni occupiedTiles (verrà rimosso/aggiunto da RegenResourceAfterDelay)
+                // Risorsa rigenera → mantieni occupazione durante rigenerazione
                 ScheduleRegeneration(pos, data);
             }
             else
             {
-                // Risorsa distrutta permanentemente → Libera cella
-                _zoneManager.occupiedTiles.Remove(pos);
+                // Risorsa distrutta permanentemente → libera cella
+                _gridManager.FreeCell(pos);
             }
         }
 
@@ -159,10 +162,6 @@ namespace Script2.ResourceSystem
                 else
                     Destroy(go);
             }
-            
-            // ⚠️ NON rimuovere da occupiedTiles qui!
-            // Se risorsa rigenera, cella deve rimanere occupata durante regen
-            // occupiedTiles.Remove viene fatto in RegenResourceAfterDelay DOPO cleanup visual
             
             _activeResources.Remove(pos);
         }
@@ -212,12 +211,8 @@ namespace Script2.ResourceSystem
                     Quaternion.identity, transform);
                 _activeResources[pos] = regenVisual;  // Track visual temporarily
                 
-                // ✅ CRITICAL FIX: Mantieni cella occupata durante rigenerazione
-                // Previene placement edifici sopra sprite regen
-                if (!_zoneManager.occupiedTiles.ContainsKey(pos))
-                {
-                    _zoneManager.occupiedTiles.Add(pos, regenVisual);
-                }
+                // ✅ Mantieni cella occupata durante rigenerazione (previene placement edifici)
+                _gridManager.OccupyCell(pos, regenVisual);
             }
 
             yield return new WaitForSeconds(data.regenerationTime);
@@ -228,7 +223,7 @@ namespace Script2.ResourceSystem
                 Destroy(regenVisual);
             }
             
-            _zoneManager.occupiedTiles.Remove(pos);
+            _gridManager.FreeCell(pos);
             _activeResources.Remove(pos);
 
             // Spawn the actual resource (original prefab with ResourceInstance)
@@ -274,8 +269,8 @@ namespace Script2.ResourceSystem
         {
             foreach (var resource in _activeResources)
             {
-                // Libero la cella occupata 
-                _zoneManager.occupiedTiles.Remove(resource.Key);
+                // Libera la cella occupata 
+                _gridManager.FreeCell(resource.Key);
 
                 // Distruggo il GameObject
                 Destroy(resource.Value);

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+﻿﻿using UnityEngine;
 using VContainer;
 
 namespace Script2.BuildingSystem
@@ -16,6 +16,7 @@ namespace Script2.BuildingSystem
     public sealed class PlacementInputHandler : MonoBehaviour
     {
         private BuildingPlacer _placer;
+        private bool _loggedMissingDependency = false;
         
         [SerializeField] private BuildingConfigSO _testBuildingConfig;
 
@@ -29,7 +30,11 @@ namespace Script2.BuildingSystem
         {
             if (_placer == null)
             {
-                Debug.LogError("[KeyboardPlacementInput] BuildingPlacer è NULL! VContainer non ha iniettato la dipendenza.");
+                if (!_loggedMissingDependency)
+                {
+                    Debug.LogError("[PlacementInputHandler] BuildingPlacer è NULL! VContainer non ha iniettato la dipendenza.");
+                    _loggedMissingDependency = true;
+                }
                 return;
             }
 

@@ -98,7 +98,6 @@ namespace Script2.GridSystem
                 
                 foreach (var tile in zone.tiles)
                 {
-                    // if (tile) tile.SetState(TileState.Unlocked);
                     if (tile) tile.Unlock();
                 }
                 
@@ -111,15 +110,12 @@ namespace Script2.GridSystem
                 
                 Debug.Log($"Zona sbloccata in {zoneCoord}");
                 
-                // ✅ MIGRATO: GlobalEventBus invece di evento nativo
                 // ZoneIndex = 0 (placeholder, ZonePosition contiene coordinate reali)
                 GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
             }
             else if (_economyManager)
             {
                 Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
-                
-                // ✅ MIGRATO: GlobalEventBus invece di evento nativo
                 GlobalEventBus.Publish(new ZonePurchaseFailedEvent(zoneCoord, "Insufficient Resources"));
             }
             else

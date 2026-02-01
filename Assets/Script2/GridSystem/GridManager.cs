@@ -16,17 +16,14 @@ namespace Script2.GridSystem
     {
         #region Dependencies (Injected by VContainer)
         
-        private ResourceManager _resourceManager;
         private TileManager _tileManager;
         private ZoneManager _zoneManager;
 
         [Inject]
         public void Construct(
-            ResourceManager resourceManager,
             TileManager tileManager,
             ZoneManager zoneManager)
         {
-            _resourceManager = resourceManager;
             _tileManager = tileManager;
             _zoneManager = zoneManager;
         }
@@ -36,8 +33,8 @@ namespace Script2.GridSystem
         #region Private Fields
         
         private readonly List<Vector2Int> _lastPreviewCells = new();
-        private readonly HashSet<Vector2Int> _occupiedCells = new();
         private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new();
+        private readonly Dictionary<Vector2Int, GameObject> _occupiedCells = new();
         
         #endregion
 
@@ -63,11 +60,6 @@ namespace Script2.GridSystem
             if (_zoneManager == null)
             {
                 Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
-            }
-
-            if (_resourceManager == null)
-            {
-                Debug.LogError("[GridManager] ResourceManager non iniettato! VContainer dovrebbe averlo fornito.");
             }
         }
 
@@ -115,20 +107,21 @@ namespace Script2.GridSystem
                 {
                     int x = originCell.x + dx;
                     int y = originCell.y + dy;
-                    if (x < 0 || y < 0 || x >= _tileManager.Width || y >= _tileManager.Height) return false;
+                    
+                    // Bounds check
+                    if (x < 0 || y < 0 || x >= _tileManager.Width || y >= _tileManager.Height) 
+                        return false;
 
                     var p = new Vector2Int(x, y);
                     
-                    // Check 1: Celle occupate da edifici
-                    if (_occupiedCells.Contains(p)) return false;
-                    
-                    // Check 2: Celle occupate da risorse/sign/regen
-                    // Blocca placement sopra risorse in rigenerazione (sprite visibili)
-                    if (_zoneManager.occupiedTiles.ContainsKey(p)) return false;
+                    // Check occupancy (unica fonte di verità)
+                    if (_occupiedCells.ContainsKey(p)) 
+                        return false;
 
-                    // Check 3: Tile valida e sbloccata
+                    // Check tile state
                     var tile = _tileManager.GetGrid().GetValue(x, y);
-                    if (tile == null || tile.State != TileState.Unlocked) return false;
+                    if (tile == null || tile.State != TileState.Unlocked) 
+                        return false;
                 }
             }
             return true;
@@ -141,7 +134,7 @@ namespace Script2.GridSystem
                 for (int dy = 0; dy < height; dy++)
                 {
                     var p = new Vector2Int(originCell.x + dx, originCell.y + dy);
-                    _occupiedCells.Add(p);
+                    _occupiedCells[p] = building.gameObject;
                 }
             }
             
@@ -318,8 +311,7 @@ namespace Script2.GridSystem
             // Ray dal mouse
             var ray = cam.ScreenPointToRay(screenPos);
 
-            // Intersezione col piano z=0 (mondo) → t = -ray.origin.z / ray.direction.z
-            if (Mathf.Approximately(ray.direction.z, 0f)) return false; // Parallelo al piano
+            if (Mathf.Approximately(ray.direction.z, 0f)) return false;
             float t = -ray.origin.z / ray.direction.z;
             if (t < 0f) return false; // Dietro la camera
 
@@ -329,7 +321,7 @@ namespace Script2.GridSystem
             return TryWorldToNearestCell(worldOnPlane, out cell);
         }
 
-        // ========== PATHFINDING SUPPORT (SPRINT 1) ==========
+        // ========== PATHFINDING SUPPORT==========
         
         public bool IsCellWalkable(Vector2Int cell)
         {
@@ -342,16 +334,9 @@ namespace Script2.GridSystem
             if (tile == null)
                 return false;
 
-            // OBSTACLES - Block pathfinding:
-            // - Buildings (occupied cells)
-            // - Resources (trees, stones, gold, etc.)
-            // - Units, Enemies, Objects (future - tracked by their own managers)
-            if (_occupiedCells.Contains(cell))
-                return false; // Building occupies this cell
-
-            // CRITICAL OPTIMIZATION: Use cached ResourceManager (O(1) lookup, no FindFirstObjectByType!)
-            if (_resourceManager != null && _resourceManager.HasResourceAt(cell))
-                return false; // Resource occupies this cell
+            // Check occupancy (buildings + resources + signs already in _occupiedCells)
+            if (_occupiedCells.ContainsKey(cell))
+                return false;
 
             return true;
         }
@@ -409,6 +394,42 @@ namespace Script2.GridSystem
             return cell.x >= 0 && cell.x < _tileManager.Width && 
                    cell.y >= 0 && cell.y < _tileManager.Height;
         }
+
+        #region Public Occupancy Methods (per ResourceManager, ZoneManager)
+
+        /// <summary>
+        /// Occupa una singola cella (risorse, sign, etc).
+        /// </summary>
+        public void OccupyCell(Vector2Int cell, GameObject context)
+        {
+            _occupiedCells[cell] = context;
+        }
+
+        /// <summary>
+        /// Libera una singola cella.
+        /// </summary>
+        public void FreeCell(Vector2Int cell)
+        {
+            _occupiedCells.Remove(cell);
+        }
+
+        /// <summary>
+        /// Verifica se una singola cella è libera.
+        /// </summary>
+        public bool IsCellFree(Vector2Int cell)
+        {
+            return !_occupiedCells.ContainsKey(cell);
+        }
+
+        /// <summary>
+        /// Snapshot di tutte le occupanze (utility per save game, debugging).
+        /// </summary>
+        public IReadOnlyDictionary<Vector2Int, GameObject> GetOccupancySnapshot()
+        {
+            return new Dictionary<Vector2Int, GameObject>(_occupiedCells);
+        }
+
+        #endregion
     }
 }
 

@@ -1,4 +1,4 @@
-﻿﻿using TMPro;
+﻿﻿﻿using TMPro;
 using UnityEngine;
 using Script2.InputSystem;
 
@@ -29,7 +29,6 @@ namespace Script2.GridSystem
         private Color _savedColorBeforePreview; // Salva colore prima della preview
         private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
 
-        public event System.Action<Tile> OnBuildingPlaced;
 
         void Awake()
         {
