@@ -1,9 +1,11 @@
-﻿using UnityEngine;
-using VContainer;
+﻿using System.Collections.Generic;
+using System.Diagnostics;
 using Script2.BuildingSystem;
-using Script2.GridSystem;
 using Script2.Core.Events;
-using System.Collections.Generic;
+using Script2.GridSystem;
+using UnityEngine;
+using VContainer;
+using Debug = UnityEngine.Debug;
 
 namespace Script2.PathfindingSystem
 {
@@ -13,8 +15,9 @@ namespace Script2.PathfindingSystem
     /// REFACTORED: Usa Dependency Injection per IGridService e TileManager.
     /// - IPathfindingAlgorithm: Abstract algorithm interface
     /// - AStarAlgorithm: 8-directional A* with Chebyshev heuristic
-    /// - CachedPathfindingDecorator: LRU caching (100 entry limit)
+    /// - CachedPathfindingDecorator: LRU caching (500 entry limit)
     /// - DebugPathfindingDecorator: Tile visualization (editor only)
+    /// Cache invalidation: Solo su CellsOccupiedEvent/CellsFreedEvent
     /// </summary>
     public class PathfindingManager : MonoBehaviour
     {
@@ -98,7 +101,7 @@ namespace Script2.PathfindingSystem
 
             _pathfindingAlgorithm = algorithm;
 
-            Debug.Log("[PathfindingManager] ✓ Initialized with A* + Caching" + 
+            Debug.Log("[PathfindingManager] ✓ Initialized with A* + Caching" +
                       (_enableDebugVisualization ? " + Debug" : ""));
         }
         
@@ -108,18 +111,15 @@ namespace Script2.PathfindingSystem
 
         /// <summary>
         /// Sottoscrivi eventi Grid per invalidare cache quando celle cambiano.
+        /// NOTE: Resource events NON servono più (gestiti da CellsOccupied/FreedEvent)
         /// </summary>
         private void SubscribeToGridEvents()
         {
-            // Grid events (edifici)
+            // Grid events (edifici e risorse)
             GlobalEventBus.Subscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Subscribe<CellsFreedEvent>(OnCellsFreed);
             
-            // Resource events (risorse che bloccano walkability)
-            GlobalEventBus.Subscribe<ResourceGeneratedEvent>(OnResourceGenerated);
-            GlobalEventBus.Subscribe<ResourceCollectedEvent>(OnResourceCollected);
-            
-            Debug.Log("[PathfindingManager] ✓ Subscribed to Grid + Resource events (cache auto-invalidation)");
+            Debug.Log("[PathfindingManager] ✓ Subscribed to Grid events (cache auto-invalidation)");
         }
 
         /// <summary>
@@ -127,29 +127,19 @@ namespace Script2.PathfindingSystem
         /// </summary>
         private void UnsubscribeFromGridEvents()
         {
-            // Grid events
             GlobalEventBus.Unsubscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Unsubscribe<CellsFreedEvent>(OnCellsFreed);
-            
-            // Resource events
-            GlobalEventBus.Unsubscribe<ResourceGeneratedEvent>(OnResourceGenerated);
-            GlobalEventBus.Unsubscribe<ResourceCollectedEvent>(OnResourceCollected);
         }
 
         /// <summary>
-        /// Handler: Celle occupate (edificio piazzato o risorsa spawned).
+        /// Handler: Celle occupate (edificio piazzato).
         /// Invalida cache perché la walkability è cambiata.
         /// </summary>
         private void OnCellsOccupied(CellsOccupiedEvent evt)
         {
             if (_cacheDecorator != null)
             {
-                int cachedPaths = _cacheDecorator.GetCacheSize();
                 _cacheDecorator.ClearCache();
-                
-                #if UNITY_EDITOR
-                Debug.Log($"[PathfindingManager] Grid changed (occupied {evt.Width}x{evt.Height} cells) → Cache invalidated ({cachedPaths} paths cleared)");
-                #endif
             }
         }
 
@@ -161,49 +151,10 @@ namespace Script2.PathfindingSystem
         {
             if (_cacheDecorator != null)
             {
-                int cachedPaths = _cacheDecorator.GetCacheSize();
                 _cacheDecorator.ClearCache();
-                
-                #if UNITY_EDITOR
-                Debug.Log($"[PathfindingManager] Grid changed (freed {evt.Width}x{evt.Height} cells) → Cache invalidated ({cachedPaths} paths cleared)");
-                #endif
             }
         }
 
-        /// <summary>
-        /// Handler: Risorsa generata (albero, pietra, oro spawned).
-        /// Invalida cache perché risorsa blocca walkability.
-        /// NOTE: Silent durante initial spawn (300+ risorse) per evitare log flood.
-        /// </summary>
-        private void OnResourceGenerated(ResourceGeneratedEvent evt)
-        {
-            if (_cacheDecorator != null)
-            {
-                _cacheDecorator.ClearCache();
-                
-                // Log disabilitato: genera 300+ log durante initial spawn
-                // #if UNITY_EDITOR
-                // Debug.Log($"[PathfindingManager] Resource spawned at {evt.Position} → Cache invalidated");
-                // #endif
-            }
-        }
-
-        /// <summary>
-        /// Handler: Risorsa raccolta (albero/pietra rimosso).
-        /// Invalida cache perché cella ora è walkable.
-        /// </summary>
-        private void OnResourceCollected(ResourceCollectedEvent evt)
-        {
-            if (_cacheDecorator != null)
-            {
-                int cachedPaths = _cacheDecorator.GetCacheSize();
-                _cacheDecorator.ClearCache();
-                
-                #if UNITY_EDITOR
-                Debug.Log($"[PathfindingManager] Resource collected at {evt.Position} → Cache invalidated ({cachedPaths} paths cleared)");
-                #endif
-            }
-        }
 
         #endregion
 
@@ -220,7 +171,7 @@ namespace Script2.PathfindingSystem
                 return new List<Vector2Int>();
             }
 
-            var sw = System.Diagnostics.Stopwatch.StartNew();
+            var sw = Stopwatch.StartNew();
             var path = _pathfindingAlgorithm.FindPath(start, goal, _gridService);
             sw.Stop();
             

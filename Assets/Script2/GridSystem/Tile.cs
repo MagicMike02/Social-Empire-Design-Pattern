@@ -1,6 +1,7 @@
-﻿﻿﻿using TMPro;
-using UnityEngine;
+﻿using Script2.BuildingSystem;
 using Script2.InputSystem;
+using TMPro;
+using UnityEngine;
 
 namespace Script2.GridSystem
 {
@@ -9,7 +10,7 @@ namespace Script2.GridSystem
     /// Implements IGridEntity to provide authoritative grid position (no mathematical conversion needed).
     /// Implements IHoverable for input system integration.
     /// </summary>
-    public class Tile : MonoBehaviour, IHoverable, Script2.BuildingSystem.IGridEntity
+    public class Tile : MonoBehaviour, IHoverable, IGridEntity
     {
         [SerializeField] private TextMeshPro _coordinatesText;
         [SerializeField] private Color _normalColor = Color.white;
@@ -117,10 +118,7 @@ namespace Script2.GridSystem
         public void PreviewTint(Color color)
         {
             if (_renderer == null) return;
-            if (!_isShowingPreview)
-            {
-                _savedColorBeforePreview = _renderer.color;
-            }
+           
             _isShowingPreview = true;
             _renderer.color = color;
         }
@@ -147,7 +145,6 @@ namespace Script2.GridSystem
         {
             if (_renderer == null) return;
             _renderer.color = color;
-            // Non settare _isShowingPreview per non bloccare hover
         }
     }
     

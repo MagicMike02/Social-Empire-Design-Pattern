@@ -1,7 +1,8 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
-using UnityEngine;
 using Script2.BuildingSystem;
+using UnityEngine;
 
 namespace Script2.PathfindingSystem
 {
@@ -14,11 +15,11 @@ namespace Script2.PathfindingSystem
     {
         private readonly IPathfindingAlgorithm _innerAlgorithm;
         private readonly Dictionary<(Vector2Int, Vector2Int), List<Vector2Int>> _cache = new();
-        private const int MaxCacheSize = 100;
+        private const int MaxCacheSize = 500;  // ✅ Increased from 100 (less evictions)
 
         public CachedPathfindingDecorator(IPathfindingAlgorithm algorithm)
         {
-            _innerAlgorithm = algorithm ?? throw new System.ArgumentNullException(nameof(algorithm));
+            _innerAlgorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
         }
 
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService)

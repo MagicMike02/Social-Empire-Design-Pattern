@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
-using UnityEngine;
 using Script2.BuildingSystem;
+using UnityEngine;
 
 namespace Script2.PathfindingSystem
 {
@@ -40,10 +40,10 @@ namespace Script2.PathfindingSystem
                 foreach (var neighbor in gridService.GetWalkableNeighbors(current))
                 {
                     // Calculate cost based on direction (cardinal=1, diagonal=sqrt(2)≈1.414)
-                    float movementCost = Mathf.Abs(neighbor.x - current.x) + Mathf.Abs(neighbor.y - current.y) == 2 
+                    float movementCost = Mathf.Abs(neighbor.x - current.x) + Mathf.Abs(neighbor.y - current.y) == 2
                         ? 1.414f  // Diagonal movement
                         : 1f;     // Cardinal movement
-                    
+
                     float tentativeGScore = gScore[current] + movementCost;
 
                     if (!gScore.ContainsKey(neighbor) || tentativeGScore < gScore[neighbor])

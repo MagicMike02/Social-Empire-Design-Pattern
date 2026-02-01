@@ -1,16 +1,17 @@
-﻿using UnityEngine;
-using VContainer;
-using VContainer.Unity;
+﻿using System;
 using Script2.BuildingSystem;
+using Script2.Common;
+using Script2.Core.Commands;
 using Script2.EconomySystem;
 using Script2.GridSystem;
-using Script2.ResourceSystem;
-using Script2.ResourceSystem.ResourceUI;
-using Script2.Common;
 using Script2.InputSystem;
 using Script2.PathfindingSystem;
-using Script2.Core.Commands;
+using Script2.ResourceSystem;
+using Script2.ResourceSystem.ResourceUI;
 using Script2.UI;
+using UnityEngine;
+using VContainer;
+using VContainer.Unity;
 
 namespace Script2.Core
 {
@@ -32,7 +33,7 @@ namespace Script2.Core
                 base.Awake();
                 if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Inizializzato");
             }
-            catch (System.Exception ex)
+            catch (Exception ex)
             {
                 Debug.LogError($"[GameLifetimeScope] ERRORE durante l'inizializzazione: {ex.Message}\n{ex.StackTrace}");
                 throw;
@@ -74,6 +75,11 @@ namespace Script2.Core
             // PATHFINDING SYSTEM
             RegisterIfExists<PathfindingManager>(builder);
             
+            #if UNITY_EDITOR
+            // TEST UTILITIES (solo in Editor)
+            RegisterIfExists<PathfindingTester>(builder);
+            #endif
+            
             // UI SYSTEM
             RegisterIfExists<UIManager>(builder);
             RegisterIfExists<ResourceDisplayUI>(builder);
@@ -94,7 +100,7 @@ namespace Script2.Core
             if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Configurazione completata");
         }
 
-        private void RegisterIfExists<T>(IContainerBuilder builder, System.Action<RegistrationBuilder> configure = null) where T : Component
+        private void RegisterIfExists<T>(IContainerBuilder builder, Action<RegistrationBuilder> configure = null) where T : Component
         {
             var component = FindFirstObjectByType<T>(FindObjectsInactive.Exclude);
             

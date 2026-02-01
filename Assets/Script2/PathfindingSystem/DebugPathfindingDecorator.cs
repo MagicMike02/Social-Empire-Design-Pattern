@@ -1,7 +1,8 @@
-﻿﻿using System.Collections.Generic;
-using UnityEngine;
+﻿using System;
+using System.Collections.Generic;
 using Script2.BuildingSystem;
 using Script2.GridSystem;
+using UnityEngine;
 
 namespace Script2.PathfindingSystem
 {
@@ -17,8 +18,8 @@ namespace Script2.PathfindingSystem
 
         public DebugPathfindingDecorator(IPathfindingAlgorithm algorithm, TileManager tileManager)
         {
-            _innerAlgorithm = algorithm ?? throw new System.ArgumentNullException(nameof(algorithm));
-            _tileManager = tileManager ?? throw new System.ArgumentNullException(nameof(tileManager));
+            _innerAlgorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
+            _tileManager = tileManager ?? throw new ArgumentNullException(nameof(tileManager));
         }
 
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService)
@@ -56,9 +57,9 @@ namespace Script2.PathfindingSystem
                 return;
             }
 
-            var pathColor = new Color(0f, 0.5f, 1f, 0.6f);   // Blu
-            var startColor = new Color(0f, 1f, 0f, 0.8f);     // Verde
-            var goalColor = new Color(1f, 0f, 0f, 0.8f);      // Rosso
+            var pathColor = new Color(0f, 0.5f, 1f, 1.0f);   // Blu 
+            var startColor = new Color(0f, 1f, 0f, 1.0f);     // Verde 
+            var goalColor = new Color(1f, 0f, 0f, 1.0f);      // Rosso 
 
             for (int i = 0; i < path.Count; i++)
             {
