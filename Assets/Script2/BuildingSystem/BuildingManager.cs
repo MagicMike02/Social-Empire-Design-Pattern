@@ -1,4 +1,4 @@
-﻿using Script2.EconomySystem;
+﻿﻿using Script2.EconomySystem;
 using UnityEngine;
 using VContainer;
 
@@ -12,29 +12,34 @@ namespace Script2.BuildingSystem
     public sealed class BuildingManager : MonoBehaviour
     {
         [SerializeField] private Transform _root;
-        [SerializeField] private BuildingFactory _factory;
 
         private IGridService _grid;
         private GameEconomyManager _economy;
+        private BuildingFactory _factory;
 
+        public IGridService Grid => _grid;
+        public BuildingFactory Factory => _factory;
+        public GameEconomyManager Economy => _economy;
+        public Transform Root => _root;
+        
         [Inject]
-        public void Construct(GameEconomyManager economy, IGridService grid)
+        public void Construct(GameEconomyManager economy, IGridService grid, BuildingFactory factory)
         {
             _economy = economy;
             _grid = grid;
+            _factory = factory;
         }
 
         private void Awake()
         {
             if (_root == null) _root = transform;
-            if (_factory == null) _factory = GetComponent<BuildingFactory>();
         }
 
         private void ValidateDependencies()
         {
             if (_factory == null)
             {
-                Debug.LogError("[BuildingManager] BuildingFactory non trovato! Assegna il componente nell'Inspector o assicurati sia presente sul GameObject.");
+                Debug.LogError("[BuildingManager] BuildingFactory non iniettato! VContainer dovrebbe averlo fornito.");
             }
             
             if (_economy == null)
@@ -48,38 +53,6 @@ namespace Script2.BuildingSystem
             }
         }
 
-        public IGridService Grid => _grid;
-        public BuildingFactory Factory => _factory;
-        public GameEconomyManager Economy => _economy;
-        public Transform Root => _root;
 
-        #region SortingUtils (Consolidato)
-
-        /// <summary>
-        /// Applica sorting layer e order a un SpriteRenderer per visualizzazione isometrica corretta.
-        /// Formula: sortingOrder = -Y * 100 + baseOrder
-        /// </summary>
-        public static void ApplySorting(SpriteRenderer renderer, string layer, float yPosition, int baseOrder)
-        {
-            if (renderer == null) return;
-            
-            renderer.sortingLayerName = layer;
-            renderer.sortingOrder = Mathf.RoundToInt(-yPosition * 100f) + baseOrder;
-        }
-
-        /// <summary>
-        /// Imposta il colore di un SpriteRenderer con alpha specificata.
-        /// Utilizzato per le preview degli edifici.
-        /// </summary>
-        public static void SetGhostColor(SpriteRenderer renderer, Color color, float alpha)
-        {
-            if (renderer == null) return;
-            
-            var finalColor = color;
-            finalColor.a = Mathf.Clamp01(alpha);
-            renderer.color = finalColor;
-        }
-
-        #endregion
     }
 }

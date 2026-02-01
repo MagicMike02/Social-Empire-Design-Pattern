@@ -47,7 +47,7 @@ namespace Script2.BuildingSystem
             var spriteRenderer = buildingGO.GetComponentInChildren<SpriteRenderer>();
             if (spriteRenderer != null)
             {
-                BuildingManager.ApplySorting(spriteRenderer, config.SortingLayer, worldPos.y, config.BaseSortingOrder);
+                IsometricSortingUtility.ApplySorting(spriteRenderer, config.SortingLayer, worldPos.y, config.BaseSortingOrder);
             }
             else
             {
