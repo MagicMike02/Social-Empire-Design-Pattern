@@ -1,7 +1,7 @@
 ﻿using UnityEngine;
 using VContainer;
 using Script2.ResourceSystem.ResourceUI;
-using Script2.GridSystem;
+using Script2.Core.Events;
 
 namespace Script2.UI
 {
@@ -30,13 +30,11 @@ namespace Script2.UI
         #region Dependencies (Injected by VContainer)
         
         private ResourceDisplayUI _resourceDisplayUI;
-        private ZoneFeedbackUI _zoneFeedbackUI;
 
         [Inject]
-        public void Construct(ResourceDisplayUI resourceDisplayUI, ZoneFeedbackUI zoneFeedbackUI)
+        public void Construct(ResourceDisplayUI resourceDisplayUI)
         {
             _resourceDisplayUI = resourceDisplayUI;
-            _zoneFeedbackUI = zoneFeedbackUI;
         }
         
         #endregion
@@ -62,6 +60,11 @@ namespace Script2.UI
             InitializeUI();
         }
 
+        private void OnDestroy()
+        {
+            UnsubscribeFromZoneEvents();
+        }
+
         #endregion
 
         #region Initialization
@@ -71,11 +74,6 @@ namespace Script2.UI
             if (_resourceDisplayUI == null)
             {
                 Debug.LogError("[UIManager] ResourceDisplayUI non iniettato da VContainer!");
-            }
-
-            if (_zoneFeedbackUI == null)
-            {
-                Debug.LogError("[UIManager] ZoneFeedbackUI non iniettato da VContainer!");
             }
 
             // Log warnings per future panels non ancora implementati
@@ -102,6 +100,7 @@ namespace Script2.UI
             // Future: Centralizzare qui inizializzazione
 
             HideAllFuturePanels();
+            SubscribeToZoneEvents();
 
             Debug.Log("[UIManager] ✓ UI Initialized");
         }
@@ -117,6 +116,34 @@ namespace Script2.UI
 
             if (_settingsPanel != null)
                 _settingsPanel.SetActive(false);
+        }
+
+        private void SubscribeToZoneEvents()
+        {
+            GlobalEventBus.Subscribe<ZoneUnlockedEvent>(OnZoneUnlocked);
+            GlobalEventBus.Subscribe<ZonePurchaseFailedEvent>(OnZonePurchaseFailed);
+        }
+
+        private void UnsubscribeFromZoneEvents()
+        {
+            GlobalEventBus.Unsubscribe<ZoneUnlockedEvent>(OnZoneUnlocked);
+            GlobalEventBus.Unsubscribe<ZonePurchaseFailedEvent>(OnZonePurchaseFailed);
+        }
+
+        #endregion
+
+        #region Zone Event Handlers
+
+        private void OnZoneUnlocked(ZoneUnlockedEvent evt)
+        {
+            Debug.Log($"[UI] Zona sbloccata: {evt.ZonePosition}");
+            // Future: Mostra animazione, suono, popup celebrativo
+        }
+
+        private void OnZonePurchaseFailed(ZonePurchaseFailedEvent evt)
+        {
+            Debug.LogWarning($"[UI] Acquisto zona fallito: {evt.ZoneCoord} - {evt.Reason}");
+            // Future: Mostra popup errore, shake camera, suono errore
         }
 
         #endregion
@@ -207,11 +234,6 @@ namespace Script2.UI
         /// Accesso read-only a ResourceDisplayUI.
         /// </summary>
         public ResourceDisplayUI ResourceDisplay => _resourceDisplayUI;
-
-        /// <summary>
-        /// Accesso read-only a ZoneFeedbackUI.
-        /// </summary>
-        public ZoneFeedbackUI ZoneFeedback => _zoneFeedbackUI;
 
         #endregion
 

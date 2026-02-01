@@ -83,7 +83,6 @@ namespace Script2.Core
             // UI SYSTEM
             RegisterIfExists<UIManager>(builder);
             RegisterIfExists<ResourceDisplayUI>(builder);
-            RegisterIfExists<ZoneFeedbackUI>(builder);
 
             // CAMERA
             var mainCamera = Camera.main;
