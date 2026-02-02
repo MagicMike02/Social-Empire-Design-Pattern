@@ -1007,7 +1007,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.BuildingManager
   _root: {fileID: 931602377}
-  _factory: {fileID: 1310612891}
 --- !u!1 &504873221
 GameObject:
   m_ObjectHideFlags: 0
@@ -1371,7 +1370,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 836b380915b040f4b815595b79b513d5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.PathfindingSystem.PathfindingManager
-  _enableDebugVisualization: 0
+  _enableDebugVisualization: 1
 --- !u!4 &636031390
 Transform:
   m_ObjectHideFlags: 0
@@ -1399,8 +1398,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 540ef81493ce4aa19c1ac53f70efb3aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.Testing.PathfindingTester
-  _startCell: {x: 5, y: 5}
-  _goalCell: {x: 15, y: 15}
+  _startCell: {x: 40, y: 59}
+  _goalCell: {x: 59, y: 40}
 --- !u!1 &688831408
 GameObject:
   m_ObjectHideFlags: 0
@@ -4135,50 +4134,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1990503624}
   m_CullTransparentMesh: 1
---- !u!1 &2003744217
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 2003744218}
-  - component: {fileID: 2003744219}
-  m_Layer: 0
-  m_Name: ZoneFeedbackUI
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &2003744218
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2003744217}
-  serializedVersion: 2
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 2083900767}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &2003744219
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2003744217}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 425d4f8118fe4001850f743a73e096e8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Script2.GridSystem.ZoneFeedbackUI
 --- !u!1 &2053819368
 GameObject:
   m_ObjectHideFlags: 0
@@ -4287,8 +4242,7 @@ Transform:
   m_LocalPosition: {x: 14.08195, y: -8.13966, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 2003744218}
+  m_Children: []
   m_Father: {fileID: 2123726704}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &2083900768
