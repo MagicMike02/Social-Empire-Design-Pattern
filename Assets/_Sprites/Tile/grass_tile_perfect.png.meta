@@ -1,10 +1,10 @@
 fileFormatVersion: 2
-guid: 2d1d7f1a2b207974b826a0c27ded3669
+guid: 8182b3ce9deec0f45ad59cf115e42f19
 TextureImporter:
   internalIDToNameTable:
   - first:
-      213: 7932798033344189819
-    second: grass_0
+      213: -217655243092331819
+    second: grass_tile_perfect_0
   externalObjects: {}
   serializedVersion: 13
   mipmaps:
@@ -51,12 +51,12 @@ TextureImporter:
   spriteMeshType: 1
   alignment: 0
   spritePivot: {x: 0.5, y: 0.5}
-  spritePixelsToUnits: 128
+  spritePixelsToUnits: 286
   spriteBorder: {x: 0, y: 0, z: 0, w: 0}
   spriteGenerateFallbackPhysicsShape: 1
   alphaUsage: 1
   alphaIsTransparency: 1
-  spriteTessellationDetail: 0.4
+  spriteTessellationDetail: -1
   textureType: 8
   textureShape: 1
   singleChannelComponent: 0
@@ -96,129 +96,37 @@ TextureImporter:
     ignorePlatformSupport: 0
     androidETC2FallbackOverride: 0
     forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: Android
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
-  - serializedVersion: 4
-    buildTarget: iOS
-    maxTextureSize: 2048
-    resizeAlgorithm: 0
-    textureFormat: -1
-    textureCompression: 1
-    compressionQuality: 50
-    crunchedCompression: 0
-    allowsAlphaSplitting: 0
-    overridden: 0
-    ignorePlatformSupport: 0
-    androidETC2FallbackOverride: 0
-    forceMaximumCompressionQuality_BC6H_BC7: 0
   spriteSheet:
     serializedVersion: 2
     sprites:
     - serializedVersion: 2
-      name: grass_0
+      name: grass_tile_perfect_0
       rect:
         serializedVersion: 2
         x: 0
         y: 0
-        width: 256
-        height: 128
+        width: 286
+        height: 143
       alignment: 0
-      pivot: {x: 0.5, y: 0.5}
+      pivot: {x: 0, y: 0}
       border: {x: 0, y: 0, z: 0, w: 0}
       customData: 
       outline: []
       physicsShape: []
       tessellationDetail: -1
       bones: []
-      spriteID: b75d56418c5f61e60800000000000000
-      internalID: 7932798033344189819
+      spriteID: 5d2faf7a5bbbafcf0800000000000000
+      internalID: -217655243092331819
       vertices: []
       indices: 
       edges: []
       weights: []
-    outline:
-    - - {x: 54, y: -41}
-      - {x: 61, y: -38}
-      - {x: 119, y: -9}
-      - {x: 128, y: -4}
-      - {x: 128, y: 4}
-      - {x: 119, y: 9}
-      - {x: 81, y: 28}
-      - {x: 72, y: 32}
-      - {x: 54, y: 41}
-      - {x: 47, y: 44}
-      - {x: 44, y: 46}
-      - {x: 37, y: 49}
-      - {x: 34, y: 51}
-      - {x: 8, y: 64}
-      - {x: -8, y: 64}
-      - {x: -42, y: 47}
-      - {x: -50, y: 42}
-      - {x: -52, y: 42}
-      - {x: -60, y: 37}
-      - {x: -62, y: 37}
-      - {x: -70, y: 32}
-      - {x: -72, y: 32}
-      - {x: -83, y: 27}
-      - {x: -119, y: 9}
-      - {x: -128, y: 4}
-      - {x: -128, y: -4}
-      - {x: -119, y: -9}
-      - {x: -71, y: -33}
-      - {x: -62, y: -37}
-      - {x: -54, y: -41}
-      - {x: -47, y: -44}
-      - {x: -44, y: -46}
-      - {x: -37, y: -49}
-      - {x: -34, y: -51}
-      - {x: -31, y: -52}
-      - {x: -22, y: -57}
-      - {x: -20, y: -57}
-      - {x: -12, y: -62}
-      - {x: -8, y: -64}
-      - {x: 8, y: -64}
+    outline: []
     customData: 
-    physicsShape:
-    - - {x: 9, y: -63}
-      - {x: 18, y: -57}
-      - {x: 58, y: -37}
-      - {x: 66, y: -35}
-      - {x: 75, y: -29}
-      - {x: 105, y: -14}
-      - {x: 128, y: -2}
-      - {x: 128, y: 1}
-      - {x: 127, y: 3}
-      - {x: 77, y: 28}
-      - {x: 74, y: 28}
-      - {x: 31, y: 50}
-      - {x: 28, y: 52}
-      - {x: 4, y: 64}
-      - {x: -3, y: 64}
-      - {x: -76, y: 28}
-      - {x: -95, y: 19}
-      - {x: -128, y: 2}
-      - {x: -128, y: -1}
-      - {x: -127, y: -3}
-      - {x: -67, y: -33}
-      - {x: -64, y: -33}
-      - {x: -38, y: -47}
-      - {x: -18, y: -57}
-      - {x: -5, y: -64}
-      - {x: 5, y: -64}
+    physicsShape: []
     bones: []
     spriteID: 5e97eb03825dee720800000000000000
-    internalID: 1537655665
+    internalID: 0
     vertices: []
     indices: 
     edges: []
@@ -227,7 +135,7 @@ TextureImporter:
     spriteCustomMetadata:
       entries: []
     nameFileIdTable:
-      grass_0: 7932798033344189819
+      grass_tile_perfect_0: -217655243092331819
   mipmapLimitGroupName: 
   pSDRemoveMatte: 0
   userData: 

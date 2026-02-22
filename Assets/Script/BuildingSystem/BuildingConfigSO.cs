@@ -1,6 +1,6 @@
-﻿﻿using System.Collections.Generic;
- using Script.ResourceSystem.Enums;
- using UnityEngine;
+﻿using System.Collections.Generic;
+using Script.ResourceSystem.Enums;
+using UnityEngine;
 
 namespace Script.BuildingSystem
 {
@@ -8,7 +8,7 @@ namespace Script.BuildingSystem
     /// ScriptableObject che definisce la configurazione di un edificio.
     /// Approccio data-driven per definire tipologie di edifici senza modificare codice.
     /// </summary>
-    [CreateAssetMenu(menuName = "Script/Building/Config", fileName = "BuildingConfig")]
+    [CreateAssetMenu(menuName = "ScriptableObjects/BuildingDataSO", fileName = "BuildingConfig")]
     public class BuildingConfigSO : ScriptableObject
     {
         [Header("Prefab e Visuale")]
@@ -41,18 +41,7 @@ namespace Script.BuildingSystem
         [Header("Costo risorse")]
         [Tooltip("Lista dei costi in risorse per costruire questo edificio")]
         public List<ResourceCost> Costs = new();
-
-        [Header("Anteprima")]
-        [Tooltip("Colore della preview quando il piazzamento è valido")]
-        public Color ValidColor = new Color(0f, 1f, 0f, 0.5f);
-
-        [Tooltip("Colore della preview quando il piazzamento non è valido")]
-        public Color InvalidColor = new Color(1f, 0f, 0f, 0.5f);
-
-        [Tooltip("Trasparenza del ghost durante il piazzamento")]
-        [Range(0f, 1f)]
-        public float GhostAlpha = 0.6f;
-
+        
         /// <summary>
         /// Converte la lista di costi in un dizionario per utilizzo interno.
         /// Aggrega costi duplicati dello stesso tipo di risorsa.
