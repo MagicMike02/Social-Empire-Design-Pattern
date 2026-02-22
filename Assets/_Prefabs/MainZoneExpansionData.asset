@@ -1,0 +1,56 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bcab4400088b9c942b292e9dba4b9fae, type: 3}
+  m_Name: MainZoneExpansionData
+  m_EditorClassIdentifier: 
+  expansionLevels:
+  - costs:
+    - resourceType: 0
+      amount: 1
+  - costs:
+    - resourceType: 1
+      amount: 1
+  - costs:
+    - resourceType: 0
+      amount: 2
+    - resourceType: 1
+      amount: 1
+  - costs:
+    - resourceType: 0
+      amount: 2
+    - resourceType: 1
+      amount: 2
+  - costs:
+    - resourceType: 0
+      amount: 3
+    - resourceType: 1
+      amount: 2
+  - costs:
+    - resourceType: 0
+      amount: 3
+    - resourceType: 1
+      amount: 3
+  - costs:
+    - resourceType: 0
+      amount: 4
+    - resourceType: 1
+      amount: 3
+  - costs:
+    - resourceType: 0
+      amount: 4
+    - resourceType: 1
+      amount: 4
+  useFormulaFallback: 1
+  baseFallbackCost:
+    resourceType: 0
+    amount: 10
+  fallbackMultiplierPerLevel: 1.5
