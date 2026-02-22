@@ -13,7 +13,9 @@ namespace Script.BuildingSystem
         private BuildingPlacer _placer;
         private bool _loggedMissingDependency = false;
         
-        [SerializeField] private BuildingConfigSO _testBuildingConfig;
+        [Header("Available Buildings")]
+        [Tooltip("Map indices to keyboard numbers: 0 -> Key 1, 1 -> Key 2")]
+        [SerializeField] private BuildingConfigSO[] _availableBuildings;
 
         [Inject]
         public void Construct(BuildingPlacer placer)
@@ -35,16 +37,20 @@ namespace Script.BuildingSystem
 
             // ========== KEYBOARD INPUT (TEMPORANEO) ==========
             
-            // Tasto 1: Seleziona edificio
-            if (Input.GetKeyDown(KeyCode.Alpha1))
+            // Tasti 1-9: Seleziona edificio dall'array
+            if (_availableBuildings != null && _availableBuildings.Length > 0)
             {
-                if (_testBuildingConfig != null)
+                for (int i = 0; i < Mathf.Min(_availableBuildings.Length, 9); i++)
                 {
-                    _placer.SelectBuilding(_testBuildingConfig);
-                }
-                else
-                {
-                    Debug.LogWarning("[KeyboardPlacementInput] Test Building Config non assegnato!");
+                    if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+                    {
+                        var config = _availableBuildings[i];
+                        if (config != null)
+                        {
+                            _placer.SelectBuilding(config);
+                            Debug.Log($"[PlacementInputHandler] Selected {config.name} (Key {i + 1})");
+                        }
+                    }
                 }
             }
 
