@@ -890,6 +890,8 @@ GameObject:
   m_Component:
   - component: {fileID: 381727348}
   - component: {fileID: 381727347}
+  - component: {fileID: 1000000001}
+  - component: {fileID: 1000000002}
   m_Layer: 0
   m_Name: GameLifetimeScope
   m_TagString: Untagged
@@ -4339,3 +4341,29 @@ SceneRoots:
   - {fileID: 473505703}
   - {fileID: 2139119524}
   - {fileID: 607482498}
+--- !u!114 &1000000001
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 381727346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: a52889ebab5c232439b53da525ee85f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  _cullingInterval: 0.5
+  _overscanPadding: 5
+--- !u!114 &1000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 381727346}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ef0de20214d1ec44384113aef98229b0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
