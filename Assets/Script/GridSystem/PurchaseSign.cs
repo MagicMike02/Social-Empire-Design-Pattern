@@ -13,9 +13,7 @@ namespace Script.GridSystem
     /// </summary>
     public class PurchaseSign : MonoBehaviour, IHoverable
     {
-        #region Constants & SerializeFields
-        
-        private const int DefaultGoldCost = 15;
+        #region SerializeFields
         
         [SerializeField] private float _scaleMultiplier = 1.1f;
         [SerializeField] private float _animationSpeed = 5f;
@@ -67,12 +65,12 @@ namespace Script.GridSystem
         /// <summary>
         /// Inizializza il cartello, associando le dipendenze per calcolarne il costo.
         /// </summary>
-        public void Setup(Vector2Int zoneCoord, GameEconomyManager economyManager, ZoneManager zoneManager, [CanBeNull] Dictionary<ResourceType, int> cost = null)
+        public void Setup(Vector2Int zoneCoord, GameEconomyManager economyManager, ZoneManager zoneManager, Dictionary<ResourceType, int> cost)
         {
             _zoneCoord = zoneCoord;
             _economyManager = economyManager;
             _zoneManager = zoneManager;
-            _purchaseCost = cost ?? new Dictionary<ResourceType, int>() { { ResourceType.Gold, DefaultGoldCost } };
+            _purchaseCost = cost ?? new Dictionary<ResourceType, int>();
             _originalScale = transform.localScale;
         }
         
@@ -91,9 +89,9 @@ namespace Script.GridSystem
         /// </summary>
         public void OnClick()
         {
-            if (_purchaseCost == null)
+            if (_purchaseCost == null || _purchaseCost.Count == 0)
             {
-                _zoneManager.PurchaseZone(_zoneCoord);
+                _zoneManager.PurchaseZone(_zoneCoord, _purchaseCost);
                 return;
             }
 
@@ -106,7 +104,7 @@ namespace Script.GridSystem
             // Zone con costo
             if (_economyManager.CanAfford(_purchaseCost))
             {
-                _zoneManager.PurchaseZone(_zoneCoord);
+                _zoneManager.PurchaseZone(_zoneCoord, _purchaseCost);
             }
             else
             {

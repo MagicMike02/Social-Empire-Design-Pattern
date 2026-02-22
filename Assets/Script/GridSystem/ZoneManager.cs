@@ -29,16 +29,15 @@ namespace Script.GridSystem
 
         #region Config & Fields
         
-        private const int DefaultGoldCost = 10;
-        private const int SignGoldCost = 15;
-        
         [SerializeField] private GameObject _purchaseSignPrefab;
+        [SerializeField] private ZoneExpansionDataSO _expansionData;
         
         private const int _zoneSize = 20;
         private Dictionary<Vector2Int, Zone> _zones = new();
-        private Dictionary<ResourceType, int> _zoneCost = new() { { ResourceType.Gold, DefaultGoldCost } };
         private Grid<Tile> _grid;
         public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
+        
+        private int _unlockedZonesCount = 0;
         
         #endregion
 
@@ -64,12 +63,15 @@ namespace Script.GridSystem
         /// <summary>
         /// Lancia un comando d'acquisto per validare le risorse e completarne la transazione da UI.
         /// </summary>
-        public void PurchaseZone(Vector2Int zoneCoord)
+        public void PurchaseZone(Vector2Int zoneCoord, Dictionary<ResourceType, int> cost)
         {
-            var command = new PurchaseZoneCommand(this, _economyManager, zoneCoord, _zoneCost);
+            var command = new PurchaseZoneCommand(this, _economyManager, zoneCoord, cost);
             if (_commandHistory.ExecuteCommand(command))
             {
                 GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
+                
+                // Aggiorna anche gli altri sign sulla mappa affinchè riflettano il nuovo costo
+                UpdateAllPurchaseSignCosts();
             }
             else
             {
@@ -96,6 +98,8 @@ namespace Script.GridSystem
             if (!_zones.TryGetValue(coord, out var zone)) return;
 
             zone.isUnlocked = true;
+            _unlockedZonesCount++;
+            
             foreach (var tile in zone.tiles)
                 if (tile) tile.Unlock();
 
@@ -115,6 +119,8 @@ namespace Script.GridSystem
             if (!_zones.TryGetValue(coord, out var zone)) return;
 
             zone.isUnlocked = false;
+            _unlockedZonesCount--;
+            
             foreach (var tile in zone.tiles)
                 if (tile) tile.SetState(TileState.Locked);
 
@@ -148,6 +154,7 @@ namespace Script.GridSystem
                     if (zoneCoord == centerCoord)
                     {
                         zone.isUnlocked = true;
+                        _unlockedZonesCount++;
                         for (int dx = 0; dx < _zoneSize; dx++)
                         {
                             for (int dy = 0; dy < _zoneSize; dy++)
@@ -184,12 +191,31 @@ namespace Script.GridSystem
             occupiedTiles.Add(centerTilePos, signObj);
            
             var sign = signObj.GetComponent<PurchaseSign>();
-            sign.Setup(zone.start, _economyManager, this, new() { { ResourceType.Gold, SignGoldCost } });
+            var cost = _expansionData != null ? _expansionData.GetCostForNextZone(_unlockedZonesCount) : new Dictionary<ResourceType, int>();
+            
+            sign.Setup(zone.start, _economyManager, this, cost);
             zone.purchaseSign = signObj;
             
             foreach (var tile in zone.tiles)
             {
                 if (tile != null) tile.SetState(TileState.Buyable);
+            }
+        }
+        
+        private void UpdateAllPurchaseSignCosts()
+        {
+            var nextCost = _expansionData != null ? _expansionData.GetCostForNextZone(_unlockedZonesCount) : new Dictionary<ResourceType, int>();
+
+            foreach (var zone in _zones.Values)
+            {
+                if (!zone.isUnlocked && zone.purchaseSign != null)
+                {
+                    var sign = zone.purchaseSign.GetComponent<PurchaseSign>();
+                    if (sign != null)
+                    {
+                        sign.Setup(zone.start, _economyManager, this, nextCost);
+                    }
+                }
             }
         }
         
