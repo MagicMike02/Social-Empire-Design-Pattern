@@ -14,43 +14,43 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   expansionLevels:
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 1
   - costs:
     - resourceType: 1
       amount: 1
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 2
     - resourceType: 1
       amount: 1
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 2
     - resourceType: 1
       amount: 2
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 3
     - resourceType: 1
       amount: 2
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 3
     - resourceType: 1
       amount: 3
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 4
     - resourceType: 1
       amount: 3
   - costs:
-    - resourceType: 0
+    - resourceType: 3
       amount: 4
     - resourceType: 1
       amount: 4
   useFormulaFallback: 1
   baseFallbackCost:
-    resourceType: 0
+    resourceType: 3
     amount: 10
   fallbackMultiplierPerLevel: 1.5
