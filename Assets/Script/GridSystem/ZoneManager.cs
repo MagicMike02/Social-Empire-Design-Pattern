@@ -25,20 +25,45 @@ namespace Script.GridSystem
         
         #endregion
 
+        #endregion
+
+        #region Config & Fields
+        
+        private const int DefaultGoldCost = 10;
+        private const int SignGoldCost = 15;
+        
         [SerializeField] private GameObject _purchaseSignPrefab;
         
         private const int _zoneSize = 20;
         private Dictionary<Vector2Int, Zone> _zones = new();
-        private Dictionary<ResourceType, int> _zoneCost = new() { { ResourceType.Gold, 10 } };
+        private Dictionary<ResourceType, int> _zoneCost = new() { { ResourceType.Gold, DefaultGoldCost } };
         private Grid<Tile> _grid;
         public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
+        
+        #endregion
+
+        #region Properties
 
         public int ZoneSize => _zoneSize;
+        
+        #endregion
 
+        #region Initialization
+
+        /// <summary>
+        /// Inizializza il manager interfacciandolo con la griglia base.
+        /// </summary>
         public void Initialize(Grid<Tile> grid)
         {
             _grid = grid;
         }
+        #endregion
+        
+        #region Public APIs
+
+        /// <summary>
+        /// Lancia un comando d'acquisto per validare le risorse e completarne la transazione da UI.
+        /// </summary>
         public void PurchaseZone(Vector2Int zoneCoord)
         {
             var command = new PurchaseZoneCommand(this, _economyManager, zoneCoord, _zoneCost);
@@ -52,11 +77,20 @@ namespace Script.GridSystem
             }
         }
 
+        /// <summary>
+        /// Controlla se la coordinata ha una zona istanziata.
+        /// </summary>
         public bool HasZone(Vector2Int coord) => _zones.ContainsKey(coord);
 
+        /// <summary>
+        /// Restituisce lo stato sbloccato della zona data la sua coordinata.
+        /// </summary>
         public bool IsZoneUnlocked(Vector2Int coord) => 
             _zones.TryGetValue(coord, out var zone) && zone.isUnlocked;
 
+        /// <summary>
+        /// Aggiorna a livello di root tutte le tile della zona sbloccandole e rimuovendo il sign.
+        /// </summary>
         public void UnlockZone(Vector2Int coord)
         {
             if (!_zones.TryGetValue(coord, out var zone)) return;
@@ -73,6 +107,9 @@ namespace Script.GridSystem
             }
         }
 
+        /// <summary>
+        /// Ri-blocca la zona, ricreando il suo Sign d'acquisto.
+        /// </summary>
         public void LockZone(Vector2Int coord)
         {
             if (!_zones.TryGetValue(coord, out var zone)) return;
@@ -84,6 +121,9 @@ namespace Script.GridSystem
             CreatePurchaseSign(zone);
         }
 
+        /// <summary>
+        /// Popola la mappa con le macro-aree quadrate delle zone e imposta il punto centrale di partenza.
+        /// </summary>
         public void CreateZones(int width, int height)
         {
             for (int x = 0; x < width; x += _zoneSize)
@@ -127,6 +167,10 @@ namespace Script.GridSystem
             }
         }
 
+        #endregion
+
+        #region Internal Utilities
+
         private void CreatePurchaseSign(Zone zone)
         {
             Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
@@ -140,7 +184,7 @@ namespace Script.GridSystem
             occupiedTiles.Add(centerTilePos, signObj);
            
             var sign = signObj.GetComponent<PurchaseSign>();
-            sign.Setup(zone.start, _economyManager, this, new() { { ResourceType.Gold, 15 } });
+            sign.Setup(zone.start, _economyManager, this, new() { { ResourceType.Gold, SignGoldCost } });
             zone.purchaseSign = signObj;
             
             foreach (var tile in zone.tiles)
@@ -148,7 +192,14 @@ namespace Script.GridSystem
                 if (tile != null) tile.SetState(TileState.Buyable);
             }
         }
+        
+        #endregion
 
+        #region Inner Classes
+
+        /// <summary>
+        /// Container interno che rappresenta la logica di array per le celle all'interno della zona.
+        /// </summary>
         public class Zone
         {
             public Vector2Int start;
@@ -161,5 +212,7 @@ namespace Script.GridSystem
                 tiles = new Tile[size, size];
             }
         }
+        
+        #endregion
     }
 }

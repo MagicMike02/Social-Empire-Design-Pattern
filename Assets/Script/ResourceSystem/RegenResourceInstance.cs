@@ -2,9 +2,18 @@
 
 namespace Script.ResourceSystem
 {
+    /// <summary>
+    /// Placeholder visivo per una risorsa che si sta rigenerando col tempo.
+    /// </summary>
     public class RegenResourceInstance : MonoBehaviour
     {
+        #region Private Fields
+        
         private SpriteRenderer _spriteRenderer;
+        
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
@@ -18,6 +27,10 @@ namespace Script.ResourceSystem
         {
             SetSortingOrder();
         }
+        
+        #endregion
+
+        #region Internal Helpers
 
         private void SetSortingOrder()
         {
@@ -33,9 +46,14 @@ namespace Script.ResourceSystem
             }
         }
 
+        #endregion
+
+        #region Input Handlers
+
         private void OnMouseDown()
         {
             Debug.Log("Regen resource");
         }
+        #endregion
     }
 }

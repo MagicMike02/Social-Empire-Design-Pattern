@@ -12,17 +12,30 @@ namespace Script.BuildingSystem.States
     /// </summary>
     public class ConfirmingPlacementState : IPlacementState
     {
+        #region Fields & Properties
+        
         private readonly BuildingPlacer _context;
         private readonly BuildingConfigSO _selectedConfig;
 
         public string StateName => "Confirming";
+        
+        #endregion
+
+        #region Initialization
 
         public ConfirmingPlacementState(BuildingPlacer context, BuildingConfigSO config)
         {
             _context = context;
             _selectedConfig = config;
         }
+        
+        #endregion
 
+        #region Lifecycle Methods
+
+        /// <summary>
+        /// Entrata nello stato: tenta il piazzamento e torna subito in Idle.
+        /// </summary>
         public void OnEnter()
         {
             #if UNITY_EDITOR
@@ -53,19 +66,27 @@ namespace Script.BuildingSystem.States
             }
         }
 
+        /// <summary>
+        /// Aggiornamento frame-per-frame (non usato in Confirming).
+        /// </summary>
         public void OnUpdate()
         {
             // Nessuna logica: transizione immediata in OnEnter
         }
 
+        /// <summary>
+        /// Uscita dallo stato: pulisce la preview.
+        /// </summary>
         public void OnExit()
         {
             // Disattiva preview (placement completato o fallito)
             _context.EnablePreviewMode(false);
             _context.ClearPreview();
         }
+        
+        #endregion
 
-        // ========== EVENT HANDLERS ==========
+        #region Event Handlers
 
         public void OnBuildingSelected(BuildingConfigSO config)
         {
@@ -86,5 +107,7 @@ namespace Script.BuildingSystem.States
             Debug.LogWarning("[ConfirmingPlacementState] Force cancel during confirmation! Returning to Idle.");
             _context.TransitionTo(new IdlePlacementState(_context));
         }
+        
+        #endregion
     }
 }

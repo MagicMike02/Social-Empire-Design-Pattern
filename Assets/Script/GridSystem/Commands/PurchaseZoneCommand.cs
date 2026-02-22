@@ -13,15 +13,28 @@ namespace Script.GridSystem.Commands
     /// </summary>
     public class PurchaseZoneCommand : ICommand
     {
+        #region Private Fields
+        
         private readonly ZoneManager _zoneManager;
         private readonly GameEconomyManager _economy;
         private readonly Vector2Int _zoneCoord;
         private readonly Dictionary<ResourceType, int> _cost;
 
         private bool _wasUnlocked;
+        
+        #endregion
+
+        #region Properties
 
         public string Description => $"Purchase zone at {_zoneCoord}";
+        
+        #endregion
 
+        #region Initialization
+
+        /// <summary>
+        /// Costruttore Command.
+        /// </summary>
         public PurchaseZoneCommand(
             ZoneManager zoneManager,
             GameEconomyManager economy,
@@ -33,7 +46,14 @@ namespace Script.GridSystem.Commands
             _zoneCoord = zoneCoord;
             _cost = new Dictionary<ResourceType, int>(cost);
         }
+        
+        #endregion
 
+        #region Core Functionality
+
+        /// <summary>
+        /// Esegue l'acquisto spendendo risorse e sbloccando le tile della zona.
+        /// </summary>
         public bool Execute()
         {
             if (!_zoneManager.HasZone(_zoneCoord))
@@ -53,6 +73,9 @@ namespace Script.GridSystem.Commands
             return true;
         }
 
+        /// <summary>
+        /// Annulla l'espansione zona rendendola nuovamente inaccessibile e fornendo refund totale.
+        /// </summary>
         public bool Undo()
         {
             if (!_zoneManager.HasZone(_zoneCoord))
@@ -73,5 +96,7 @@ namespace Script.GridSystem.Commands
 
             return true;
         }
+        
+        #endregion
     }
 }

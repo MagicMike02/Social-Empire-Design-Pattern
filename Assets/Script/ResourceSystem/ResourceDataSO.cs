@@ -4,17 +4,25 @@ using UnityEngine;
 
 namespace Script.ResourceSystem
 {
+    /// <summary>
+    /// Configurazione dati statici definibile in Inspector per i diversi tipi di risorsa (es. alberi, rocce).
+    /// </summary>
     [CreateAssetMenu(fileName = "NewResourceData", menuName = "ScriptableObjects/ResourceDataSO")]
     public class ResourceDataSO : ScriptableObject
     {
-        [Header("General Info")] public string resourceName;
+        #region Inspector Fields
+        
+        [Header("General Info")] 
+        public string resourceName;
         public List<GameObject> prefabs;
         public GameObject _regenPrefab;
 
-        [Header("Resource info")] public ResourceType resourceType;
+        [Header("Resource info")] 
+        public ResourceType resourceType;
         public int collectedAmount = 10; // Quantità di risorsa che si ottiene quando viene raccolta
 
-        [Header("Generation Settings")] [Tooltip("Numero di gruppi che possono essere generati sulla mappa")]
+        [Header("Generation Settings")] 
+        [Tooltip("Numero di gruppi che possono essere generati sulla mappa")]
         public int groupCount = 3;
 
         public int defaultGroupSize = 15;
@@ -30,6 +38,10 @@ namespace Script.ResourceSystem
         public bool isDestroyedOnCollect = true;
 
         public float yOffset = 0;
+        
+        #endregion
+
+        #region Public APIs
 
         /// <summary>
         /// Restituisce un prefab casuale dalla lista
@@ -39,5 +51,7 @@ namespace Script.ResourceSystem
             if (prefabs == null || prefabs.Count == 0) return null;
             return prefabs[Random.Range(0, prefabs.Count)];
         }
+        
+        #endregion
     }
 }

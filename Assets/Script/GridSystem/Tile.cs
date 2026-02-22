@@ -12,6 +12,10 @@ namespace Script.GridSystem
     /// </summary>
     public class Tile : MonoBehaviour, IHoverable, IGridEntity
     {
+        #region Constants & Inspector
+        
+        private const string DefaultShaderName = "Sprites/Default";
+        
         [SerializeField] private TextMeshPro _coordinatesText;
         [SerializeField] private Color _normalColor = Color.white;
         [SerializeField] private Color _hoverColor = Color.yellow;
@@ -19,6 +23,10 @@ namespace Script.GridSystem
         [SerializeField] private Color _lockedColor = Color.grey; //verde grigio
         [SerializeField] private Color _buyableColor = Color.grey; //verde verde;
         [SerializeField] private Color _unlockedColor = Color.white;//verde normale;
+        
+        #endregion
+        
+        #region State & Fields
         
         public TileState State { private set; get; }
         
@@ -29,7 +37,10 @@ namespace Script.GridSystem
         private SpriteRenderer _renderer;
         private Color _savedColorBeforePreview; // Salva colore prima della preview
         private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
+        
+        #endregion
 
+        #region Unity Lifecycle
 
         void Awake()
         {
@@ -40,13 +51,20 @@ namespace Script.GridSystem
             }
             else
             {
-                _renderer.material = new Material(Shader.Find("Sprites/Default"));
+                _renderer.material = new Material(Shader.Find(DefaultShaderName));
                 _renderer.color = _normalColor;
                 SetState(TileState.Locked); // Inizialmente bloccato
             }
 
         }
         
+        #endregion
+
+        #region Initialization
+
+        /// <summary>
+        /// Richiamato all'instanziazione. Salva la posizione in griglia come logica core assoluta.
+        /// </summary>
         public void Initialize(Vector2 gridPosition, Vector3 worldPosition, int sortingOrder)
         {
             // Cache grid position as Source of Truth
@@ -68,6 +86,10 @@ namespace Script.GridSystem
 
             State = TileState.Locked;
         }
+
+        #endregion
+
+        #region Input Interface (IHoverable)
 
         public void OnHoverEnter()
         {
@@ -93,6 +115,13 @@ namespace Script.GridSystem
             // Future: dispatch command (e.g., move unit here)
         }
         
+        #endregion
+        
+        #region State Modification
+        
+        /// <summary>
+        /// Cambia lo stato logico della tile e il corrispettivo colore visivo.
+        /// </summary>
         public void SetState(TileState state)
         {
             State = state;
@@ -106,7 +135,9 @@ namespace Script.GridSystem
             };
         }
         
-        // Funzione per "acquistare" il Tile
+        /// <summary>
+        /// Sblocca la tile se e' attualmente acquistabile.
+        /// </summary>
         public void Unlock()
         {
             if (State == TileState.Buyable)
@@ -115,6 +146,9 @@ namespace Script.GridSystem
             }
         }
        
+        /// <summary>
+        /// Forza momentaneamente il master material tint ad un altro colore (es. hover per edifici validi).
+        /// </summary>
         public void PreviewTint(Color color)
         {
             if (_renderer == null) return;
@@ -123,6 +157,9 @@ namespace Script.GridSystem
             _renderer.color = color;
         }
 
+        /// <summary>
+        /// Ripristina la tinta al suo stato naturale in base al logico TileState.
+        /// </summary>
         public void ResetTint()
         {
             if (_renderer == null) return;
@@ -146,6 +183,8 @@ namespace Script.GridSystem
             if (_renderer == null) return;
             _renderer.color = color;
         }
+        
+        #endregion
     }
     
     

@@ -10,6 +10,8 @@
     /// </summary>
     public interface IPlacementState
     {
+        #region Lifecycle Methods
+
         /// <summary>
         /// Chiamato quando si entra nello stato.
         /// Setup iniziale (es. attiva preview).
@@ -27,8 +29,10 @@
         /// Usa solo per aggiornamenti visivi (preview position), NON per input polling.
         /// </summary>
         void OnUpdate();
+        
+        #endregion
 
-        // ========== EVENT HANDLERS (chiamati da BuildingPlacer public API) ==========
+        #region Event Handlers
 
         /// <summary>
         /// Evento: Utente seleziona edificio da piazzare.
@@ -47,10 +51,16 @@
         /// Trigger: Mouse right click, ESC key, UI cancel button.
         /// </summary>
         void OnPlacementCancelled();
+        
+        #endregion
+
+        #region Properties
 
         /// <summary>
         /// Nome stato per debugging/logging.
         /// </summary>
         string StateName { get; }
+        
+        #endregion
     }
 }

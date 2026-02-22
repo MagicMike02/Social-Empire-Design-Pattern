@@ -100,6 +100,9 @@ namespace Script.ResourceSystem
 
         #region Resource Management
 
+        /// <summary>
+        /// Sottoscrive all'evento di spawn per istanziare, posizionare sulla griglia e inizializzare la logica ResourceInstance.
+        /// </summary>
         private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
         {
             _activeResources[pos] = instance;
@@ -119,6 +122,9 @@ namespace Script.ResourceSystem
             GlobalEventBus.Publish(new ResourceGeneratedEvent(type, pos));
         }
 
+        /// <summary>
+        /// Innescato dalla raccolta manuale. Aggiorna l'economia, invalida la risorsa corrente e ne gestisce l'eventuale rigenerazione.
+        /// </summary>
         public void HandleResourceCollected(Vector2Int pos, ResourceDataSO data)
         {
             UpdateEconomy(data);
@@ -143,6 +149,9 @@ namespace Script.ResourceSystem
             }
         }
 
+        /// <summary>
+        /// Gestisce la logica di distruzione o rientro in pool dell'istanza fisica.
+        /// </summary>
         private void RemoveResource(Vector2Int pos)
         {
             if (_activeResources.TryGetValue(pos, out var go) && go)
@@ -157,6 +166,9 @@ namespace Script.ResourceSystem
             _activeResources.Remove(pos);
         }
 
+        /// <summary>
+        /// Accumula l'ammontare raccolto nel GameEconomyManager dipendente.
+        /// </summary>
         private void UpdateEconomy(ResourceDataSO data)
         {
             if (_economyManager != null)
@@ -173,6 +185,9 @@ namespace Script.ResourceSystem
 
         #region Regeneration System
 
+        /// <summary>
+        /// Pianifica una coroutine per la rigenerazione di una risorsa dopo essere stata raccolta, bloccandone lo spazio griglia temporaneamente.
+        /// </summary>
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
             if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
@@ -186,6 +201,9 @@ namespace Script.ResourceSystem
             GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
         }
 
+        /// <summary>
+        /// Coroutine che sostituisce l'entita' raccolta in un object passivo di cooldown, per ripristinarla dopo il timer.
+        /// </summary>
         private IEnumerator RegenResourceAfterDelay(Vector2Int pos, ResourceDataSO data)
         {
             // Istanzia prefab regen (visual only, no ResourceInstance needed)
@@ -230,6 +248,9 @@ namespace Script.ResourceSystem
 
         #region Cleanup
 
+        /// <summary>
+        /// Cleanup per liberare sottoscrizioni ad eventi e deregistrare l'esecuzione asincrona per evitare side effects.
+        /// </summary>
         private void OnDestroy()
         {
             // Previene orphaned coroutines e memory leaks su scene transitions
@@ -255,6 +276,9 @@ namespace Script.ResourceSystem
 
         #region Editor Utilities
 
+        /// <summary>
+        /// [Debug] Distrugge tutte le istanze fisiche e rimuove i riferimenti nella matrice risorse attive.
+        /// </summary>
         [ContextMenu("Remove All Resources")]
         private void RemoveAllResources()
         {
@@ -271,6 +295,9 @@ namespace Script.ResourceSystem
             Debug.Log("[ResourceManager] All resources have been removed.");
         }
 
+        /// <summary>
+        /// [Debug] Forza la rigenerazione istantanea per bypassare il timer di cooldown.
+        /// </summary>
         [ContextMenu("Regenerate All Resources")]
         private void RegenerateAllResources()
         {
@@ -283,6 +310,9 @@ namespace Script.ResourceSystem
 
         #region Helper Methods
 
+        /// <summary>
+        /// Mappatura utility da GameObject (di una risorsa viva su mappa) a ResourceDataSO tramite Spawner.
+        /// </summary>
         private ResourceDataSO GetResourceDataForInstance(GameObject go)
         {
             var ri = go.GetComponent<ResourceInstance>();

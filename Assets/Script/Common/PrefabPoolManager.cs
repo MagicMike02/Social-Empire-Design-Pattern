@@ -16,6 +16,9 @@ namespace Script.Common
         // Dizionario: Mappa ogni Prefab originale al suo ObjectPool specifico
         private readonly Dictionary<GameObject, ObjectPool<GameObject>> _pools = new();
 
+        /// <summary>
+        /// Prepara il container d'istanze padre per oggetti da ritirare dietro-quinte.
+        /// </summary>
         private void Awake()
         {
             if (_poolRoot == null)
@@ -62,6 +65,9 @@ namespace Script.Common
             }
         }
 
+        /// <summary>
+        /// Crea una memory pool object a runtime o ne estrae una archiviata se la chiamata e' ricorrente.
+        /// </summary>
         private ObjectPool<GameObject> GetOrCreatePool(GameObject prefab)
         {
             if (_pools.TryGetValue(prefab, out var pool))

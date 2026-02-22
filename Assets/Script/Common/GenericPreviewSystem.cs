@@ -52,6 +52,10 @@ namespace Script.Common
         #endregion
 
         #region Public Methods
+
+        /// <summary>
+        /// Instanzia o recupera dal pool il prefab da usare come preview visuale, aggiornandone lo stato.
+        /// </summary>
         public void ShowPreview(GameObject prefab, Vector3 worldPosition, bool? isValid = null)
         {
             if (prefab == null) return;
@@ -81,6 +85,9 @@ namespace Script.Common
             }
         }
 
+        /// <summary>
+        /// Aggiorna la posizione della preview corrente se si sposta di un _threshold_ fisso, o se cambia validità.
+        /// </summary>
         public bool UpdatePreviewIfMoved(Vector3 worldPosition, bool? isValid = null, float threshold = 0.01f)
         {
             if (_currentPreview == null) return false;
@@ -117,17 +124,26 @@ namespace Script.Common
             return true;
         }
 
+        /// <summary>
+        /// Imposta la scala uniforme della preview visuale in gioco.
+        /// </summary>
         public void SetScale(Vector3 scale)
         {
             if (_currentPreview != null)
                 _currentPreview.transform.localScale = scale;
         }
 
+        /// <summary>
+        /// Imposta un offset sull'asse Y utile per arginare conflitti di z-fighting.
+        /// </summary>
         public void SetYOffset(float offset)
         {
             _yOffset = offset;
         }
 
+        /// <summary>
+        /// Rinomina il GameObject della preview utilizzandolo anche per le label a fine di debug.
+        /// </summary>
         public void SetPreviewName(string name)
         {
             _previewName = name;
@@ -135,6 +151,9 @@ namespace Script.Common
                 _currentPreview.name = name;
         }
 
+        /// <summary>
+        /// Sovrascrive la colorazione moltiplicativa usata per comunicare lo stato della preview all'utente.
+        /// </summary>
         public void SetValidationColors(Color valid, Color invalid, Color? neutral = null)
         {
             _validColor = valid;
@@ -144,6 +163,10 @@ namespace Script.Common
         #endregion
 
         #region Private Methods
+
+        /// <summary>
+        /// Estrae o genera l'oggetto base della preview preparandone i componenti visuali (SpriteRenderer, ecc.).
+        /// </summary>
         private void CreatePreview(GameObject prefab)
         {
             if (_poolManager == null)
@@ -170,6 +193,9 @@ namespace Script.Common
             DisableCollider();
         }
 
+        /// <summary>
+        /// Silenzia interazioni input sulla preview durante il placement.
+        /// </summary>
         private void DisableCollider()
         {
             if (_currentPreview == null) return;
@@ -177,6 +203,9 @@ namespace Script.Common
             if (col2D != null)
                 col2D.enabled = false;
         }
+        /// <summary>
+        /// Processa il movimento applicando all'oggetto l'offset dedicato.
+        /// </summary>
         private void SetPosition(Vector3 worldPosition)
         {
             if (_currentPreview == null) return;
@@ -184,6 +213,9 @@ namespace Script.Common
             _currentPreview.transform.position = targetPosition;
             _lastPosition = worldPosition;
         }
+        /// <summary>
+        /// Tinteggia lo shader nativo della SpriteRenderer corrente senza alterare la base texture.
+        /// </summary>
         private void UpdatePreviewColor(Color targetColor)
         {
             if (_previewSpriteRenderer == null) return;
@@ -191,6 +223,9 @@ namespace Script.Common
         }
        
        
+        /// <summary>
+        /// Nasconde ed ecclissa formalmente la preview dal gioco, smontandone posizionamento ed eventi temporanei.
+        /// </summary>
         public void HidePreview()
         {
             if (_currentPreview != null)
@@ -201,6 +236,9 @@ namespace Script.Common
             _lastGridCell = new Vector3Int(-9999, -9999, -9999);
         }
 
+        /// <summary>
+        /// Termina il ciclo della preview confermando l'oggetto per objectpooling pulendone preventivamente la tint color.
+        /// </summary>
         private void ReleaseToPool()
         {
             if (_currentPreview == null) return;
@@ -224,6 +262,9 @@ namespace Script.Common
             _previewSpriteRenderer = null;
         }
 
+        /// <summary>
+        /// Cambia il feedback tint visivo in accordo col flag di validation indicato.
+        /// </summary>
         private void SetValidationState(bool isValid)
         {
             if (_lastValidState == isValid) return;
@@ -231,6 +272,9 @@ namespace Script.Common
             UpdatePreviewColor(isValid ? _validColor : _invalidColor);
         }
 
+        /// <summary>
+        /// Ripristina la colorazione neutra per visualizzazioni che ignorano concept di placement e invalidazione spazio.
+        /// </summary>
         private void SetNeutralState()
         {
             UpdatePreviewColor(_neutralColor);

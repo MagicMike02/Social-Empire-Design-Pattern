@@ -11,17 +11,30 @@ namespace Script.BuildingSystem.States
     /// </summary>
     public class PreviewingPlacementState : IPlacementState
     {
+        #region Fields & Properties
+        
         private readonly BuildingPlacer _context;
         private readonly BuildingConfigSO _selectedConfig;
 
         public string StateName => "Previewing";
+        
+        #endregion
+
+        #region Initialization
 
         public PreviewingPlacementState(BuildingPlacer context, BuildingConfigSO config)
         {
             _context = context;
             _selectedConfig = config;
         }
+        
+        #endregion
 
+        #region Lifecycle Methods
+
+        /// <summary>
+        /// Attiva la modalità preview con l'edificio selezionato.
+        /// </summary>
         public void OnEnter()
         {
             #if UNITY_EDITOR
@@ -33,19 +46,27 @@ namespace Script.BuildingSystem.States
             _context.EnablePreviewMode(true);
         }
 
+        /// <summary>
+        /// Richiede l'aggiornamento della visuale della preview al variare del mouse.
+        /// </summary>
         public void OnUpdate()
         {
             // Update posizione preview (segue mouse)
             _context.UpdatePlacementPreviewInternal();
         }
 
+        /// <summary>
+        /// Preparazione all'uscita dallo stato.
+        /// </summary>
         public void OnExit()
         {
             // Preview rimane attiva fino a stato Confirming
             // Verrà disattivata in Confirming.OnExit o Idle.OnEnter
         }
+        
+        #endregion
 
-        // ========== EVENT HANDLERS ==========
+        #region Event Handlers
 
         public void OnBuildingSelected(BuildingConfigSO config)
         {
@@ -83,5 +104,7 @@ namespace Script.BuildingSystem.States
             // Cancella placement → torna a Idle
             _context.TransitionTo(new IdlePlacementState(_context));
         }
+        
+        #endregion
     }
 }

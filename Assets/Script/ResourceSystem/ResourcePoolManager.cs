@@ -3,8 +3,14 @@ using UnityEngine;
 
 namespace Script.ResourceSystem
 {
+    /// <summary>
+    /// Sistema dedicato all'object pooling nativo delle instanze risorsa.
+    /// Utilizzato da ResourceSpawner e ResourceManager.
+    /// </summary>
     public class ResourcePoolManager : MonoBehaviour
     {
+        #region Inner Classes
+        
         [System.Serializable]
         public class Pool
         {
@@ -13,9 +19,17 @@ namespace Script.ResourceSystem
             public Transform parent;
             public Queue<GameObject> objects = new();
         }
+        
+        #endregion
 
+        #region Private Fields
+        
         [SerializeField] private List<Pool> pools;
         private Dictionary<ResourceDataSO, Pool> _poolDict = new();
+        
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
@@ -41,6 +55,13 @@ namespace Script.ResourceSystem
             }
         }
 
+        #endregion
+
+        #region Public APIs
+
+        /// <summary>
+        /// Esegue un Dequeue dal pool di GameObject della specifica risorsa, instanziandolo se vuoto.
+        /// </summary>
         public GameObject GetFromPool(ResourceDataSO data, Vector3 position, Quaternion rotation)
         {
             if (!_poolDict.TryGetValue(data, out var pool)) return null;
@@ -65,6 +86,9 @@ namespace Script.ResourceSystem
             return go;
         }
 
+        /// <summary>
+        /// Resituisce l'oggetto risorsa al pool designato nascondendolo dalla scena.
+        /// </summary>
         public void ReturnToPool(GameObject go, ResourceDataSO data)
         {
             if (!_poolDict.TryGetValue(data, out var pool))
@@ -76,5 +100,7 @@ namespace Script.ResourceSystem
             go.SetActive(false);
             pool.objects.Enqueue(go);
         }
+        
+        #endregion
     }
 }

@@ -13,6 +13,8 @@ namespace Script.BuildingSystem.Commands
     /// </summary>
     public class DestroyBuildingCommand : ICommand
     {
+        #region Dependencies & Fields
+        
         // Dependencies
         private readonly BuildingManager _buildingManager;
         private readonly IGridService _gridService;
@@ -26,8 +28,16 @@ namespace Script.BuildingSystem.Commands
 
         // Stato dopo Execute (per Undo)
         private Building _rebuiltBuilding;
+        
+        #endregion
+
+        #region Properties
 
         public string Description => $"Destroy {_config.name} at {_gridPosition}";
+        
+        #endregion
+
+        #region Initialization
 
         /// <summary>
         /// Costruttore Command.
@@ -54,7 +64,14 @@ namespace Script.BuildingSystem.Commands
             _gridPosition = gridPosition; // Passato esplicitamente
             _worldPosition = building.transform.position;
         }
+        
+        #endregion
 
+        #region Core Functionality
+
+        /// <summary>
+        /// Esegue la distruzione, rimborsa 50% delle risorse e libera le celle.
+        /// </summary>
         public bool Execute()
         {
             if (_originalBuilding == null)
@@ -84,6 +101,9 @@ namespace Script.BuildingSystem.Commands
             return true;
         }
 
+        /// <summary>
+        /// Effettua il rollback della distruzione ri-creando l'edificio tramite la Factory.
+        /// </summary>
         public bool Undo()
         {
             // UNDO: Ripiazza edificio (ricostruisci)
@@ -119,5 +139,7 @@ namespace Script.BuildingSystem.Commands
 
             return true;
         }
+        
+        #endregion
     }
 }

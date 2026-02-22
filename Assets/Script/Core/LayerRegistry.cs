@@ -15,6 +15,9 @@ namespace Script.Core
         public static readonly int ZoneSign = LayerMask.NameToLayer("ZoneSign");
 
         // Validazione in editor
+        /// <summary>
+        /// Trigger automagic pre-sceneload, esegue scan per convalidare string a name Layer mask nel build process.
+        /// </summary>
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void ValidateLayers()
         {

@@ -16,12 +16,29 @@ namespace Script.InputSystem
     /// </summary>
     public sealed class InputManager : MonoBehaviour
     {
+        #region External Dependencies
+        
         [Inject] private Camera _camera;
+        
+        #endregion
 
+        #region Inspector Fields
+        
         [SerializeField] private bool _debugMode;
+        
+        #endregion
 
-        // Event: dispatches tile click - subscriber reads tile.GridPosition directly (Source of Truth)
+        #region Events
+
+        /// <summary>
+        /// Evento notificato al click su un tile valido.
+        /// Trasporta il Tile (Source of Truth) anziche' le coordinate logiche.
+        /// </summary>
         public event Action<Tile> OnTileClicked;
+        
+        #endregion
+        
+        #region Constants & Private Fields
 
         // Non-alloc overlap buffers (tunable size)
         private const int MaxOverlaps = 16;
@@ -29,6 +46,10 @@ namespace Script.InputSystem
 
         private IHoverable _lastHovered;
         private Vector3 _lastMousePos;
+        
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Update()
         {
@@ -87,7 +108,14 @@ namespace Script.InputSystem
                     Debug.Log($"[InputManager] RightClick on {_lastHovered.GetType().Name} at {wp}");
             }
         }
+        
+        #endregion
 
+        #region Private Helpers
+
+        /// <summary>
+        /// Trova e restituisce il primo component IHoverable in un array di collider filtrati per layermask.
+        /// </summary>
         private IHoverable FindFirstHoverable(Collider2D[] colliders, int count, int layerId)
         {
             if (layerId == -1) return null;
@@ -105,5 +133,7 @@ namespace Script.InputSystem
             }
             return null;
         }
+        
+        #endregion
     }
 }

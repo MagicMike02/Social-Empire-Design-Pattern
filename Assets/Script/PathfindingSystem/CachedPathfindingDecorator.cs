@@ -13,15 +13,31 @@ namespace Script.PathfindingSystem
     /// </summary>
     public class CachedPathfindingDecorator : IPathfindingAlgorithm
     {
+        #region Private Fields
+        
         private readonly IPathfindingAlgorithm _innerAlgorithm;
         private readonly Dictionary<(Vector2Int, Vector2Int), List<Vector2Int>> _cache = new();
         private const int MaxCacheSize = 500;  // ✅ Increased from 100 (less evictions)
+        
+        #endregion
 
+        #region Initialization
+
+        /// <summary>
+        /// Inizializza il decorator passandovi un pathfinding interno.
+        /// </summary>
         public CachedPathfindingDecorator(IPathfindingAlgorithm algorithm)
         {
             _innerAlgorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
         }
+        
+        #endregion
 
+        #region Public APIs
+
+        /// <summary>
+        /// Richiama il pathfinding o restituisce il percorso salvato in cache.
+        /// </summary>
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService)
         {
             var cacheKey = (start, goal);
@@ -72,5 +88,7 @@ namespace Script.PathfindingSystem
         /// Ritorna stats della cache per monitoring.
         /// </summary>
         public int GetCacheSize() => _cache.Count;
+        
+        #endregion
     }
 }

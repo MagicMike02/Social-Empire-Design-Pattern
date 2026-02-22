@@ -40,6 +40,9 @@ namespace Script.Core
             }
         }
 
+        /// <summary>
+        /// Regista le classi VContainer dipendenti in ordine di lifecycle.
+        /// </summary>
         protected override void Configure(IContainerBuilder builder)
         {
             if (debugMode) Debug.Log("[GameLifetimeScope] Configurazione dei servizi in corso...");
@@ -100,6 +103,9 @@ namespace Script.Core
             if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Configurazione completata");
         }
 
+        /// <summary>
+        /// Estrae GameObject presenti nella scena e li lega formalmente al contesto Di Container (DependencyInjection).
+        /// </summary>
         private void RegisterIfExists<T>(IContainerBuilder builder, Action<RegistrationBuilder> configure = null) where T : Component
         {
             var component = FindFirstObjectByType<T>(FindObjectsInactive.Exclude);

@@ -7,20 +7,34 @@ using UnityEngine;
 
 namespace Script.GridSystem
 {
+    /// <summary>
+    /// Representa un cartello d'acquisto per aggiungere nuove Zone alla griglia principale.
+    /// Intercettata dal sistema di input per hover & click.
+    /// </summary>
     public class PurchaseSign : MonoBehaviour, IHoverable
     {
+        #region Constants & SerializeFields
+        
+        private const int DefaultGoldCost = 15;
+        
+        [SerializeField] private float _scaleMultiplier = 1.1f;
+        [SerializeField] private float _animationSpeed = 5f;
+        
+        #endregion
+        
+        #region Private Fields
+        
         private GameEconomyManager _economyManager;
         private ZoneManager _zoneManager;
-
         private Dictionary<ResourceType, int> _purchaseCost = new();
-
         private Vector2Int _zoneCoord;
         private Vector3 _originalScale;
         private bool _hovered;
-
-        [SerializeField] private float _scaleMultiplier = 1.1f;
-        [SerializeField] private float _animationSpeed = 5f;
         private SpriteRenderer _renderer;
+        
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
@@ -45,15 +59,26 @@ namespace Script.GridSystem
                     Vector3.Lerp(transform.localScale, targetScale, Time.deltaTime * _animationSpeed);
             }
         }
+        
+        #endregion
+        
+        #region Public Initialization
 
+        /// <summary>
+        /// Inizializza il cartello, associando le dipendenze per calcolarne il costo.
+        /// </summary>
         public void Setup(Vector2Int zoneCoord, GameEconomyManager economyManager, ZoneManager zoneManager, [CanBeNull] Dictionary<ResourceType, int> cost = null)
         {
             _zoneCoord = zoneCoord;
             _economyManager = economyManager;
             _zoneManager = zoneManager;
-            _purchaseCost = cost ?? new Dictionary<ResourceType, int>();
+            _purchaseCost = cost ?? new Dictionary<ResourceType, int>() { { ResourceType.Gold, DefaultGoldCost } };
             _originalScale = transform.localScale;
         }
+        
+        #endregion
+        
+        #region Input Event Handlers
 
         public void OnHoverEnter() => _hovered = true;
         public void OnHoverExit() => _hovered = false; 
@@ -61,6 +86,9 @@ namespace Script.GridSystem
         public void OnMouseEnter() => _hovered = true;
         public void OnMouseExit() => _hovered = false;
         
+        /// <summary>
+        /// Consuma risorse e acquista la zona se possiedi i fondi.
+        /// </summary>
         public void OnClick()
         {
             if (_purchaseCost == null)
@@ -90,7 +118,7 @@ namespace Script.GridSystem
         {
             // Future: right-click commands if needed
         }
-
-       
+        
+        #endregion
     }
 }

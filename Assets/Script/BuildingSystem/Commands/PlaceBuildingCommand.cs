@@ -13,6 +13,8 @@ namespace Script.BuildingSystem.Commands
     /// </summary>
     public class PlaceBuildingCommand : ICommand
     {
+        #region Dependencies & Fields
+        
         // Dependencies (iniettate da BuildingPlacer)
         private readonly BuildingManager _buildingManager;
         private readonly IGridService _gridService;
@@ -25,8 +27,16 @@ namespace Script.BuildingSystem.Commands
         // Command state (salvato dopo Execute per Undo)
         private Building _placedBuilding;
         private Vector3 _worldPosition;
+        
+        #endregion
+
+        #region Properties
 
         public string Description => $"Place {_config.name} at {_gridPosition}";
+        
+        #endregion
+
+        #region Initialization
 
         /// <summary>
         /// Costruttore Command.
@@ -49,7 +59,14 @@ namespace Script.BuildingSystem.Commands
             _config = config;
             _gridPosition = gridPosition;
         }
+        
+        #endregion
+        
+        #region Core Functionality
 
+        /// <summary>
+        /// Esegue il comando di piazzamento previa validazione grid e risorse.
+        /// </summary>
         public bool Execute()
         {
             // VALIDATION 1: Celle libere?
@@ -104,6 +121,9 @@ namespace Script.BuildingSystem.Commands
             return true;
         }
 
+        /// <summary>
+        /// Esegue l'annullamento dell'operazione, distruggendo il building e rimborsando il giocatore 100%.
+        /// </summary>
         public bool Undo()
         {
             if (_placedBuilding == null)
@@ -132,5 +152,7 @@ namespace Script.BuildingSystem.Commands
 
             return true;
         }
+        
+        #endregion
     }
 }

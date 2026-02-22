@@ -69,6 +69,9 @@ namespace Script.UI
 
         #region Initialization
 
+        /// <summary>
+        /// Controlla la sanità dei collegamenti iniettati o serializzati (Future Panels inclusi).
+        /// </summary>
         private void ValidateReferences()
         {
             if (_resourceDisplayUI == null)
@@ -93,6 +96,9 @@ namespace Script.UI
             }
         }
 
+        /// <summary>
+        /// Imposta lo stato root del canvas nascondendo UI work-in-progress.
+        /// </summary>
         private void InitializeUI()
         {
             // Setup iniziale UI
@@ -105,6 +111,9 @@ namespace Script.UI
             Debug.Log("[UIManager] ✓ UI Initialized");
         }
 
+        /// <summary>
+        /// Assicura l'invisibilità alla prima iterazione per componenti visuali placeholder.
+        /// </summary>
         private void HideAllFuturePanels()
         {
             // Nasconde panel future non ancora implementati
@@ -118,12 +127,18 @@ namespace Script.UI
                 _settingsPanel.SetActive(false);
         }
 
+        /// <summary>
+        /// Iscrive UIManager come subscriber degli eventi relativi allo sblocco o fail di zones.
+        /// </summary>
         private void SubscribeToZoneEvents()
         {
             GlobalEventBus.Subscribe<ZoneUnlockedEvent>(OnZoneUnlocked);
             GlobalEventBus.Subscribe<ZonePurchaseFailedEvent>(OnZonePurchaseFailed);
         }
 
+        /// <summary>
+        /// Rilascia memoria scollegando l'istanza core dalla matrice eventi GlobalEventBus.
+        /// </summary>
         private void UnsubscribeFromZoneEvents()
         {
             GlobalEventBus.Unsubscribe<ZoneUnlockedEvent>(OnZoneUnlocked);
@@ -134,12 +149,18 @@ namespace Script.UI
 
         #region Zone Event Handlers
 
+        /// <summary>
+        /// Animazione e trigger UI su acquisto o sblocco zona di successo.
+        /// </summary>
         private void OnZoneUnlocked(ZoneUnlockedEvent evt)
         {
             Debug.Log($"[UI] Zona sbloccata: {evt.ZonePosition}");
             // Future: Mostra animazione, suono, popup celebrativo
         }
 
+        /// <summary>
+        /// Informative trigger interattivo (pop-up, sfx) quando l'utente manca di risorse per area.
+        /// </summary>
         private void OnZonePurchaseFailed(ZonePurchaseFailedEvent evt)
         {
             Debug.LogWarning($"[UI] Acquisto zona fallito: {evt.ZoneCoord} - {evt.Reason}");

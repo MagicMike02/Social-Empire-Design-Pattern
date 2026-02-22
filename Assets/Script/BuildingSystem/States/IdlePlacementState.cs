@@ -10,15 +10,28 @@ namespace Script.BuildingSystem.States
     /// </summary>
     public class IdlePlacementState : IPlacementState
     {
+        #region Fields & Properties
+        
         private readonly BuildingPlacer _context;
 
         public string StateName => "Idle";
+        
+        #endregion
+
+        #region Initialization
 
         public IdlePlacementState(BuildingPlacer context)
         {
             _context = context;
         }
+        
+        #endregion
 
+        #region Lifecycle Methods
+
+        /// <summary>
+        /// Inizializza lo stato Idle pulendo la preview.
+        /// </summary>
         public void OnEnter()
         {
             #if UNITY_EDITOR
@@ -29,18 +42,26 @@ namespace Script.BuildingSystem.States
             _context.ClearPreview();
         }
 
+        /// <summary>
+        /// Aggiornamento frame-per-frame (non necessario in Idle).
+        /// </summary>
         public void OnUpdate()
         {
             // Idle: nessuna logica Update necessaria
             // Attende OnBuildingSelected da input esterno
         }
 
+        /// <summary>
+        /// Cleanup all'uscita dallo stato.
+        /// </summary>
         public void OnExit()
         {
             // Nessun cleanup necessario
         }
+        
+        #endregion
 
-        // ========== EVENT HANDLERS ==========
+        #region Event Handlers
 
         public void OnBuildingSelected(BuildingConfigSO config)
         {
@@ -68,5 +89,7 @@ namespace Script.BuildingSystem.States
             // Utile se FSM in stato inconsistente
             _context.TransitionTo(new IdlePlacementState(_context));
         }
+        
+        #endregion
     }
 }

@@ -2,17 +2,38 @@
 
 namespace Script.GridSystem
 {
+    /// <summary>
+    /// Gestisce l'instanziazione visiva della griglia e dei singoli Tile.
+    /// </summary>
     public class TileManager : MonoBehaviour
     {
+        #region Editor Fields
+        
         [SerializeField] private GameObject _tilePrefab;
         [SerializeField] private int width;
         [SerializeField] private int height;
         [SerializeField] private float cellSize;
-        private Grid<Tile> _grid;
+        
+        #endregion
 
+        #region Private Fields
+        
+        private Grid<Tile> _grid;
+        
+        #endregion
+
+        #region Properties
+        
         public int Width => width;
         public int Height => height;
         
+        #endregion
+
+        #region Public APIs
+        
+        /// <summary>
+        /// Crea e posiziona la griglia logica e visiva nel mondo di gioco.
+        /// </summary>
         public void CreateGrid()
         {
             _grid = new Grid<Tile>(width, height, cellSize);
@@ -24,6 +45,15 @@ namespace Script.GridSystem
                 }
             }
         }
+
+        /// <summary>
+        /// Restituisce l'istanza core della griglia logica creata.
+        /// </summary>
+        public Grid<Tile> GetGrid() => _grid;
+        
+        #endregion
+
+        #region Private Helpers
 
         private void CreateTileAt(int x, int y)
         {
@@ -46,7 +76,7 @@ namespace Script.GridSystem
             return (x + y) * -100;
         }
 
-        public Grid<Tile> GetGrid() => _grid;
+        #endregion
     }
 }
 

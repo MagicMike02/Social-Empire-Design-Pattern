@@ -10,6 +10,8 @@ namespace Script.PathfindingSystem
     /// </summary>
     public interface IPathfindingAlgorithm
     {
+        #region Public APIs
+        
         /// <summary>
         /// Trova il percorso tra start e goal.
         /// </summary>
@@ -18,5 +20,7 @@ namespace Script.PathfindingSystem
         /// <param name="gridService">Servizio di griglia per accesso dati</param>
         /// <returns>Lista di celle (vuota se nessun percorso)</returns>
         List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService);
+        
+        #endregion
     }
 }

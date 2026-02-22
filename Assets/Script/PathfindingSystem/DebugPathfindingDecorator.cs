@@ -12,15 +12,31 @@ namespace Script.PathfindingSystem
     /// </summary>
     public class DebugPathfindingDecorator : IPathfindingAlgorithm
     {
+        #region Private Fields
+        
         private readonly IPathfindingAlgorithm _innerAlgorithm;
         private readonly TileManager _tileManager;
+        
+        #endregion
 
+        #region Initialization
+
+        /// <summary>
+        /// Inizializza il decoratore per il debug.
+        /// </summary>
         public DebugPathfindingDecorator(IPathfindingAlgorithm algorithm, TileManager tileManager)
         {
             _innerAlgorithm = algorithm ?? throw new ArgumentNullException(nameof(algorithm));
             _tileManager = tileManager ?? throw new ArgumentNullException(nameof(tileManager));
         }
+        
+        #endregion
 
+        #region Public APIs
+
+        /// <summary>
+        /// Richiama il pathfinding interno mostrando output di debug.
+        /// </summary>
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService)
         {
             var path = _innerAlgorithm.FindPath(start, goal, gridService);
@@ -31,6 +47,10 @@ namespace Script.PathfindingSystem
 
             return path;
         }
+        
+        #endregion
+
+        #region Internal Helpers
 
         /// <summary>
         /// DEBUG ONLY: Visualizza il percorso colorando i tile.
@@ -77,5 +97,7 @@ namespace Script.PathfindingSystem
 
             Debug.Log($"[DebugPathfinding] Visualized {path.Count} cells");
         }
+        
+        #endregion
     }
 }

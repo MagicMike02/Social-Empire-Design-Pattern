@@ -77,9 +77,18 @@ namespace Script.GridSystem
         
         #endregion
 
+        #region Layout Properties
+
         public int Width  => _tileManager.Width;
         public int Height => _tileManager.Height;
+        
+        #endregion
 
+        #region Core Grid Queries (IGridService)
+
+        /// <summary>
+        /// Converte una posizione nel mondo fisico in una coordinata cella sulla griglia.
+        /// </summary>
         public bool TryWorldToCell(Vector3 worldPos, out Vector3Int cell)
         {
             var grid = _tileManager.GetGrid();
@@ -91,12 +100,18 @@ namespace Script.GridSystem
             return inside;
         }
 
+        /// <summary>
+        /// Ottiene il centro fisico (World Position) corrispondente a una determinata cella logica.
+        /// </summary>
         public Vector3 CellToWorld(Vector3Int cell)
         {
             var grid = _tileManager.GetGrid();
             return grid.GetIsoToWorldPosition(cell.x, cell.y);
         }
 
+        /// <summary>
+        /// Verifica se un blocco rettangolare di celle e' completamente libero (state Unlocked e non occupato).
+        /// </summary>
         public bool AreCellsFree(Vector3Int originCell, int width, int height)
         {
             for (int dx = 0; dx < width; dx++)
@@ -125,6 +140,9 @@ namespace Script.GridSystem
             return true;
         }
 
+        /// <summary>
+        /// Segna come occupate le celle specificate, associandole a un edificio e pubblicando CellsOccupiedEvent.
+        /// </summary>
         public void OccupyCells(Vector3Int originCell, int width, int height, Building building)
         {
             for (int dx = 0; dx < width; dx++)
@@ -145,6 +163,9 @@ namespace Script.GridSystem
             ));
         }
 
+        /// <summary>
+        /// Libera un blocco di celle occupate e pubblica CellsFreedEvent.
+        /// </summary>
         public void FreeCells(Vector3Int originCell, int width, int height)
         {
             for (int dx = 0; dx < width; dx++)
@@ -160,6 +181,9 @@ namespace Script.GridSystem
             GlobalEventBus.Publish(new CellsFreedEvent(originCell, width, height));
         }
 
+        /// <summary>
+        /// Applica una visuale di preview per un blocco di celle (es. verde per valido, rosso per invalido).
+        /// </summary>
         public void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid)
         {
             ClearPreviousPreview();
@@ -239,6 +263,9 @@ namespace Script.GridSystem
             _lastPreviewCells.AddRange(newPreviewCells);
         }
         
+        /// <summary>
+        /// Rimuove la tint di preview dalle celle.
+        /// </summary>
         private void ClearPreviousPreview()
         {
             foreach (var cell in _lastPreviewCells)
@@ -252,7 +279,13 @@ namespace Script.GridSystem
             _lastPreviewCells.Clear();
         }
 
-        // Helper: trova la cella il cui centro è più vicino a worldPos (considera 9 candidate attorno a quella grezza)
+        #endregion
+
+        #region Complex Mapping
+
+        /// <summary>
+        /// Helper: trova la cella il cui centro logico è più vicino a worldPos, valutando i 9 vicini.
+        /// </summary>
         private bool TryWorldToNearestCell(Vector3 worldPos, out Vector3Int bestCell)
         {
             bestCell = default;
@@ -300,7 +333,9 @@ namespace Script.GridSystem
             return bestDist < float.MaxValue;
         }
 
-        // ========== SCREEN->CELL precise mapping ==========
+        /// <summary>
+        /// Esegue un raycast dalla telecamera per convertire un punto sullo schermo nella cella d'intersezione sul piano orizzontale.
+        /// </summary>
         public bool TryScreenToCell(Camera cam, Vector3 screenPos, out Vector3Int cell)
         {
             cell = default;
@@ -319,8 +354,13 @@ namespace Script.GridSystem
             return TryWorldToNearestCell(worldOnPlane, out cell);
         }
 
-        // ========== PATHFINDING SUPPORT==========
+        #endregion
+
+        #region Pathfinding Support
         
+        /// <summary>
+        /// Verifica se una cella è attraversabile da unità (non bloccata da ostacoli o zone inesplorate).
+        /// </summary>
         public bool IsCellWalkable(Vector2Int cell)
         {
             // Bounds check
@@ -339,6 +379,9 @@ namespace Script.GridSystem
             return true;
         }
 
+        /// <summary>
+        /// Esegue query sulla griglia per estrarre tutti i vicini attraversabili (8-way).
+        /// </summary>
         public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
         {
             // OPTIMIZED: 8-directional movement (4 cardinal + 4 diagonal)

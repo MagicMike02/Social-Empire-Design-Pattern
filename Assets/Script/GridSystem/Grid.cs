@@ -3,8 +3,14 @@ using UnityEngine;
 
 namespace Script.GridSystem
 {
+    /// <summary>
+    /// Classe generica che modella una griglia 2D (isometrica tramite Math3x4).
+    /// Contiene i dati e gestisce conversioni Grid <-> World.
+    /// </summary>
     public class Grid<T>
     {
+        #region Private Fields
+        
         private int _width;
         private int _height;
         private float _cellSize;
@@ -15,6 +21,13 @@ namespace Script.GridSystem
 
         private Matrix4x4 _matrix;
         
+        #endregion
+
+        #region Initialization
+
+        /// <summary>
+        /// Crea una griglia vuota specificando dimensioni e taglia delle celle.
+        /// </summary>
         public Grid(int width, int height, float cellSize)
         {
             _width = width;
@@ -34,6 +47,8 @@ namespace Script.GridSystem
             _matrix.SetColumn(1, new Vector4(-1f, 0.5f, 0f, 0f)); // Colonna per y
             _matrix.SetColumn(2, new Vector4(0f, 0f, 1f, 0f)); // Colonna per z  
         }
+        
+        #endregion
 
         #region Debug
         private void ShowDebugLines()
@@ -70,8 +85,11 @@ namespace Script.GridSystem
         }
         #endregion Debug
 
-        #region Grid
+        #region Public APIs
 
+        /// <summary>
+        /// Ottiene la posizione nel mondo (con proiezione isometrica) dalle coordinate logiche.
+        /// </summary>
         public Vector3 GetIsoToWorldPosition(int x, int y)
         {
             Vector3 cartesianPos = new Vector3(x, y) * _cellSize;
@@ -79,6 +97,10 @@ namespace Script.GridSystem
             return new Vector3(isoPos.x, isoPos.y, 0) + _originPosition;
         }
 
+        /// <summary>
+        /// Converte la posizione nel mondo in coordinate logiche di griglia.
+        /// Usa RoundToInt per favorire lo snap al centro del diamante.
+        /// </summary>
         public void GetWorldToIsoPosition(Vector3 worldPosition, out int x, out int y)
         {
             Vector3 localPos = worldPosition - _originPosition;
@@ -93,6 +115,9 @@ namespace Script.GridSystem
             y = Mathf.RoundToInt(cartesianPos.y / _cellSize);
         }
 
+        /// <summary>
+        /// Imposta il valore di una cella specificando le coordinate logiche giuste.
+        /// </summary>
         public void SetValue(int x, int y, T value)
         {
             if (x >= 0 && y >= 0 && x < _width && y < _height)
@@ -101,12 +126,18 @@ namespace Script.GridSystem
             }
         }
 
+        /// <summary>
+        /// Imposta il valore di una cella in base alla posizione reale nel mondo.
+        /// </summary>
         public void SetValue(Vector3 worldPosition, T value)
         {
             GetWorldToIsoPosition(worldPosition, out int x, out int y);
             SetValue(x, y, value);
         }
 
+        /// <summary>
+        /// Recupera il valore archiviato in una determinata cella logica.
+        /// </summary>
         public T GetValue(int x, int y)
         {
             if (x >= 0 && x < _width && y >= 0 && y < _height)
@@ -117,18 +148,27 @@ namespace Script.GridSystem
             return default(T);
         }
 
+        /// <summary>
+        /// Recupera il valore in griglia passando la posizione mondo.
+        /// </summary>
         public T GetValue(Vector3 worldPosition)
         {
             GetWorldToIsoPosition(worldPosition, out int x, out int y);
             return GetValue(x, y);
         }
 
+        /// <summary>
+        /// Snappa una posizione arbitraria al centro della cella isometrica piu' vicina.
+        /// </summary>
         public Vector3 SnapWorldToGridWorld(Vector3 worldPosition)
         {
             GetWorldToIsoPosition(worldPosition, out int x, out int y);
             return GetIsoToWorldPosition(x, y);
         }
 
+        /// <summary>
+        /// Converte la griglia 2D in una flat List (usato da Pathfinding Tester e similari).
+        /// </summary>
         public List<T> ToList()
         {
             List<T> listT = new();

@@ -8,6 +8,11 @@ namespace Script.PathfindingSystem
     /// </summary>
     public class BinaryHeapPriorityQueue<T> where T : IEquatable<T>
     {
+        #region Inner Classes
+        
+        /// <summary>
+        /// Rappresenta un nodo interno della coda.
+        /// </summary>
         private class Node : IComparable<Node>
         {
             public T Item;
@@ -24,11 +29,26 @@ namespace Script.PathfindingSystem
                 return Priority.CompareTo(other.Priority);
             }
         }
+        
+        #endregion
 
+        #region Private Fields
+        
         private readonly List<Node> _heap = new();
         private readonly Dictionary<T, int> _itemToIndex = new(); // O(1) lookup
+        
+        #endregion
 
+        #region Properties
+        
+        /// <summary>
+        /// Ritorna il numero di elementi attualmente nella coda.
+        /// </summary>
         public int Count => _heap.Count;
+        
+        #endregion
+
+        #region Public APIs
 
         /// <summary>
         /// Aggiunge elemento con priorità. O(log n)
@@ -101,8 +121,10 @@ namespace Script.PathfindingSystem
             _heap.Clear();
             _itemToIndex.Clear();
         }
+        
+        #endregion
 
-        // ========== INTERNAL HEAP OPERATIONS ==========
+        #region Internal Heap Operations
 
         private void BubbleUp(int index)
         {
@@ -145,5 +167,7 @@ namespace Script.PathfindingSystem
             _itemToIndex[_heap[a].Item] = a;
             _itemToIndex[_heap[b].Item] = b;
         }
+        
+        #endregion
     }
 }

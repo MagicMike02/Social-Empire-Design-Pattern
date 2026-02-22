@@ -3,24 +3,45 @@ using UnityEngine;
 
 namespace Script.ResourceSystem
 {
+    /// <summary>
+    /// Rappresenta un'istanza fisica di una risorsa nel mondo di gioco.
+    /// Gestisce l'interazione del giocatore (IHoverable) e la sua visualizzazione.
+    /// </summary>
     public class ResourceInstance : MonoBehaviour, IHoverable
     {
+        #region Private Fields
+        
         private ResourceDataSO _data;
         private Vector2Int _gridPosition;
         private ResourceManager _manager;
-
         private SpriteRenderer _spriteRenderer;
-
         private int _prefabIndex;
         
+        #endregion
+
+        #region Properties
+        
+        /// <summary>
+        /// Dati statici associati a questa istanza di risorsa.
+        /// </summary>
         public ResourceDataSO Data => _data;
         
+        #endregion
+
+        #region Unity Lifecycle
 
         private void Awake()
         {
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
         }
+        
+        #endregion
 
+        #region Initialization
+
+        /// <summary>
+        /// Inizializza l'istanza con i suoi dati e la collega al ResourceManager.
+        /// </summary>
         public void Initialize(ResourceDataSO data, Vector2Int gridPos, ResourceManager manager)
         {
             _data = data;
@@ -29,6 +50,10 @@ namespace Script.ResourceSystem
             tag = "Resources";
             SetSortingOrder();
         }
+
+        #endregion
+        
+        #region Internal Helpers
 
         private void SetSortingOrder()
         {
@@ -44,6 +69,10 @@ namespace Script.ResourceSystem
             }
         }
 
+
+        #endregion
+
+        #region Input Handlers (IHoverable)
 
         public void OnHoverEnter()
         {
@@ -64,6 +93,10 @@ namespace Script.ResourceSystem
         {
             // Future: right-click commands if needed
         }
+        
+        #endregion
+        
+        #region Resource Logic
 
         private void CollectResource()
         {
@@ -75,6 +108,7 @@ namespace Script.ResourceSystem
             
             _manager.HandleResourceCollected(_gridPosition, _data);
         }
-
+        
+        #endregion
     }
 }

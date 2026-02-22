@@ -10,6 +10,11 @@ namespace Script.PathfindingSystem
     /// </summary>
     public class AStarAlgorithm : IPathfindingAlgorithm
     {
+        #region Public APIs
+
+        /// <summary>
+        /// Trova il percorso ottimale tramite A* (8-directional).
+        /// </summary>
         public List<Vector2Int> FindPath(Vector2Int start, Vector2Int goal, IGridService gridService)
         {
             // Early exit: start == goal
@@ -70,6 +75,10 @@ namespace Script.PathfindingSystem
             // No path found
             return new List<Vector2Int>();
         }
+        
+        #endregion
+
+        #region Internal Helpers
 
         /// <summary>
         /// Heuristic per A*: Chebyshev distance (optimal per 8-directional movement)
@@ -97,5 +106,7 @@ namespace Script.PathfindingSystem
             path.Reverse();
             return path;
         }
+        
+        #endregion
     }
 }

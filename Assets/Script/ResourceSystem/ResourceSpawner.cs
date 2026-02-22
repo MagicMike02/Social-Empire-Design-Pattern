@@ -28,22 +28,37 @@ namespace Script.ResourceSystem
         
         #endregion
 
-        #region Configuration (ScriptableObjects - KEEP SerializeField)
+        #region Configuration
         
         [SerializeField] private List<ResourceDataSO> _resourceTypes;
         
         #endregion
 
+        #region Private Fields & Events
+
         private IResourceGenerationStrategy _generationStrategy;
 
+        /// <summary>
+        /// Delegato e evento per notificare lo spawn formale di una risorsa.
+        /// </summary>
         public delegate void ResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance);
         public event ResourceSpawned OnResourceSpawned;
+        
+        #endregion
 
+        #region Public APIs
+
+        /// <summary>
+        /// Imposta la strategia di generazione corrente.
+        /// </summary>
         public void SetGenerationStrategy(IResourceGenerationStrategy strategy)
         {
             _generationStrategy = strategy;
         }
 
+        /// <summary>
+        /// Avvia il processo generale di generazione risorse iterando sui setup ScriptableObject.
+        /// </summary>
         public void GenerateAllResources()
         {
             Debug.Log("Starting resource generation...");
@@ -53,6 +68,13 @@ namespace Script.ResourceSystem
             }
         }
 
+        #endregion
+
+        #region Internal Generation Logic
+
+        /// <summary>
+        /// Esegue tentativi di spawn di gruppi di risorse basati sul config SO.
+        /// </summary>
         private void GenerateResourceGroups(ResourceDataSO resource)
         {
             int attempts = 0;
@@ -92,6 +114,9 @@ namespace Script.ResourceSystem
             }
         }
 
+        /// <summary>
+        /// Sceglie coordinate di griglia casuali non appartenenti alla safe-zone centrale.
+        /// </summary>
         private Vector2Int GetRandomTileOutsideCentralZone(int width, int height)
         {
             while (true)
@@ -102,6 +127,9 @@ namespace Script.ResourceSystem
             }
         }
 
+        /// <summary>
+        /// Controlla validita' della zona safe centrale protetta da spawn.
+        /// </summary>
         private bool IsInsideCentralZone(int x, int y, int width, int height)
         {
             int half = _zoneManager.ZoneSize / 2;
@@ -111,6 +139,9 @@ namespace Script.ResourceSystem
                    y < height / 2 + half;
         }
 
+        /// <summary>
+        /// Verifica che la tile esista, non sia ancora comprata dal player, e priva di ostacoli originari.
+        /// </summary>
         private bool IsValidTile(Vector2Int pos)
         {
             var tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
@@ -119,6 +150,9 @@ namespace Script.ResourceSystem
                    && tile.State != TileState.Unlocked;
         }
 
+        /// <summary>
+        /// Istanzia fisicamente (o riprende dal pool) il prefab di risorsa e invoca l'evento di spawn.
+        /// </summary>
         private void SpawnResourceAt(Vector2Int gridPos, ResourceDataSO data)
         {
             Tile tile = _tileManager.GetGrid().GetValue(gridPos.x, gridPos.y);
@@ -136,11 +170,17 @@ namespace Script.ResourceSystem
             OnResourceSpawned?.Invoke(data.resourceType, gridPos, resource);
         }
 
+        /// <summary>
+        /// Fallback pubblico che rilancia `SpawnResourceAt`.
+        /// </summary>
         public void SpawnResourceAtPosition(Vector2Int gridPos, ResourceDataSO data)
         {
             SpawnResourceAt(gridPos, data);
         }
 
+        /// <summary>
+        /// Ritorna la configurazione (SO) della risorsa mappata tramite l'enum ResourceType.
+        /// </summary>
         public ResourceDataSO GetResourceDataSO(ResourceType type)
         {
             foreach (var data in _resourceTypes)
@@ -151,5 +191,7 @@ namespace Script.ResourceSystem
 
             return null;
         }
+        
+        #endregion
     }
 }
