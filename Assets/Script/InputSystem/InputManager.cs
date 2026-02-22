@@ -4,6 +4,7 @@ using Script.BuildingSystem;
 using System;
 using Script.Core;
 using Script.GridSystem;
+using UnityEngine.EventSystems;
 
 namespace Script.InputSystem
 {
@@ -35,6 +36,11 @@ namespace Script.InputSystem
         /// Trasporta il Tile (Source of Truth) anziche' le coordinate logiche.
         /// </summary>
         public event Action<Tile> OnTileClicked;
+
+        /// <summary>
+        /// Evento globale notificato al click destro sulla griglia.
+        /// </summary>
+        public event Action OnMapRightClicked;
         
         #endregion
         
@@ -53,6 +59,17 @@ namespace Script.InputSystem
 
         private void Update()
         {
+            // Evita interazioni sulla World Grid se il cursore si trova sopra UI Elements 
+            if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
+            {
+                if (_lastHovered != null)
+                {
+                    _lastHovered.OnHoverExit();
+                    _lastHovered = null;
+                }
+                return;
+            }
+
             var mousePos = Input.mousePosition;
             bool mouseMoved = mousePos != _lastMousePos;
 
@@ -104,6 +121,7 @@ namespace Script.InputSystem
             {
                 Vector3 wp = _camera.ScreenToWorldPoint(_lastMousePos);
                 _lastHovered?.OnRightClick(wp);
+                OnMapRightClicked?.Invoke();
                 if (_debugMode && _lastHovered != null) 
                     Debug.Log($"[InputManager] RightClick on {_lastHovered.GetType().Name} at {wp}");
             }

@@ -1,5 +1,7 @@
 ﻿﻿using UnityEngine;
 using VContainer;
+using Script.InputSystem;
+using Script.GridSystem;
 
 namespace Script.BuildingSystem
 {
@@ -11,6 +13,7 @@ namespace Script.BuildingSystem
     public sealed class PlacementInputHandler : MonoBehaviour
     {
         private BuildingPlacer _placer;
+        private InputManager _inputManager;
         private bool _loggedMissingDependency = false;
         
         [Header("Available Buildings")]
@@ -18,9 +21,44 @@ namespace Script.BuildingSystem
         [SerializeField] private BuildingConfigSO[] _availableBuildings;
 
         [Inject]
-        public void Construct(BuildingPlacer placer)
+        public void Construct(BuildingPlacer placer, InputManager inputManager)
         {
             _placer = placer;
+            _inputManager = inputManager;
+        }
+
+        private void OnEnable()
+        {
+            if (_inputManager != null)
+            {
+                _inputManager.OnTileClicked += HandleTileClicked;
+                _inputManager.OnMapRightClicked += HandleRightClicked;
+            }
+        }
+
+        private void OnDisable()
+        {
+            if (_inputManager != null)
+            {
+                _inputManager.OnTileClicked -= HandleTileClicked;
+                _inputManager.OnMapRightClicked -= HandleRightClicked;
+            }
+        }
+
+        private void HandleTileClicked(Tile tile)
+        {
+            if (_placer != null && _placer.IsPlacing)
+            {
+                _placer.ConfirmPlacement();
+            }
+        }
+
+        private void HandleRightClicked()
+        {
+            if (_placer != null && _placer.IsPlacing)
+            {
+                _placer.CancelPlacement();
+            }
         }
 
         private void Update()
@@ -56,21 +94,6 @@ namespace Script.BuildingSystem
 
             // Tasto ESC: Cancella placement
             if (Input.GetKeyDown(KeyCode.Escape))
-            {
-                _placer.CancelPlacement();
-            }
-            
-            // ========== MOUSE INPUT (DA IMPLEMENTARE) ==========
-            // TODO: Spostare in MousePlacementInput.cs quando UI è pronta
-            
-            // Left Click: Conferma placement
-            if (Input.GetMouseButtonDown(0) && _placer.IsPlacing)
-            {
-                _placer.ConfirmPlacement();
-            }
-            
-            // Right Click: Cancella placement
-            if (Input.GetMouseButtonDown(1) && _placer.IsPlacing)
             {
                 _placer.CancelPlacement();
             }
