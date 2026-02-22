@@ -9,6 +9,7 @@ using Script.PathfindingSystem;
 using Script.ResourceSystem;
 using Script.ResourceSystem.ResourceUI;
 using Script.UI;
+using Script.Core.Optimization;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -87,6 +88,9 @@ namespace Script.Core
             // UI SYSTEM
             RegisterIfExists<UIManager>(builder);
             RegisterIfExists<ResourceDisplayUI>(builder);
+
+            // OPTIMIZATION SYSTEM
+            RegisterIfExists<GridCullingManager>(builder);
 
             // CAMERA
             var mainCamera = Camera.main;

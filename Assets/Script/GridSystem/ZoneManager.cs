@@ -25,8 +25,6 @@ namespace Script.GridSystem
         
         #endregion
 
-        #endregion
-
         #region Config & Fields
         
         [SerializeField] private GameObject _purchaseSignPrefab;

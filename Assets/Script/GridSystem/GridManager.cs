@@ -435,6 +435,7 @@ namespace Script.GridSystem
             return cell.x >= 0 && cell.x < _tileManager.Width && 
                    cell.y >= 0 && cell.y < _tileManager.Height;
         }
+        #endregion
 
         #region Public Occupancy Methods (per ResourceManager, ZoneManager)
 
