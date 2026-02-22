@@ -172,8 +172,16 @@ namespace Script.BuildingSystem
         /// </summary>
         public void SetSelectedConfig(BuildingConfigSO config)
         {
+            // Puliamo le preview visive sulla vecchia griglia e prefab prima di assegnare la nuova config
+            CleanupGridPreview();
+            
+            if (_previewSystem != null)
+            {
+                _previewSystem.HidePreview();
+            }
+
             _selectedConfig = config;
-            _lastCell = Vector3Int.one * -1000; // Reset cache
+            _lastCell = Vector3Int.one * -1000; // Reset cache (forza il redraw)
             _lastValidState = true;
         }
 

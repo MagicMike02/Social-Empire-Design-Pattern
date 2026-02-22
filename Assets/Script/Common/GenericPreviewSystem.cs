@@ -1,10 +1,11 @@
 ﻿using UnityEngine;
+using VContainer;
 
 namespace Script.Common
 {
     /// <summary>
     /// Sistema generico per preview di GameObject durante placement/selezione.
-    /// Ottimizzato per 2D isometrico (SpriteRenderer).
+    /// Ottimizzato per 2D isometrico (SpriteRenderer) con Object Pooling.
     /// </summary>
     public class GenericPreviewSystem : MonoBehaviour
     {
@@ -28,12 +29,22 @@ namespace Script.Common
 
         #region Private Fields
         private GameObject _currentPreview;
+        private GameObject _currentPrefabRef; // Memorizza il reference al prefab per capire quando l'utente cambia edificio
         private SpriteRenderer _previewSpriteRenderer;
         private Vector3 _lastPosition = Vector3.one * -9999f;
         private Vector3Int _lastGridCell = new Vector3Int(-9999, -9999, -9999);
         private bool _lastValidState = true;
         private string _previewName = "Preview";
+        
+        // Injected dependency
+        private PrefabPoolManager _poolManager;
         #endregion
+
+        [Inject]
+        public void Construct(PrefabPoolManager poolManager)
+        {
+            _poolManager = poolManager;
+        }
 
         #region Properties
         public bool HasActivePreview => _currentPreview != null;
@@ -43,13 +54,21 @@ namespace Script.Common
         #region Public Methods
         public void ShowPreview(GameObject prefab, Vector3 worldPosition, bool? isValid = null)
         {
+            if (prefab == null) return;
+           
+            bool prefabChanged = _currentPrefabRef != null && _currentPrefabRef != prefab;
+            if (prefabChanged && _currentPreview != null)
+            {
+                ReleaseToPool();
+            }
+
             bool wasJustCreated = false;
-            if (_currentPreview == null && prefab != null)
+            // Se non avevamo già una preview visibile, la creiamo dal Pool
+            if (_currentPreview == null)
             {
                 CreatePreview(prefab);
                 wasJustCreated = true;
             }
-            if (_currentPreview == null) return;
             
             SetPosition(worldPosition);
             
@@ -127,9 +146,18 @@ namespace Script.Common
         #region Private Methods
         private void CreatePreview(GameObject prefab)
         {
-            _currentPreview = Instantiate(prefab, Vector3.zero, Quaternion.identity, transform);
+            if (_poolManager == null)
+            {
+                Debug.LogError("[GenericPreviewSystem] PoolManager non inizializzato!");
+                return;
+            }
+
+            _currentPrefabRef = prefab; // Salviamo il master object
+            _currentPreview = _poolManager.Get(prefab, Vector3.zero, Quaternion.identity);
+            
             _currentPreview.name = _previewName;
-            _previewSpriteRenderer = _currentPreview.GetComponent<SpriteRenderer>();
+            _previewSpriteRenderer = _currentPreview.GetComponentInChildren<SpriteRenderer>();
+            
             if (_previewSpriteRenderer == null)
             {
                 Debug.LogWarning($"[GenericPreviewSystem] Nessun SpriteRenderer trovato in '{prefab.name}'!");
@@ -167,12 +195,33 @@ namespace Script.Common
         {
             if (_currentPreview != null)
             {
-                Destroy(_currentPreview);
-                _currentPreview = null;
-                _previewSpriteRenderer = null;
+                ReleaseToPool();
             }
             _lastPosition = Vector3.one * -9999f;
             _lastGridCell = new Vector3Int(-9999, -9999, -9999);
+        }
+
+        private void ReleaseToPool()
+        {
+            if (_currentPreview == null) return;
+
+            // Ripristina il neutral state sul renderer prima di parcheggiarlo
+            if (_previewSpriteRenderer != null)
+                _previewSpriteRenderer.color = Color.white;
+            
+            // Usa il pool manager se disponibile, altrimenti distruggi come fallback
+            if (_poolManager != null && _currentPrefabRef != null)
+            {
+                _poolManager.Release(_currentPrefabRef, _currentPreview);
+            }
+            else
+            {
+                Destroy(_currentPreview);
+            }
+            
+            _currentPreview = null;
+            _currentPrefabRef = null;
+            _previewSpriteRenderer = null;
         }
 
         private void SetValidationState(bool isValid)

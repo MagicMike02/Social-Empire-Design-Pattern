@@ -64,7 +64,8 @@ namespace Script.Core
             // BUILDING SYSTEM
             RegisterIfExists<BuildingFactory>(builder);
             RegisterIfExists<BuildingManager>(builder);
-
+            
+            RegisterIfExists<PrefabPoolManager>(builder);
             RegisterIfExists<GenericPreviewSystem>(builder);
             RegisterIfExists<BuildingPlacer>(builder);
             RegisterIfExists<PlacementInputHandler>(builder);
