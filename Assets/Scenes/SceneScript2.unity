@@ -3406,7 +3406,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b0f13d77c5244bfe8a38ff29b4129f71, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.KeyboardPlacementInput
-  _testBuildingConfig: {fileID: 11400000, guid: e0b1cad3bd6c26c4baf68ef23df90e91, type: 2}
+  _availableBuildings:
+  - {fileID: 11400000, guid: 302b8138fbb01f245af068671baa8250, type: 2}
+  - {fileID: 11400000, guid: 2642035a3ab47fc4e83469808153475a, type: 2}
 --- !u!1 &1880290325
 GameObject:
   m_ObjectHideFlags: 0
@@ -4324,63 +4326,6 @@ Transform:
   - {fileID: 369339604}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!1001 &4844705529944719906
-PrefabInstance:
-  m_ObjectHideFlags: 0
-  serializedVersion: 2
-  m_Modification:
-    serializedVersion: 3
-    m_TransformParent: {fileID: 0}
-    m_Modifications:
-    - target: {fileID: 1900990216496387211, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_Name
-      value: Tower
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalPosition.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalPosition.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalPosition.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalRotation.w
-      value: 1
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalRotation.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalRotation.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalRotation.z
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.x
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.y
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 3617693128482081805, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
-      propertyPath: m_LocalEulerAnglesHint.z
-      value: 0
-      objectReference: {fileID: 0}
-    m_RemovedComponents: []
-    m_RemovedGameObjects: []
-    m_AddedGameObjects: []
-    m_AddedComponents: []
-  m_SourcePrefab: {fileID: 100100000, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -4394,4 +4339,3 @@ SceneRoots:
   - {fileID: 473505703}
   - {fileID: 2139119524}
   - {fileID: 607482498}
-  - {fileID: 4844705529944719906}
