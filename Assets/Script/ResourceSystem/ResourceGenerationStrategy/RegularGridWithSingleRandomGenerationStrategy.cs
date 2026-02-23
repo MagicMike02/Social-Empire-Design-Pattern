@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 namespace Script.ResourceSystem.ResourceGenerationStrategy
@@ -7,28 +8,26 @@ namespace Script.ResourceSystem.ResourceGenerationStrategy
     {
         public List<Vector2Int> GenerateResourcePositions(Vector2Int origin, int groupSize)
         {
-            List<Vector2Int> pattern = new List<Vector2Int>();
+            // O(1) Lookups for procedural validation
+            HashSet<Vector2Int> patternSet = new HashSet<Vector2Int>();
         
             int gridWidth = Mathf.CeilToInt(Mathf.Sqrt(groupSize));
             int gridHeight = Mathf.CeilToInt((float)groupSize / gridWidth);
 
-            //Generate Quadratic Grid Pattern resources
+            // Generate Quadratic Grid Pattern resources fully
             for (int y = 0; y < gridHeight; y++)
             {
                 for (int x = 0; x < gridWidth; x++)
                 {
-                    if (pattern.Count < groupSize)
-                    {
-                        Vector2Int position = origin + new Vector2Int(x, y);
-                        pattern.Add(position);
-                    }
+                    Vector2Int position = origin + new Vector2Int(x, y);
+                    patternSet.Add(position);
                 }
             }
             
-            //Per ogni ciclo di creazione (groupsize del ResourceManager) genera dai 5 ai 10 single per la mappa  
+            // Per ogni ciclo di creazione (groupsize del ResourceManager) genera vari single
             int numberOfSingleResources = Random.Range(3, 7); 
 
-            int randomRangeX = Mathf.Max(10, gridWidth); // Almeno 5, o la larghezza della griglia
+            int randomRangeX = Mathf.Max(10, gridWidth); 
             int randomRangeY = Mathf.Max(10, gridHeight);
 
             for (int i = 0; i < numberOfSingleResources; i++)
@@ -44,21 +43,14 @@ namespace Script.ResourceSystem.ResourceGenerationStrategy
                     int randY = Random.Range(-randomRangeY+1, randomRangeY-1);
                     randomPos = origin + new Vector2Int(randX, randY);
                     attempts++;
+                    
+                } while (patternSet.Contains(randomPos) && attempts < maxAttempts);
 
-                    // Continua a generare finché non trovi una posizione che non sia già nella lista
-                    // e non superi il numero massimo di tentativi.
-                } while (pattern.Contains(randomPos) && attempts < maxAttempts);
-
-                // Se abbiamo trovato una posizione unica entro i tentativi, aggiungila
-                if (!pattern.Contains(randomPos))
-                {
-                    pattern.Add(randomPos);
-                }
-                
-                // Se non riusciamo a trovare una posizione unica dopo maxAttempts, semplicemente
-                // aggiungeremo meno risorse singole di quelle richieste.
+                // Se abbiamo trovato una posizione unica entro i tentativi, la HashSet l'aggiunge saltando i doppioni
+                patternSet.Add(randomPos);
             }
-            return pattern;
+            
+            return patternSet.ToList();
         }
     }
 }
