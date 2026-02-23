@@ -90,11 +90,8 @@ namespace Script.InputSystem
                     }
                 }
 
-                IHoverable target = FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Unit)
-                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Building)
-                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Resource)
-                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.ZoneSign)
-                                 ?? FindFirstHoverable(_overlapBuffer, hitCount, LayerRegistry.Tile);
+                // Unica chiamata ottimizzata che filtra per priorità decrescente con TryGetComponent O(1) in allocazioni
+                IHoverable target = FindFirstHoverableWithPriority(hitCount);
 
                 if (target != _lastHovered)
                 {
@@ -132,22 +129,31 @@ namespace Script.InputSystem
         #region Private Helpers
 
         /// <summary>
-        /// Trova e restituisce il primo component IHoverable in un array di collider filtrati per layermask.
+        /// Trova e restituisce il primo component IHoverable in base all'ordine di priorità stabilito.
+        /// Ottimizzato con TryGetComponent per abbattere le Micro-Allocazioni in Update.
         /// </summary>
-        private IHoverable FindFirstHoverable(Collider2D[] colliders, int count, int layerId)
+        private IHoverable FindFirstHoverableWithPriority(int hitCount)
         {
-            if (layerId == -1) return null;
-            for (int i = 0; i < count; i++)
-            {
-                var col = colliders[i];
-                if (col == null) continue;
-                if (col.gameObject.layer != layerId) continue;
+            // Priority: Unit > Building > Resource > ZoneSign > Tile.
+            int[] priorityLayers = { LayerRegistry.Unit, LayerRegistry.Building, LayerRegistry.Resource, LayerRegistry.ZoneSign, LayerRegistry.Tile };
 
-                var hover = col.GetComponent<IHoverable>();
-                if (_debugMode && hover != null)
-                    Debug.Log($"[InputManager] {col.gameObject.name} is IHoverable");
-                
-                if (hover != null) return hover;
+            foreach (var layer in priorityLayers)
+            {
+                if (layer == -1) continue;
+
+                for (int i = 0; i < hitCount; i++)
+                {
+                    var col = _overlapBuffer[i];
+                    if (col != null && col.gameObject.layer == layer)
+                    {
+                        // TryGetComponent non alloca costrutti null se il Component non esiste
+                        if (col.TryGetComponent<IHoverable>(out var hoverable))
+                        {
+                            if (_debugMode) Debug.Log($"[InputManager] {col.gameObject.name} is IHoverable");
+                            return hoverable;
+                        }
+                    }
+                }
             }
             return null;
         }

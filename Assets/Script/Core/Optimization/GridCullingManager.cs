@@ -4,6 +4,7 @@ using Script.GridSystem;
 using Script.ResourceSystem;
 using UnityEngine;
 using VContainer;
+using System.Collections.Generic;
 
 namespace Script.Core.Optimization
 {
@@ -35,6 +36,9 @@ namespace Script.Core.Optimization
             _tileManager = tileManager;
         }
 
+        // Cache per evitare GetComponentsInChildren ad ogni tick
+        private readonly Dictionary<int, Renderer[]> _rendererCache = new();
+
         private void OnEnable()
         {
             if (_mainCamera != null && _gridManager != null && _tileManager != null)
@@ -53,6 +57,8 @@ namespace Script.Core.Optimization
             {
                 StopCoroutine(_cullingRoutine);
             }
+            
+            _rendererCache.Clear();
         }
 
         private IEnumerator CullingRoutine()
@@ -146,16 +152,25 @@ namespace Script.Core.Optimization
 
         /// <summary>
         /// Ottimizza l'attivazione/disattivazione controllando lo stato precedente, 
-        /// usando GetComponent(s)InChildren per colpire mesh principali e ombre.
+        /// recuperando il buffer dalla cache per non pesare sul Garbage Collector.
         /// </summary>
         private void ToggleRenderers(GameObject obj, bool isVisible)
         {
-            Renderer[] renderers = obj.GetComponentsInChildren<Renderer>(true);
-            foreach (Renderer r in renderers)
+            int instanceId = obj.GetInstanceID();
+            
+            if (!_rendererCache.TryGetValue(instanceId, out Renderer[] renderers))
             {
-                if (r.enabled != isVisible)
+                // Unico GetComponents al primo incontro
+                renderers = obj.GetComponentsInChildren<Renderer>(true);
+                _rendererCache[instanceId] = renderers;
+            }
+
+            // Evita allocazioni future
+            for (int i = 0; i < renderers.Length; i++)
+            {
+                if (renderers[i] != null && renderers[i].enabled != isVisible)
                 {
-                    r.enabled = isVisible;
+                    renderers[i].enabled = isVisible;
                 }
             }
         }
