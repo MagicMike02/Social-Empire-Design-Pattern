@@ -17,13 +17,15 @@ namespace Script.ResourceSystem
         private TileManager _tileManager;
         private ZoneManager _zoneManager;
         private ResourcePoolManager _poolManager;
+        private GridManager _gridManager;
 
         [Inject]
-        public void Construct(TileManager tileManager, ZoneManager zoneManager, ResourcePoolManager poolManager)
+        public void Construct(TileManager tileManager, ZoneManager zoneManager, ResourcePoolManager poolManager, GridManager gridManager)
         {
             _tileManager = tileManager;
             _zoneManager = zoneManager;
             _poolManager = poolManager;
+            _gridManager = gridManager;
         }
         
         #endregion
@@ -37,6 +39,9 @@ namespace Script.ResourceSystem
         #region Private Fields & Events
 
         private IResourceGenerationStrategy _generationStrategy;
+        
+        private readonly ClusterGenerationStrategy _clusterStrategy = new();
+        private readonly RegularGridWithSingleRandomGenerationStrategy _singleRandomStrategy = new();
 
         /// <summary>
         /// Delegato e evento per notificare lo spawn formale di una risorsa.
@@ -91,20 +96,22 @@ namespace Script.ResourceSystem
                 if (resource.isDestroyedOnCollect)
                 {
                     groupSize = resource.defaultGroupSize;
-                    SetGenerationStrategy(new RegularGridWithSingleRandomGenerationStrategy());
+                    SetGenerationStrategy(_singleRandomStrategy);
                 }
                 else
                 {
-                    SetGenerationStrategy(new ClusterGenerationStrategy());
+                    SetGenerationStrategy(_clusterStrategy);
                 }
 
                 if (_generationStrategy == null)
                     return;
 
                 List<Vector2Int> positions = _generationStrategy.GenerateResourcePositions(origin, groupSize);
-                if (positions.TrueForAll(IsValidTile))
+                List<Vector2Int> validPositions = positions.FindAll(IsValidTile);
+                
+                if (validPositions.Count > 0)
                 {
-                    foreach (var pos in positions)
+                    foreach (var pos in validPositions)
                     {
                         SpawnResourceAt(pos, resource);
                     }
@@ -146,8 +153,8 @@ namespace Script.ResourceSystem
         {
             var tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
             return tile != null
-                   && !_zoneManager.occupiedTiles.ContainsKey(pos)
-                   && tile.State != TileState.Unlocked;
+                   && tile.State != TileState.Unlocked
+                   && _gridManager.IsCellFree(pos);
         }
 
         /// <summary>

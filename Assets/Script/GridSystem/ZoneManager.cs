@@ -15,6 +15,7 @@ namespace Script.GridSystem
         
         private GameEconomyManager _economyManager;
         private CommandHistory _commandHistory;
+        private GridManager _gridManager;
 
         [Inject]
         public void Construct(GameEconomyManager economyManager, CommandHistory commandHistory)
@@ -33,7 +34,6 @@ namespace Script.GridSystem
         private const int _zoneSize = 20;
         private Dictionary<Vector2Int, Zone> _zones = new();
         private Grid<Tile> _grid;
-        public Dictionary<Vector2Int, GameObject> occupiedTiles = new();
         
         private int _unlockedZonesCount = 0;
         
@@ -50,9 +50,10 @@ namespace Script.GridSystem
         /// <summary>
         /// Inizializza il manager interfacciandolo con la griglia base.
         /// </summary>
-        public void Initialize(Grid<Tile> grid)
+        public void Initialize(Grid<Tile> grid, GridManager gridManager)
         {
             _grid = grid;
+            _gridManager = gridManager;
         }
         #endregion
         
@@ -104,7 +105,7 @@ namespace Script.GridSystem
             if (zone.purchaseSign)
             {
                 Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-                occupiedTiles.Remove(signGridPos);
+                _gridManager.FreeCell(signGridPos);
                 Destroy(zone.purchaseSign);
             }
         }
@@ -186,7 +187,7 @@ namespace Script.GridSystem
             
             GameObject signObj = Instantiate(_purchaseSignPrefab, signPosition, Quaternion.identity, transform);
             
-            occupiedTiles.Add(centerTilePos, signObj);
+            _gridManager.OccupyCell(centerTilePos, signObj);
            
             var sign = signObj.GetComponent<PurchaseSign>();
             var cost = _expansionData != null ? _expansionData.GetCostForNextZone(_unlockedZonesCount) : new Dictionary<ResourceType, int>();

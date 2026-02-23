@@ -16,6 +16,7 @@ namespace Script.ResourceSystem
         private ResourceManager _manager;
         private SpriteRenderer _spriteRenderer;
         private int _prefabIndex;
+        private bool _isCollected;
         
         #endregion
 
@@ -47,6 +48,7 @@ namespace Script.ResourceSystem
             _data = data;
             _gridPosition = gridPos;
             _manager = manager;
+            _isCollected = false;
             tag = "Resources";
             SetSortingOrder();
         }
@@ -100,12 +102,15 @@ namespace Script.ResourceSystem
 
         private void CollectResource()
         {
+            if (_isCollected) return;
+
             if (_manager == null || _data == null)
             {
                 Debug.LogWarning($"[ResourceInstance] Impossibile raccogliere risorsa: Manager o Data non inizializzati su {gameObject.name}");
                 return;
             }
             
+            _isCollected = true;
             _manager.HandleResourceCollected(_gridPosition, _data);
         }
         

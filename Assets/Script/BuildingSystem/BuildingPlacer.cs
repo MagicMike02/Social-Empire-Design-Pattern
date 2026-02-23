@@ -349,35 +349,7 @@ namespace Script.BuildingSystem
             // Controllo 2: Risorse sufficienti
             bool canAfford = _manager.Economy == null || _manager.Economy.CanAfford(config.ToDictionary());
 
-            // Controllo 3: Nessuna risorsa sulle celle
-            bool noResourcesOnCells = AreCellsFreeOfResources(originCell, config.Width, config.Height);
-
-            return cellsFree && canAfford && noResourcesOnCells;
-        }
-
-        /// <summary>
-        /// Verifica se le celle non contengono risorse.
-        /// </summary>
-        private bool AreCellsFreeOfResources(Vector3Int originCell, int width, int height)
-        {
-            if (_zoneManager == null) return true;
-
-            // Verifica se qualche cella è occupata da una risorsa
-            for (int dx = 0; dx < width; dx++)
-            {
-                for (int dy = 0; dy < height; dy++)
-                {
-                    var checkCell = new Vector2Int(originCell.x + dx, originCell.y + dy);
-
-                    // Controlla se la cella è occupata in occupiedTiles (risorse/decorazioni)
-                    if (_zoneManager.occupiedTiles.ContainsKey(checkCell))
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return true;
+            return cellsFree && canAfford;
         }
 
         #endregion

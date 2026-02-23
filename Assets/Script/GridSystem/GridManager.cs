@@ -71,7 +71,7 @@ namespace Script.GridSystem
 
             if (_zoneManager == null) return;
             
-            _zoneManager.Initialize(grid);
+            _zoneManager.Initialize(grid, this);
             _zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
         }
         

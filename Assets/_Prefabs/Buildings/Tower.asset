@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a0b0e57321f24816995c868a0e13ba21, type: 3}
   m_Name: Tower
   m_EditorClassIdentifier: Assembly-CSharp::Script.BuildingSystem.BuildingConfigSO
-  Prefab: {fileID: 8148586854378400899, guid: 21a0668535ac4f345a5bdda8eb8c4d51, type: 3}
+  Prefab: {fileID: 1900990216496387211, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
   SortingLayer: OnTiles
   BaseSortingOrder: 0
-  Width: 2
-  Height: 2
+  Width: 1
+  Height: 1
   Costs:
   - Type: 3
     Amount: 1
