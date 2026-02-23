@@ -50,6 +50,7 @@ namespace Script.Core.Commands
             }
         }
 
+#if UNITY_EDITOR
         private void OnGUI()
         {
             if (_commandHistory == null)
@@ -73,5 +74,6 @@ namespace Script.Core.Commands
             GUILayout.Label("  Ctrl+Z = Undo | Ctrl+Shift+Z / Ctrl+Y = Redo");
             GUILayout.EndArea();
         }
+#endif
     }
 }
