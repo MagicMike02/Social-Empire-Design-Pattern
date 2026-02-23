@@ -45,7 +45,7 @@ namespace Script.ResourceSystem
         #region Private Fields
         
         private Dictionary<Vector2Int, GameObject> _activeResources = new();
-        private Dictionary<Vector2Int, Coroutine> _regenerationCoroutines = new();
+        private List<ActiveRegeneration> _activeRegenerations = new();
         
         #endregion
 
@@ -59,6 +59,11 @@ namespace Script.ResourceSystem
         private void Start()
         {
             InitializeResourceSystem();
+        }
+
+        private void Update()
+        {
+            ProcessRegenerations();
         }
         
         #endregion
@@ -186,62 +191,80 @@ namespace Script.ResourceSystem
         #region Regeneration System
 
         /// <summary>
-        /// Pianifica una coroutine per la rigenerazione di una risorsa dopo essere stata raccolta, bloccandone lo spazio griglia temporaneamente.
+        /// Aggiunge una risorsa alla coda di rigenerazione governata dal tick Update() invece che da coroutine.
         /// </summary>
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
-            if (_regenerationCoroutines.TryGetValue(pos, out Coroutine existingCoroutine))
+            // Previene ri-registrazioni duplicate sulla stessa cella (non dovrebbe succedere poichè la grid è bloccata)
+            for (int i = 0; i < _activeRegenerations.Count; i++)
             {
-                StopCoroutine(existingCoroutine);
+                if (_activeRegenerations[i].Position == pos)
+                {
+                    return; // Sta già rigenerando
+                }
             }
 
-            _regenerationCoroutines[pos] = StartCoroutine(RegenResourceAfterDelay(pos, data));
+            // Spawna eventuale modello statico di rigenerazione (es. tronco tagliato)
+            Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
+            GameObject regenVisual = null;
+
+            if (tile && data._regenPrefab)
+            {
+                regenVisual = Instantiate(data._regenPrefab, tile.transform.position + new Vector3(0, data.yOffset, 0), Quaternion.identity, transform);
+                _activeResources[pos] = regenVisual;
+                _gridManager.OccupyCell(pos, regenVisual);
+            }
+
+            _activeRegenerations.Add(new ActiveRegeneration(pos, data, data.regenerationTime, regenVisual));
             
-            // Pubblica evento GlobalEventBus
+            // Pubblica evento GlobalEventBus per UI/Audio
             GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
         }
 
         /// <summary>
-        /// Coroutine che sostituisce l'entita' raccolta in un object passivo di cooldown, per ripristinarla dopo il timer.
+        /// Tick loop eseguito ad ogni frame. Scalando il tempo di ogni rigenerazione attiva.
         /// </summary>
-        private IEnumerator RegenResourceAfterDelay(Vector2Int pos, ResourceDataSO data)
+        private void ProcessRegenerations()
         {
-            // Istanzia prefab regen (visual only, no ResourceInstance needed)
-            Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
-            if (!tile) yield break;
+            if (_activeRegenerations.Count == 0) return;
 
-            Vector3 worldPos = tile.transform.position;
-            GameObject regenPrefab = data._regenPrefab;
-            GameObject regenVisual = null;
-            
-            if (regenPrefab)
+            float dt = Time.deltaTime;
+
+            // Iterazione inversa sicura per rimuovere elementi in-place senza spezzare l'indice
+            for (int i = _activeRegenerations.Count - 1; i >= 0; i--)
             {
-                regenVisual = Instantiate(regenPrefab, worldPos + new Vector3(0, data.yOffset, 0),
-                    Quaternion.identity, transform);
-                _activeResources[pos] = regenVisual;  // Track visual temporarily
-                
-                // ✅ Mantieni cella occupata durante rigenerazione (previene placement edifici)
-                _gridManager.OccupyCell(pos, regenVisual);
+                var regen = _activeRegenerations[i];
+                regen.TimeLeft -= dt;
+
+                if (regen.TimeLeft <= 0f)
+                {
+                    CompleteRegeneration(regen);
+                    _activeRegenerations.RemoveAt(i);
+                }
+                else
+                {
+                    // Aggiorna lo struct all'interno della lista 
+                    // (Poiché struct è pass-by-value, l'elemento va riassegnato)
+                    _activeRegenerations[i] = regen;
+                }
             }
+        }
 
-            yield return new WaitForSeconds(data.regenerationTime);
-
-            // Cleanup regen visual
-            if (regenVisual)
+        private void CompleteRegeneration(ActiveRegeneration regen)
+        {
+            // Pulisci l'ostacolo/sprite temporaneo
+            if (regen.VisualObject)
             {
-                Destroy(regenVisual);
+                Destroy(regen.VisualObject);
             }
             
-            _gridManager.FreeCell(pos);
-            _activeResources.Remove(pos);
+            _gridManager.FreeCell(regen.Position);
+            _activeResources.Remove(regen.Position);
 
-            // Spawn the actual resource (original prefab with ResourceInstance)
-            _resourceSpawner.SpawnResourceAtPosition(pos, data);
+            // Spawna definitivamente il nuovo albero instanziando ResourceInstance class!
+            _resourceSpawner.SpawnResourceAtPosition(regen.Position, regen.Data);
             
-            // Pubblica evento GlobalEventBus
-            GlobalEventBus.Publish(new ResourceRegeneratedEvent(pos, data.resourceType));
-            
-            _regenerationCoroutines.Remove(pos);
+            GlobalEventBus.Publish(new ResourceRegeneratedEvent(regen.Position, regen.Data.resourceType));
         }
         
         #endregion
@@ -253,16 +276,7 @@ namespace Script.ResourceSystem
         /// </summary>
         private void OnDestroy()
         {
-            // Previene orphaned coroutines e memory leaks su scene transitions
-            foreach (var coroutine in _regenerationCoroutines.Values)
-            {
-                if (coroutine != null)
-                {
-                    StopCoroutine(coroutine);
-                }
-            }
-
-            _regenerationCoroutines.Clear();
+            _activeRegenerations.Clear();
             
             // Disiscrivi dall'evento per prevenire stale references
             if (_resourceSpawner != null)
@@ -317,6 +331,30 @@ namespace Script.ResourceSystem
         {
             var ri = go.GetComponent<ResourceInstance>();
             return ri != null ? _resourceSpawner.GetResourceDataSO(ri.Data.resourceType) : null;
+        }
+        
+        #endregion
+
+        #region Inner Classes
+        
+        /// <summary>
+        /// Struct compatta basata su dati che tiene traccia del progresso di rigenerazione di una risorsa.
+        /// Essendo uno struct limita l'overhead del Garbage Collector per allocazioni sul mucchio ad ogni albero spezzato.
+        /// </summary>
+        private struct ActiveRegeneration
+        {
+            public Vector2Int Position;
+            public ResourceDataSO Data;
+            public float TimeLeft;
+            public GameObject VisualObject;
+
+            public ActiveRegeneration(Vector2Int position, ResourceDataSO data, float timeLeft, GameObject visualObject)
+            {
+                Position = position;
+                Data = data;
+                TimeLeft = timeLeft;
+                VisualObject = visualObject;
+            }
         }
         
         #endregion
