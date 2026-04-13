@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 namespace Script.CameraSystem
 {
@@ -14,6 +15,10 @@ namespace Script.CameraSystem
         public float initialZoom = 5f;
 
         [Header("Drag")] public float dragSpeed = 1f;
+        [Header("Input Actions")]
+        [SerializeField] private InputActionReference _pointAction;
+        [SerializeField] private InputActionReference _panHoldAction;
+        [SerializeField] private InputActionReference _zoomAction;
 
         private Vector3 dragOrigin;
         private Camera cam;
@@ -38,6 +43,20 @@ namespace Script.CameraSystem
         {
             HandleZoom();
             HandleDrag();
+        }
+
+        private void OnEnable()
+        {
+            _pointAction?.action?.Enable();
+            _panHoldAction?.action?.Enable();
+            _zoomAction?.action?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _pointAction?.action?.Disable();
+            _panHoldAction?.action?.Disable();
+            _zoomAction?.action?.Disable();
         }
 
         void InitIsoMatrix()
@@ -101,7 +120,12 @@ namespace Script.CameraSystem
 
         void HandleZoom()
         {
-            float scroll = Input.GetAxis("Mouse ScrollWheel");
+            float scroll = 0f;
+            if (_zoomAction != null && _zoomAction.action != null)
+            {
+                scroll = _zoomAction.action.ReadValue<float>();
+            }
+
             if (scroll != 0f)
             {
                 cam.orthographicSize -= scroll * zoomSpeed;
@@ -111,14 +135,14 @@ namespace Script.CameraSystem
 
         void HandleDrag()
         {
-            if (Input.GetMouseButtonDown(0))
+            if (_panHoldAction != null && _panHoldAction.action != null && _panHoldAction.action.WasPressedThisFrame())
             {
-                dragOrigin = cam.ScreenToWorldPoint(Input.mousePosition);
+                dragOrigin = cam.ScreenToWorldPoint(ReadMousePosition());
             }
 
-            if (Input.GetMouseButton(0))
+            if (_panHoldAction != null && _panHoldAction.action != null && _panHoldAction.action.IsPressed())
             {
-                Vector3 currentPos = cam.ScreenToWorldPoint(Input.mousePosition);
+                Vector3 currentPos = cam.ScreenToWorldPoint(ReadMousePosition());
                 Vector3 delta = dragOrigin - currentPos;
 
                 transform.position += delta;
@@ -133,6 +157,23 @@ namespace Script.CameraSystem
                     transform.position.z
                 );
             }
+        }
+
+        private Vector3 ReadMousePosition()
+        {
+            if (_pointAction != null && _pointAction.action != null)
+            {
+                Vector2 screenPos = _pointAction.action.ReadValue<Vector2>();
+                return new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+
+            if (Mouse.current != null)
+            {
+                Vector2 screenPos = Mouse.current.position.ReadValue();
+                return new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+
+            return Vector3.zero;
         }
 
         void OnDrawGizmos()

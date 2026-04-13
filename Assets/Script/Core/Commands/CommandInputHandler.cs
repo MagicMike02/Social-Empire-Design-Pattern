@@ -1,4 +1,5 @@
 ﻿﻿using UnityEngine;
+using UnityEngine.InputSystem;
 using VContainer;
 
 namespace Script.Core.Commands
@@ -17,6 +18,9 @@ namespace Script.Core.Commands
     public class CommandInputHandler : MonoBehaviour
     {
         private CommandHistory _commandHistory;
+        [Header("Input Actions")]
+        [SerializeField] private InputActionReference _undoAction;
+        [SerializeField] private InputActionReference _redoAction;
 
         [Inject]
         public void Construct(CommandHistory commandHistory)
@@ -29,25 +33,29 @@ namespace Script.Core.Commands
             if (_commandHistory == null)
                 return;
 
-            // Ctrl+Shift+Z = Redo (priority su Ctrl+Z)
-            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKey(KeyCode.LeftShift) && Input.GetKeyDown(KeyCode.Z))
+            // Redo ha priorita su Undo, per evitare doppio trigger su combinazioni sovrapposte.
+            if (_redoAction != null && _redoAction.action != null && _redoAction.action.WasPressedThisFrame())
             {
                 _commandHistory.Redo();
                 return; // Early exit per evitare Undo subito dopo
             }
             
-            // Ctrl+Y = Redo (alternativo, standard Windows)
-            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Y))
-            {
-                _commandHistory.Redo();
-                return;
-            }
-
-            // Ctrl+Z = Undo
-            if (Input.GetKey(KeyCode.LeftControl) && Input.GetKeyDown(KeyCode.Z))
+            if (_undoAction != null && _undoAction.action != null && _undoAction.action.WasPressedThisFrame())
             {
                 _commandHistory.Undo();
             }
+        }
+
+        private void OnEnable()
+        {
+            _undoAction?.action?.Enable();
+            _redoAction?.action?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _undoAction?.action?.Disable();
+            _redoAction?.action?.Disable();
         }
 
 #if UNITY_EDITOR

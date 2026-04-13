@@ -5,6 +5,7 @@ using Script.Core.Commands;
 using Script.Core.Events;
 using Script.GridSystem;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using VContainer;
 
 namespace Script.BuildingSystem
@@ -50,6 +51,8 @@ namespace Script.BuildingSystem
         private BuildingConfigSO _selectedConfig;
 
         [SerializeField] private Vector3Int _currentCell;
+        [Header("Input Actions")]
+        [SerializeField] private InputActionReference _pointAction;
 
         private Vector3Int _lastCell = Vector3Int.one * -1000;
         private bool _lastValidState = true;
@@ -85,6 +88,16 @@ namespace Script.BuildingSystem
         {
             // Delega logica Update allo stato corrente
             _currentState?.OnUpdate();
+        }
+
+        private void OnEnable()
+        {
+            _pointAction?.action?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _pointAction?.action?.Disable();
         }
 
         private void OnDestroy()
@@ -287,7 +300,7 @@ namespace Script.BuildingSystem
             }
 
             // STEP 1: Conversione mouse → world
-            var mousePos = Input.mousePosition;
+            var mousePos = ReadMousePosition();
             var worldPos = _camera.ScreenToWorldPoint(mousePos);
             worldPos.z = 1f;
 
@@ -350,6 +363,23 @@ namespace Script.BuildingSystem
             bool canAfford = _manager.Economy == null || _manager.Economy.CanAfford(config.ToDictionary());
 
             return cellsFree && canAfford;
+        }
+
+        private Vector3 ReadMousePosition()
+        {
+            if (_pointAction != null && _pointAction.action != null)
+            {
+                Vector2 screenPos = _pointAction.action.ReadValue<Vector2>();
+                return new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+
+            if (Mouse.current != null)
+            {
+                Vector2 screenPos = Mouse.current.position.ReadValue();
+                return new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+
+            return Vector3.zero;
         }
 
         #endregion

@@ -2,6 +2,7 @@
 using VContainer;
 using Script.InputSystem;
 using Script.GridSystem;
+using UnityEngine.InputSystem;
 
 namespace Script.BuildingSystem
 {
@@ -19,6 +20,10 @@ namespace Script.BuildingSystem
         [Header("Available Buildings")]
         [Tooltip("Map indices to keyboard numbers: 0 -> Key 1, 1 -> Key 2")]
         [SerializeField] private BuildingConfigSO[] _availableBuildings;
+        [Header("Input Actions")]
+        [Tooltip("Binding atteso: tasti 1..9, un'azione per slot")]
+        [SerializeField] private InputActionReference[] _selectBuildingActions = new InputActionReference[9];
+        [SerializeField] private InputActionReference _cancelAction;
 
         [Inject]
         public void Construct(BuildingPlacer placer, InputManager inputManager)
@@ -34,6 +39,8 @@ namespace Script.BuildingSystem
                 _inputManager.OnTileClicked += HandleTileClicked;
                 _inputManager.OnMapRightClicked += HandleRightClicked;
             }
+
+            EnableActions();
         }
 
         private void OnDisable()
@@ -43,6 +50,8 @@ namespace Script.BuildingSystem
                 _inputManager.OnTileClicked -= HandleTileClicked;
                 _inputManager.OnMapRightClicked -= HandleRightClicked;
             }
+
+            DisableActions();
         }
 
         private void HandleTileClicked(Tile tile)
@@ -80,7 +89,8 @@ namespace Script.BuildingSystem
             {
                 for (int i = 0; i < Mathf.Min(_availableBuildings.Length, 9); i++)
                 {
-                    if (Input.GetKeyDown(KeyCode.Alpha1 + i))
+                    var action = i < _selectBuildingActions.Length ? _selectBuildingActions[i] : null;
+                    if (action != null && action.action != null && action.action.WasPressedThisFrame())
                     {
                         var config = _availableBuildings[i];
                         if (config != null)
@@ -93,10 +103,36 @@ namespace Script.BuildingSystem
             }
 
             // Tasto ESC: Cancella placement
-            if (Input.GetKeyDown(KeyCode.Escape))
+            if (_cancelAction != null && _cancelAction.action != null && _cancelAction.action.WasPressedThisFrame())
             {
                 _placer.CancelPlacement();
             }
+        }
+
+        private void EnableActions()
+        {
+            if (_selectBuildingActions != null)
+            {
+                for (int i = 0; i < _selectBuildingActions.Length; i++)
+                {
+                    _selectBuildingActions[i]?.action?.Enable();
+                }
+            }
+
+            _cancelAction?.action?.Enable();
+        }
+
+        private void DisableActions()
+        {
+            if (_selectBuildingActions != null)
+            {
+                for (int i = 0; i < _selectBuildingActions.Length; i++)
+                {
+                    _selectBuildingActions[i]?.action?.Disable();
+                }
+            }
+
+            _cancelAction?.action?.Disable();
         }
     }
 }
