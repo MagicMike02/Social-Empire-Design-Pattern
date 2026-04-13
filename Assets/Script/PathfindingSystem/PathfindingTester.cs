@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using Script.Core.Events;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using VContainer;
 
 namespace Script.PathfindingSystem 
@@ -20,6 +21,10 @@ namespace Script.PathfindingSystem
         [Header("Test Configuration")]
         [SerializeField] private Vector2Int _startCell = new Vector2Int(40, 59);
         [SerializeField] private Vector2Int _goalCell = new Vector2Int(59, 40);
+
+        [Header("Input Actions")]
+        [SerializeField] private InputActionReference _findPathAction;
+        [SerializeField] private InputActionReference _simulateGridChangeAction;
         
         [Header("Dependencies (Auto-Injected)")]
         private PathfindingManager _pathfindingManager;
@@ -32,16 +37,26 @@ namespace Script.PathfindingSystem
             _pathfindingManager = pathfindingManager;
         }
 
+        private void OnEnable()
+        {
+            _findPathAction?.action?.Enable();
+            _simulateGridChangeAction?.action?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            _findPathAction?.action?.Disable();
+            _simulateGridChangeAction?.action?.Disable();
+        }
+
         private void Update()
         {
-            // F: Find Path
-            if (Input.GetKeyDown(KeyCode.F))
+            if (_findPathAction != null && _findPathAction.action != null && _findPathAction.action.WasPressedThisFrame())
             {
                 TestFindPath();
             }
 
-            // P: Simulate grid change (pubblica evento test)
-            if (Input.GetKeyDown(KeyCode.P))
+            if (_simulateGridChangeAction != null && _simulateGridChangeAction.action != null && _simulateGridChangeAction.action.WasPressedThisFrame())
             {
                 SimulateGridChange();
             }
@@ -88,8 +103,8 @@ namespace Script.PathfindingSystem
             GUILayout.Label($"Last path: {_lastPath.Count} cells");
             GUILayout.Label("");
             GUILayout.Label("CONTROLS:");
-            GUILayout.Label("  F = Find Path");
-            GUILayout.Label("  P = Simulate Grid Change");
+            GUILayout.Label("  Find Path Action = Find Path");
+            GUILayout.Label("  Simulate Grid Change Action = Simulate Grid Change");
             GUILayout.Label("");
             GUILayout.Label("VISUALIZATION:");
             GUILayout.Label("  Enable 'Debug Visualization' toggle on");
@@ -110,16 +125,6 @@ namespace Script.PathfindingSystem
         }
         
         
-        [ContextMenu("Simulate Grid Change")]
-        private void EditorCleanPath()
-        {
-            if (Application.isPlaying)
-            {
-                
-            }
-               
-        }
-
         [ContextMenu("Simulate Grid Change")]
         private void EditorGridChange()
         {

@@ -5,6 +5,7 @@ using System;
 using Script.Core;
 using Script.GridSystem;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 namespace Script.InputSystem
 {
@@ -26,6 +27,10 @@ namespace Script.InputSystem
         #region Inspector Fields
         
         [SerializeField] private bool _debugMode;
+        [Header("Input Actions")]
+        [SerializeField] private InputActionReference _pointAction;
+        [SerializeField] private InputActionReference _leftClickAction;
+        [SerializeField] private InputActionReference _rightClickAction;
         
         #endregion
 
@@ -57,6 +62,20 @@ namespace Script.InputSystem
 
         #region Unity Lifecycle
 
+        private void OnEnable()
+        {
+            EnableAction(_pointAction);
+            EnableAction(_leftClickAction);
+            EnableAction(_rightClickAction);
+        }
+
+        private void OnDisable()
+        {
+            DisableAction(_pointAction);
+            DisableAction(_leftClickAction);
+            DisableAction(_rightClickAction);
+        }
+
         private void Update()
         {
             // Evita interazioni sulla World Grid se il cursore si trova sopra UI Elements 
@@ -70,7 +89,7 @@ namespace Script.InputSystem
                 return;
             }
 
-            var mousePos = Input.mousePosition;
+            var mousePos = ReadMousePosition();
             bool mouseMoved = mousePos != _lastMousePos;
 
             if (mouseMoved)
@@ -101,7 +120,7 @@ namespace Script.InputSystem
                 }
             }
 
-            if (Input.GetMouseButtonDown(0))
+            if (_leftClickAction != null && _leftClickAction.action != null && _leftClickAction.action.WasPressedThisFrame())
             {
                 _lastHovered?.OnClick();
                 if (_debugMode && _lastHovered != null) 
@@ -114,7 +133,7 @@ namespace Script.InputSystem
                     OnTileClicked?.Invoke(tile);
                 }
             }
-            if (Input.GetMouseButtonDown(1))
+            if (_rightClickAction != null && _rightClickAction.action != null && _rightClickAction.action.WasPressedThisFrame())
             {
                 Vector3 wp = _camera.ScreenToWorldPoint(_lastMousePos);
                 _lastHovered?.OnRightClick(wp);
@@ -127,6 +146,33 @@ namespace Script.InputSystem
         #endregion
 
         #region Private Helpers
+
+        private Vector3 ReadMousePosition()
+        {
+            if (_pointAction != null && _pointAction.action != null)
+            {
+                Vector2 screenPos = _pointAction.action.ReadValue<Vector2>();
+                return new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+
+            if (Mouse.current != null)
+            {
+                Vector2 screenPos = Mouse.current.position.ReadValue();
+                return new Vector3(screenPos.x, screenPos.y, 0f);
+            }
+
+            return _lastMousePos;
+        }
+
+        private static void EnableAction(InputActionReference actionReference)
+        {
+            actionReference?.action?.Enable();
+        }
+
+        private static void DisableAction(InputActionReference actionReference)
+        {
+            actionReference?.action?.Disable();
+        }
 
         /// <summary>
         /// Trova e restituisce il primo component IHoverable in base all'ordine di priorità stabilito.
