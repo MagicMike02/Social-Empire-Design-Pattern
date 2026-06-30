@@ -9,6 +9,8 @@ using Script.PathfindingSystem;
 using Script.ResourceSystem;
 using Script.ResourceSystem.ResourceUI;
 using Script.UI;
+using Script.UnitSystem;
+using Script.UnitSystem.Production;
 using Script.Core.Optimization;
 using UnityEngine;
 using VContainer;
@@ -88,6 +90,17 @@ namespace Script.Core
             // UI SYSTEM
             RegisterIfExists<UIManager>(builder);
             RegisterIfExists<ResourceDisplayUI>(builder);
+            RegisterIfExistsOptional<UnitSelectionCountUI>(builder);
+
+            // UNIT SYSTEM (optional during M1 rollout)
+            RegisterIfExistsOptional<UnitRegistryService>(builder);
+            RegisterIfExistsOptional<UnitSelectionService>(builder);
+            RegisterIfExistsOptional<UnitCommandService>(builder);
+            RegisterIfExistsOptional<UnitSelectionInputHandler>(builder);
+            RegisterIfExistsOptional<UnitUnlockService>(builder);
+            RegisterIfExistsOptional<UnitSpawnService>(builder);
+            RegisterIfExistsOptional<UnitProductionQueueService>(builder);
+            RegisterIfExistsOptional<UnitRewardGrantService>(builder);
 
             // OPTIMIZATION SYSTEM
             RegisterIfExists<GridCullingManager>(builder);
@@ -123,6 +136,25 @@ namespace Script.Core
             else
             {
                 Debug.LogError($"[GameLifetimeScope] ✗ {typeof(T).Name} non trovato in scena!");
+            }
+        }
+
+        /// <summary>
+        /// Variante opzionale: non emette errori se il componente non e' ancora presente in scena.
+        /// </summary>
+        private void RegisterIfExistsOptional<T>(IContainerBuilder builder, Action<RegistrationBuilder> configure = null) where T : Component
+        {
+            var component = FindFirstObjectByType<T>(FindObjectsInactive.Exclude);
+
+            if (component != null)
+            {
+                var registration = builder.RegisterComponent(component);
+                configure?.Invoke(registration);
+                if (debugMode) Debug.Log($"[GameLifetimeScope] ✓ {typeof(T).Name} (optional)");
+            }
+            else
+            {
+                if (debugMode) Debug.Log($"[GameLifetimeScope] - {typeof(T).Name} (optional, not found)");
             }
         }
     }

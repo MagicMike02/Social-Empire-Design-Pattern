@@ -46,6 +46,16 @@ namespace Script.InputSystem
         /// Evento globale notificato al click destro sulla griglia.
         /// </summary>
         public event Action OnMapRightClicked;
+
+        /// <summary>
+        /// Evento click sinistro world-space con payload completo (posizione + target hoverato o null).
+        /// </summary>
+        public event Action<Vector3, IHoverable> OnWorldLeftClicked;
+
+        /// <summary>
+        /// Evento click destro world-space con payload completo (posizione + target hoverato o null).
+        /// </summary>
+        public event Action<Vector3, IHoverable> OnWorldRightClicked;
         
         #endregion
         
@@ -122,9 +132,13 @@ namespace Script.InputSystem
 
             if (_leftClickAction != null && _leftClickAction.action != null && _leftClickAction.action.WasPressedThisFrame())
             {
+                Vector3 clickMousePos = ReadMousePosition();
+                Vector3 clickWorldPos = _camera.ScreenToWorldPoint(clickMousePos);
                 _lastHovered?.OnClick();
                 if (_debugMode && _lastHovered != null) 
                     Debug.Log($"[InputManager] Click on {_lastHovered.GetType().Name}");
+
+                OnWorldLeftClicked?.Invoke(clickWorldPos, _lastHovered);
 
                 // Collider-First: pass the Tile itself, not a calculated cell
                 // Subscriber reads tile.GridPosition (cached at Initialize, authoritative Source of Truth)
@@ -135,9 +149,11 @@ namespace Script.InputSystem
             }
             if (_rightClickAction != null && _rightClickAction.action != null && _rightClickAction.action.WasPressedThisFrame())
             {
-                Vector3 wp = _camera.ScreenToWorldPoint(_lastMousePos);
+                Vector3 clickMousePos = ReadMousePosition();
+                Vector3 wp = _camera.ScreenToWorldPoint(clickMousePos);
                 _lastHovered?.OnRightClick(wp);
                 OnMapRightClicked?.Invoke();
+                OnWorldRightClicked?.Invoke(wp, _lastHovered);
                 if (_debugMode && _lastHovered != null) 
                     Debug.Log($"[InputManager] RightClick on {_lastHovered.GetType().Name} at {wp}");
             }
