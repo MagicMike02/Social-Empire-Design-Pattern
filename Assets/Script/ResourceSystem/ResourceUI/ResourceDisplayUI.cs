@@ -41,34 +41,31 @@ namespace Script.ResourceSystem.ResourceUI
         
         #endregion
 
-        private void Start()
+        private void OnEnable()
         {
-            if (_economyManager == null)
-            {
-                Debug.LogError("[ResourceDisplayUI] GameEconomyManager non iniettato da VContainer!");
+            if (_economyManager == null || resourceIcons == null || uiElements == null)
                 return;
-            }
-            
-            if (resourceIcons == null || uiElements == null)
-            {
-                Debug.LogError("[ResourceDisplayUI] ResourceIcons o UIElements non assegnati nell'Inspector!");
-                return;
-            }
-            
-            // Subscribe a GlobalEventBus
+
             GlobalEventBus.Subscribe<ResourceAmountChangedEvent>(OnResourceAmountChanged);
-            
-            // Aggiorna subito la UI con gli importi attuali
+
             foreach (var element in uiElements)
             {
-                UpdateResourceUI(element.resourceType, _economyManager.GetResourceAmount(element.resourceType)); 
+                UpdateResourceUI(element.resourceType, _economyManager.GetResourceAmount(element.resourceType));
             }
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
-            // Unsubscribe per prevenire memory leak
             GlobalEventBus.Unsubscribe<ResourceAmountChangedEvent>(OnResourceAmountChanged);
+        }
+
+        private void Start()
+        {
+            if (_economyManager == null)
+                Debug.LogError("[ResourceDisplayUI] GameEconomyManager non iniettato da VContainer!");
+
+            if (resourceIcons == null || uiElements == null)
+                Debug.LogError("[ResourceDisplayUI] ResourceIcons o UIElements non assegnati nell'Inspector!");
         }
 
         // Handler per GlobalEventBus (riceve struct invece di parametri separati)

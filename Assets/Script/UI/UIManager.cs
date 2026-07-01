@@ -60,7 +60,12 @@ namespace Script.UI
             InitializeUI();
         }
 
-        private void OnDestroy()
+        private void OnEnable()
+        {
+            SubscribeToZoneEvents();
+        }
+
+        private void OnDisable()
         {
             UnsubscribeFromZoneEvents();
         }
@@ -106,7 +111,6 @@ namespace Script.UI
             // Future: Centralizzare qui inizializzazione
 
             HideAllFuturePanels();
-            SubscribeToZoneEvents();
 
             Debug.Log("[UIManager] ✓ UI Initialized");
         }

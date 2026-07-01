@@ -50,15 +50,19 @@ namespace Script.PathfindingSystem
 
         #region Unity Lifecycle
         
-        private void Start()
+        private void OnEnable()
         {
-            InitializePathfinding();
             SubscribeToGridEvents();
         }
 
-        private void OnDestroy()
+        private void OnDisable()
         {
             UnsubscribeFromGridEvents();
+        }
+
+        private void Start()
+        {
+            InitializePathfinding();
         }
         
         #endregion

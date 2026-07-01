@@ -153,6 +153,15 @@ namespace Script.Core.Events
         }
 
         /// <summary>
+        /// Reset silenzioso all'avvio sessione / domain reload per evitare subscriber stale in Editor.
+        /// </summary>
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetOnSessionStart()
+        {
+            _eventHandlers.Clear();
+        }
+
+        /// <summary>
         /// Ottiene statistiche del bus per monitoring.
         /// </summary>
         public static string GetStats()

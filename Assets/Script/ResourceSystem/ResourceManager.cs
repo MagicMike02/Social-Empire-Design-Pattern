@@ -55,6 +55,18 @@ namespace Script.ResourceSystem
         {
             ValidateDependencies();
         }
+
+        private void OnEnable()
+        {
+            if (_resourceSpawner != null)
+                _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
+        }
+
+        private void OnDisable()
+        {
+            if (_resourceSpawner != null)
+                _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
+        }
         
         private void Start()
         {
@@ -96,7 +108,6 @@ namespace Script.ResourceSystem
                 return;
             }
             
-            _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
             Debug.Log("[ResourceManager] ✓ Generazione risorse in corso...");
             _resourceSpawner.GenerateAllResources();
         }
@@ -277,13 +288,6 @@ namespace Script.ResourceSystem
         private void OnDestroy()
         {
             _activeRegenerations.Clear();
-            
-            // Disiscrivi dall'evento per prevenire stale references
-            if (_resourceSpawner != null)
-            {
-                _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
-            }
-            
         }
         
         #endregion
