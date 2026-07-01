@@ -1,10 +1,12 @@
-using System.Collections;
+using System;
 using Script.BuildingSystem;
 using Script.GridSystem;
 using Script.ResourceSystem;
 using UnityEngine;
 using VContainer;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Script.Core.Optimization
 {
@@ -23,7 +25,7 @@ namespace Script.Core.Optimization
         private Camera _mainCamera;
         private GridManager _gridManager;
         private TileManager _tileManager;
-        private Coroutine _cullingRoutine;
+        private CancellationTokenSource _cullingCts;
 
         private Vector3 _lastCameraPos;
         private float _lastCameraOrthoSize;
@@ -43,39 +45,65 @@ namespace Script.Core.Optimization
         {
             if (_mainCamera != null && _gridManager != null && _tileManager != null)
             {
-                _cullingRoutine = StartCoroutine(CullingRoutine());
+                _cullingCts?.Cancel();
+                _cullingCts?.Dispose();
+                _cullingCts = new CancellationTokenSource();
+                _ = RunCullingLoopAsync(_cullingCts.Token);
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[GridCullingManager] Dipendenze mancanti. Assicurati che VContainer le abbia iniettate.");
+#endif
             }
         }
 
         private void OnDisable()
         {
-            if (_cullingRoutine != null)
+            if (_cullingCts != null)
             {
-                StopCoroutine(_cullingRoutine);
+                _cullingCts.Cancel();
+                _cullingCts.Dispose();
+                _cullingCts = null;
             }
             
             _rendererCache.Clear();
         }
 
-        private IEnumerator CullingRoutine()
+        private async Task RunCullingLoopAsync(CancellationToken token)
         {
-            // Attendi che la griglia sia materialmente generata
-            yield return new WaitForSeconds(1f);
-
-            while (true)
+            try
             {
-                // Esegui il culling solo se la camera si è mossa o ha fatto zoom
-                if (CameraHasChanged())
+                await Task.Delay(TimeSpan.FromSeconds(1f), token);
+
+                if (token.IsCancellationRequested)
                 {
-                    PerformCulling();
-                    UpdateCameraState();
+                    return;
                 }
 
-                yield return new WaitForSeconds(_cullingInterval);
+                PerformCulling();
+                UpdateCameraState();
+
+                while (!token.IsCancellationRequested)
+                {
+                    if (CameraHasChanged())
+                    {
+                        PerformCulling();
+                        UpdateCameraState();
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(Mathf.Max(0.05f, _cullingInterval)), token);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Atteso durante OnDisable
+            }
+            catch (Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GridCullingManager] Errore nel loop di culling: {ex.Message}\n{ex.StackTrace}");
+#endif
             }
         }
 

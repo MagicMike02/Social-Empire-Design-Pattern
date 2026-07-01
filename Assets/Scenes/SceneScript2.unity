@@ -722,8 +722,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: de891235fa6643ccad4deb965435ca91, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.BuildingPlacer
-  _selectedConfig: {fileID: 11400000, guid: e0b1cad3bd6c26c4baf68ef23df90e91, type: 2}
-  _currentCell: {x: 0, y: 0, z: 0}
   _pointAction: {fileID: 0}
 --- !u!1 &369339601
 GameObject:
@@ -878,7 +876,7 @@ MonoBehaviour:
   width: 100
   height: 100
   cellSize: 1
-  zoomSpeed: 8
+  zoomSpeed: 4
   minZoom: 1
   maxZoom: 30
   initialZoom: 5
