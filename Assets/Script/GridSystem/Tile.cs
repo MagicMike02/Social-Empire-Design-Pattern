@@ -47,7 +47,9 @@ namespace Script.GridSystem
             _renderer = GetComponent<SpriteRenderer>();
             if (_renderer == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("Tile does not have a SpriteRenderer component!");
+#endif
             }
             else
             {
@@ -106,7 +108,9 @@ namespace Script.GridSystem
         
         public void OnClick()
         {
+#if UNITY_EDITOR
             Debug.Log($"Tile clicked: {name}");
+#endif
             // Aggiungi qui logica per selezione, pathfinding, ecc
         }
 

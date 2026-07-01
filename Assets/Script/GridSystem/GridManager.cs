@@ -1,7 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using Script.BuildingSystem;
-using Script.Core.Events;
 using VContainer;
 
 namespace Script.GridSystem
@@ -30,9 +29,8 @@ namespace Script.GridSystem
 
         #region Private Fields
         
-        private readonly List<Vector2Int> _lastPreviewCells = new();
-        private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new();
-        private readonly Dictionary<Vector2Int, GameObject> _occupiedCells = new();
+        private readonly GridOccupancyTracker _occupancyTracker = new();
+        private GridPreviewTracker _previewTracker;
         
         #endregion
 
@@ -45,7 +43,14 @@ namespace Script.GridSystem
                 return;
             }
 
+            _previewTracker = new GridPreviewTracker(_tileManager);
             InitializeGrid();
+        }
+
+        private void OnDestroy()
+        {
+            _previewTracker?.ClearPreview();
+            _occupancyTracker.Clear();
         }
         
         #endregion
@@ -58,13 +63,17 @@ namespace Script.GridSystem
 
             if (_tileManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[GridManager] TileManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+#endif
                 isValid = false;
             }
 
             if (_zoneManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+#endif
                 isValid = false;
             }
 
@@ -138,7 +147,7 @@ namespace Script.GridSystem
                     var p = new Vector2Int(x, y);
                     
                     // Check occupancy (unica fonte di verità)
-                    if (_occupiedCells.ContainsKey(p)) 
+                    if (!_occupancyTracker.IsCellFree(p))
                         return false;
 
                     // Check tile state
@@ -155,22 +164,7 @@ namespace Script.GridSystem
         /// </summary>
         public void OccupyCells(Vector3Int originCell, int width, int height, Building building)
         {
-            for (int dx = 0; dx < width; dx++)
-            {
-                for (int dy = 0; dy < height; dy++)
-                {
-                    var p = new Vector2Int(originCell.x + dx, originCell.y + dy);
-                    _occupiedCells[p] = building.gameObject;
-                }
-            }
-            
-            // Pubblica evento GlobalEventBus per notificare occupazione celle
-            GlobalEventBus.Publish(new CellsOccupiedEvent(
-                originCell, 
-                width, 
-                height, 
-                building?.gameObject
-            ));
+            _occupancyTracker.OccupyCells(originCell, width, height, building);
         }
 
         /// <summary>
@@ -178,17 +172,7 @@ namespace Script.GridSystem
         /// </summary>
         public void FreeCells(Vector3Int originCell, int width, int height)
         {
-            for (int dx = 0; dx < width; dx++)
-            {
-                for (int dy = 0; dy < height; dy++)
-                {
-                    var p = new Vector2Int(originCell.x + dx, originCell.y + dy);
-                    _occupiedCells.Remove(p);
-                }
-            }
-            
-            // Pubblica evento GlobalEventBus per notificare liberazione celle
-            GlobalEventBus.Publish(new CellsFreedEvent(originCell, width, height));
+            _occupancyTracker.FreeCells(originCell, width, height);
         }
 
         /// <summary>
@@ -196,97 +180,7 @@ namespace Script.GridSystem
         /// </summary>
         public void SetCellsPreview(Vector3Int originCell, int width, int height, bool isValid)
         {
-            ClearPreviousPreview();
-
-            // Cache riferimento griglia per performance
-            var grid = _tileManager.GetGrid();
-            if (grid == null) return;
-
-            var newPreviewCells = new List<Vector2Int>();
-            
-            // richiesta di clear-only
-            if (width <= 0 || height <= 0)
-            {
-                // Reset solo celle precedenti usando cache
-                foreach (var p in _lastPreviewCells)
-                {
-                    if (!_previewTileCache.TryGetValue(p, out var tile)) continue;
-
-                    if (tile) tile.ResetTint();
-                }
-                _lastPreviewCells.Clear();
-                _previewTileCache.Clear();
-                return;
-            }
-
-            // Calcola nuove celle da evidenziare
-            for (int dx = 0; dx < width; dx++)
-            {
-                for (int dy = 0; dy < height; dy++)
-                {
-                    int x = originCell.x + dx;
-                    int y = originCell.y + dy;
-                    if (x >= 0 && y >= 0 && x < _tileManager.Width && y < _tileManager.Height)
-                    {
-                        newPreviewCells.Add(new Vector2Int(x, y));
-                    }
-                }
-            }
-
-            // Reset SOLO celle che non sono più nella preview
-            foreach (var p in _lastPreviewCells)
-            {
-                if (!newPreviewCells.Contains(p))
-                {
-                    if (_previewTileCache.TryGetValue(p, out var tile))
-                    {
-                        tile?.ResetTint();
-                        _previewTileCache.Remove(p);
-                    }
-                }
-            }
-
-            // Colori PURI che sostituiscono completamente il tile (no alpha, no moltiplicazione)
-            var greenPreview = new Color(0f, 1f, 0f, 1f); // Verde puro opaco
-            var redPreview = new Color(1f, 0f, 0f, 1f);   // Rosso puro opaco
-            
-            var color = isValid ? greenPreview : redPreview;
-            
-            // Applica colore SOLO alle nuove celle usando cache
-            foreach (var p in newPreviewCells)
-            {
-                // Usa cache o recupera e cachea
-                if (!_previewTileCache.TryGetValue(p, out var tile))
-                {
-                    tile = grid.GetValue(p.x, p.y);
-                    if (tile != null)
-                    {
-                        _previewTileCache[p] = tile;
-                    }
-                }
-                
-                tile?.PreviewTint(color);
-            }
-
-            // Aggiorna cache celle
-            _lastPreviewCells.Clear();
-            _lastPreviewCells.AddRange(newPreviewCells);
-        }
-        
-        /// <summary>
-        /// Rimuove la tint di preview dalle celle.
-        /// </summary>
-        private void ClearPreviousPreview()
-        {
-            foreach (var cell in _lastPreviewCells)
-            {
-                var tile = _tileManager.GetGrid().GetValue(cell.x, cell.y);
-                if (tile)
-                {
-                    tile.ResetTint();
-                }
-            }
-            _lastPreviewCells.Clear();
+            _previewTracker?.SetCellsPreview(originCell, width, height, isValid);
         }
 
         #endregion
@@ -383,7 +277,7 @@ namespace Script.GridSystem
                 return false;
 
             // Check occupancy (buildings + resources + signs already in _occupiedCells)
-            if (_occupiedCells.ContainsKey(cell))
+            if (!_occupancyTracker.IsCellFree(cell))
                 return false;
 
             return true;
@@ -454,7 +348,7 @@ namespace Script.GridSystem
         /// </summary>
         public void OccupyCell(Vector2Int cell, GameObject context)
         {
-            _occupiedCells[cell] = context;
+            _occupancyTracker.OccupyCell(cell, context);
         }
 
         /// <summary>
@@ -462,7 +356,7 @@ namespace Script.GridSystem
         /// </summary>
         public void FreeCell(Vector2Int cell)
         {
-            _occupiedCells.Remove(cell);
+            _occupancyTracker.FreeCell(cell);
         }
 
         /// <summary>
@@ -470,7 +364,7 @@ namespace Script.GridSystem
         /// </summary>
         public bool IsCellFree(Vector2Int cell)
         {
-            return !_occupiedCells.ContainsKey(cell);
+            return _occupancyTracker.IsCellFree(cell);
         }
 
         /// <summary>
@@ -478,7 +372,7 @@ namespace Script.GridSystem
         /// </summary>
         public IReadOnlyDictionary<Vector2Int, GameObject> GetOccupancySnapshot()
         {
-            return new Dictionary<Vector2Int, GameObject>(_occupiedCells);
+            return _occupancyTracker.GetSnapshot();
         }
 
         #endregion
