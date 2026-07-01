@@ -78,6 +78,11 @@ namespace Script.UI
             UnsubscribeFromZoneEvents();
         }
 
+        private void OnDestroy()
+        {
+            UnsubscribeFromZoneEvents();
+        }
+
         #endregion
 
         #region Initialization
@@ -91,24 +96,32 @@ namespace Script.UI
 
             if (_resourceDisplayUI == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[UIManager] ResourceDisplayUI non iniettato da VContainer!");
+#endif
                 isValid = false;
             }
 
             // Log warnings per future panels non ancora implementati
             if (_buildingSelectionPanel == null)
             {
+#if UNITY_EDITOR
                 Debug.Log("[UIManager] Building Selection Panel non assegnato (future feature)");
+#endif
             }
 
             if (_unitSelectionPanel == null)
             {
+#if UNITY_EDITOR
                 Debug.Log("[UIManager] Unit Selection Panel non assegnato (future feature)");
+#endif
             }
 
             if (_settingsPanel == null)
             {
+#if UNITY_EDITOR
                 Debug.Log("[UIManager] Settings Panel non assegnato (future feature)");
+#endif
             }
 
             return isValid;
@@ -125,7 +138,9 @@ namespace Script.UI
 
             HideAllFuturePanels();
 
+#if UNITY_EDITOR
             Debug.Log("[UIManager] ✓ UI Initialized");
+#endif
         }
 
         /// <summary>
@@ -171,7 +186,9 @@ namespace Script.UI
         /// </summary>
         private void OnZoneUnlocked(ZoneUnlockedEvent evt)
         {
+#if UNITY_EDITOR
             Debug.Log($"[UI] Zona sbloccata: {evt.ZonePosition}");
+#endif
             // Future: Mostra animazione, suono, popup celebrativo
         }
 
@@ -180,7 +197,9 @@ namespace Script.UI
         /// </summary>
         private void OnZonePurchaseFailed(ZonePurchaseFailedEvent evt)
         {
+#if UNITY_EDITOR
             Debug.LogWarning($"[UI] Acquisto zona fallito: {evt.ZoneCoord} - {evt.Reason}");
+#endif
             // Future: Mostra popup errore, shake camera, suono errore
         }
 
@@ -197,11 +216,15 @@ namespace Script.UI
             if (_buildingSelectionPanel != null)
             {
                 _buildingSelectionPanel.SetActive(true);
+#if UNITY_EDITOR
                 Debug.Log("[UIManager] Building Selection Panel shown");
+#endif
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[UIManager] Cannot show Building Selection Panel: not assigned");
+#endif
             }
         }
 
@@ -224,7 +247,9 @@ namespace Script.UI
             if (_unitSelectionPanel != null)
             {
                 _unitSelectionPanel.SetActive(true);
+#if UNITY_EDITOR
                 Debug.Log("[UIManager] Unit Selection Panel shown");
+#endif
             }
         }
 
@@ -248,7 +273,9 @@ namespace Script.UI
             {
                 bool isActive = _settingsPanel.activeSelf;
                 _settingsPanel.SetActive(!isActive);
+#if UNITY_EDITOR
                 Debug.Log($"[UIManager] Settings Panel {(isActive ? "hidden" : "shown")}");
+#endif
             }
         }
 
@@ -284,14 +311,18 @@ namespace Script.UI
             if (_buildingSelectionPanel != null) _buildingSelectionPanel.SetActive(true);
             if (_unitSelectionPanel != null) _unitSelectionPanel.SetActive(true);
             if (_settingsPanel != null) _settingsPanel.SetActive(true);
+#if UNITY_EDITOR
             Debug.Log("[UIManager] DEBUG: All panels shown");
+#endif
         }
 
         [ContextMenu("Debug: Hide All Panels")]
         private void DebugHideAllPanels()
         {
             HideAllOptionalPanels();
+#if UNITY_EDITOR
             Debug.Log("[UIManager] DEBUG: All panels hidden");
+#endif
         }
 #endif
 
