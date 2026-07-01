@@ -3,7 +3,6 @@ using Script.BuildingSystem.States;
 using Script.Common;
 using Script.Core.Commands;
 using Script.Core.Events;
-using Script.GridSystem;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using VContainer;
@@ -17,7 +16,6 @@ namespace Script.BuildingSystem
         private BuildingManager _manager;
         private Camera _camera;
         private GenericPreviewSystem _previewSystem;
-        private ZoneManager _zoneManager;
         private CommandHistory _commandHistory;
 
         [Inject]
@@ -25,13 +23,11 @@ namespace Script.BuildingSystem
             BuildingManager manager,
             Camera mainCamera, 
             GenericPreviewSystem previewSystem,
-            ZoneManager zoneManager,
             CommandHistory commandHistory)
         {
             _manager = manager;
             _camera = mainCamera;
             _previewSystem = previewSystem;
-            _zoneManager = zoneManager;
             _commandHistory = commandHistory;
         }
 
@@ -40,22 +36,14 @@ namespace Script.BuildingSystem
         #region State Machine
 
         private IPlacementState _currentState;
-        private IPlacementState _idleState;
+        private readonly BuildingPlacementStateTracker _placementState = new();
 
         #endregion
 
-        #region Private Fields (State-managed)
+        #region Private Fields
 
-        // NOTE: Questi campi sono gestiti dagli Stati, non modificare direttamente
-        [Header("State (Debug Only)")] [SerializeField]
-        private BuildingConfigSO _selectedConfig;
-
-        [SerializeField] private Vector3Int _currentCell;
         [Header("Input Actions")]
         [SerializeField] private InputActionReference _pointAction;
-
-        private Vector3Int _lastCell = Vector3Int.one * -1000;
-        private bool _lastValidState = true;
 
         #endregion
 
@@ -84,8 +72,7 @@ namespace Script.BuildingSystem
             }
 
             // Inizializza lo stato di inattività e lo imposta come stato corrente.
-            _idleState = new IdlePlacementState(this);
-            _currentState = _idleState;
+            _currentState = new IdlePlacementState(this);
             _currentState.OnEnter();
         }
 
@@ -181,9 +168,9 @@ namespace Script.BuildingSystem
                 _currentState.OnEnter();
             }
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[BuildingPlacer] FSM Transition → {_currentState?.StateName ?? "null"}");
-            #endif
+#endif
         }
 
         private bool ValidateDependencies()
@@ -192,31 +179,33 @@ namespace Script.BuildingSystem
 
             if (_manager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] BuildingManager non iniettato!");
+#endif
                 isValid = false;
             }
 
             if (_camera == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] Camera non iniettata!");
+#endif
                 isValid = false;
             }
 
             if (_previewSystem == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] GenericPreviewSystem non iniettato!");
-                isValid = false;
-            }
-
-            if (_zoneManager == null)
-            {
-                Debug.LogError("[BuildingPlacer] ZoneManager non iniettato!");
+#endif
                 isValid = false;
             }
 
             if (_commandHistory == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] CommandHistory non iniettato!");
+#endif
                 isValid = false;
             }
 
@@ -240,9 +229,7 @@ namespace Script.BuildingSystem
                 _previewSystem.HidePreview();
             }
 
-            _selectedConfig = config;
-            _lastCell = Vector3Int.one * -1000; // Reset cache (forza il redraw)
-            _lastValidState = true;
+            _placementState.Select(config);
         }
 
         /// <summary>
@@ -266,8 +253,7 @@ namespace Script.BuildingSystem
             
             CleanupGridPreview();
             
-            _selectedConfig = null;
-            _lastCell = Vector3Int.one * -1000;
+            _placementState.Clear();
         }
 
         /// <summary>
@@ -275,8 +261,7 @@ namespace Script.BuildingSystem
         /// </summary>
         public bool CanPlaceAtCurrentPosition()
         {
-            if (_selectedConfig == null) return false;
-            return _lastValidState; // Cached da UpdatePlacementPreviewInternal
+            return _placementState.CanPlaceAtCurrentPosition();
         }
 
         /// <summary>
@@ -284,9 +269,12 @@ namespace Script.BuildingSystem
         /// </summary>
         public bool ExecutePlacementCommand()
         {
-            if (_selectedConfig == null)
+            var selectedConfig = _placementState.SelectedConfig;
+            if (selectedConfig == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[BuildingPlacer] ExecutePlacementCommand: nessun edificio selezionato");
+#endif
                 return false;
             }
 
@@ -295,8 +283,8 @@ namespace Script.BuildingSystem
                 _manager,
                 _manager.Grid,
                 _manager.Economy,
-                _selectedConfig,
-                _currentCell
+                selectedConfig,
+                _placementState.CurrentCell
             );
 
             // Esegui comando tramite CommandHistory (abilita Undo)
@@ -307,11 +295,13 @@ namespace Script.BuildingSystem
                 // Pubblica evento GlobalEventBus
                 GlobalEventBus.Publish(new BuildingPlacedEvent(
                     null, // Building non accessibile da command (privacy)
-                    _currentCell,
-                    _selectedConfig.name
+                    _placementState.CurrentCell,
+                    selectedConfig.name
                 ));
 
-                Debug.Log($"[BuildingPlacer] ✓ Edificio piazzato: {_selectedConfig.name} at {_currentCell}");
+#if UNITY_EDITOR
+                Debug.Log($"[BuildingPlacer] ✓ Edificio piazzato: {selectedConfig.name} at {_placementState.CurrentCell}");
+#endif
             }
 
             return success;
@@ -322,7 +312,7 @@ namespace Script.BuildingSystem
         /// </summary>
         public void UpdatePlacementPreviewInternal()
         {
-            if (_selectedConfig == null) return;
+            if (_placementState.SelectedConfig == null) return;
             
             UpdatePlacementPreview();
         }
@@ -333,15 +323,16 @@ namespace Script.BuildingSystem
 
         private void CleanupGridPreview()
         {
-            if (_manager?.Grid != null && _selectedConfig != null)
+            if (_manager?.Grid != null && _placementState.SelectedConfig != null)
             {
-                _manager.Grid.SetCellsPreview(_currentCell, 0, 0, false);
+                _manager.Grid.SetCellsPreview(_placementState.CurrentCell, 0, 0, false);
             }
         }
 
         private void UpdatePlacementPreview()
         {
-            if (_camera == null || _manager?.Grid == null || _selectedConfig == null || _previewSystem == null)
+            var selectedConfig = _placementState.SelectedConfig;
+            if (_camera == null || _manager?.Grid == null || selectedConfig == null || _previewSystem == null)
             {
                 return;
             }
@@ -358,38 +349,36 @@ namespace Script.BuildingSystem
             }
 
             // STEP 3: Se cella non è cambiata, non aggiornare (ottimizzazione)
-            if (cell == _lastCell)
+            if (cell == _placementState.LastPreviewCell)
             {
                 return;
             }
 
-            _currentCell = cell;
+            _placementState.SetCurrentCell(cell);
 
             // Calcola posizione world snappata per il building finale
             var snapPos = _manager.Grid.CellToWorld(cell);
 
 
             // STEP 5: Validazione (il building può essere piazzato qui?)
-            bool isValid = CanPlaceBuilding(_selectedConfig, cell);
+            bool isValid = CanPlaceBuilding(selectedConfig, cell);
 
 
             // STEP 6: Aggiorna il preview visivo del building con posizione snappata
             bool updated = _previewSystem.UpdatePreviewIfCellChanged(cell, snapPos, isValid);
 
             // Se prima volta o cella cambiata, mostra preview
-            if (_lastCell.x == -1000 || updated)
+            if (_placementState.LastPreviewCell.x == -1000 || updated)
             {
-                _previewSystem.ShowPreview(_selectedConfig.Prefab, snapPos, isValid);
+                _previewSystem.ShowPreview(selectedConfig.Prefab, snapPos, isValid);
             }
 
             // Aggiorna preview griglia tile
-            if (updated || _lastValidState != isValid)
+            if (updated || _placementState.LastValidState != isValid)
             {
-                _manager.Grid.SetCellsPreview(cell, _selectedConfig.Width, _selectedConfig.Height, isValid);
-                _lastValidState = isValid;
+                _manager.Grid.SetCellsPreview(cell, selectedConfig.Width, selectedConfig.Height, isValid);
+                _placementState.MarkPreviewState(cell, isValid);
             }
-
-            _lastCell = cell;
         }
 
         /// <summary>

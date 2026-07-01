@@ -13,7 +13,9 @@ namespace Script.BuildingSystem
         {
             if (config == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[Building] Init chiamato con config null!");
+#endif
                 return;
             }
 
@@ -31,7 +33,9 @@ namespace Script.BuildingSystem
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[Building] SpriteRenderer mancante sul prefab: {name}");
+#endif
             }
         }
 

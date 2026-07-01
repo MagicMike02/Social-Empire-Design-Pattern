@@ -171,7 +171,9 @@ namespace Script.Common
         {
             if (_poolManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[GenericPreviewSystem] PoolManager non inizializzato!");
+#endif
                 return;
             }
 
@@ -183,7 +185,9 @@ namespace Script.Common
             
             if (_previewSpriteRenderer == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[GenericPreviewSystem] Nessun SpriteRenderer trovato in '{prefab.name}'!");
+#endif
                 return;
             }
             _previewSpriteRenderer.sortingLayerName = _previewSortingLayer;
@@ -289,4 +293,3 @@ namespace Script.Common
         #endregion
     }
 }
-

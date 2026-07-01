@@ -67,7 +67,9 @@ namespace Script.BuildingSystem.States
         {
             if (config == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[IdlePlacementState] OnBuildingSelected chiamato con config null");
+#endif
                 return;
             }
 

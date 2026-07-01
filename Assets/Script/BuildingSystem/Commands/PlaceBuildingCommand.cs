@@ -96,7 +96,9 @@ namespace Script.BuildingSystem.Commands
 
             if (_placedBuilding == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[PlaceBuildingCommand] Factory failed to create {_config.name}!");
+#endif
                 return false;
             }
 
@@ -107,7 +109,9 @@ namespace Script.BuildingSystem.Commands
                 // Rollback: Distruggi edificio se spesa fallisce 
                 Object.Destroy(_placedBuilding.gameObject);
                 _placedBuilding = null;
+#if UNITY_EDITOR
                 Debug.LogError($"[PlaceBuildingCommand] Failed to spend resources (rollback executed)");
+#endif
                 return false;
             }
 
@@ -128,7 +132,9 @@ namespace Script.BuildingSystem.Commands
         {
             if (_placedBuilding == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PlaceBuildingCommand] Cannot undo: building was never placed or already destroyed");
+#endif
                 return false;
             }
 

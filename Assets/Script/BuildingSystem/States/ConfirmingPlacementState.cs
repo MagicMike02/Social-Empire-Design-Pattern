@@ -51,7 +51,9 @@ namespace Script.BuildingSystem.States
             }
             catch (System.Exception ex)
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[ConfirmingPlacementState] Exception during placement: {ex.Message}\n{ex.StackTrace}");
+#endif
                 success = false;
             }
             finally
@@ -61,7 +63,9 @@ namespace Script.BuildingSystem.States
                 
                 if (!success)
                 {
+#if UNITY_EDITOR
                     Debug.LogWarning("[ConfirmingPlacementState] Placement failed, returned to Idle");
+#endif
                 }
             }
         }
@@ -91,9 +95,9 @@ namespace Script.BuildingSystem.States
         public void OnBuildingSelected(BuildingConfigSO config)
         {
             // Confirming: ignorato (transizione in corso)
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.LogWarning("[ConfirmingPlacementState] OnBuildingSelected ignorato (già in transizione)");
-            #endif
+#endif
         }
 
         public void OnPlacementConfirmed()
@@ -104,7 +108,9 @@ namespace Script.BuildingSystem.States
         public void OnPlacementCancelled()
         {
             // Permetti cancel anche in Confirming (force reset)
+#if UNITY_EDITOR
             Debug.LogWarning("[ConfirmingPlacementState] Force cancel during confirmation! Returning to Idle.");
+#endif
             _context.TransitionTo(new IdlePlacementState(_context));
         }
         
