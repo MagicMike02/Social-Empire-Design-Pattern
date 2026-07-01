@@ -1,26 +1,27 @@
-﻿using System.Collections.Generic;
-using UnityEngine;
 using Script.Core.Events;
 using Script.EconomySystem;
 using Script.GridSystem;
 using Script.ResourceSystem.Enums;
+using System.Collections.Generic;
+using UnityEngine;
 using VContainer;
 
 namespace Script.ResourceSystem
 {
     /// <summary>
-    /// Gestisce risorse di gioco: spawning, collection, regeneration.
+    /// Gestisce le risorse di gioco: spawning, collection, regeneration.
     /// </summary>
-    public class ResourceManager : MonoBehaviour
+    public class ResourceManager : MonoBehaviour, IResourceCollectionHandler
     {
         #region Dependencies (Injected by VContainer)
-        
+
         private TileManager _tileManager;
         private GameEconomyManager _economyManager;
         private ZoneManager _zoneManager;
         private ResourceSpawner _resourceSpawner;
         private ResourcePoolManager _poolManager;
         private GridManager _gridManager;
+        private ResourceSpawnOrchestrator _spawnOrchestrator;
 
         [Inject]
         public void Construct(
@@ -38,39 +39,42 @@ namespace Script.ResourceSystem
             _poolManager = poolManager;
             _gridManager = gridManager;
         }
-        
-        #endregion
-        
-        #region Private Fields
-        
-        private readonly Dictionary<Vector2Int, GameObject> _activeResources = new();
-        private readonly ResourceRegenerationController _regenerationController = new();
-        private readonly List<ResourceRegenerationJob> _completedRegenerations = new();
-        
+
         #endregion
 
         #region Unity Lifecycle
-        
+
         private void Awake()
         {
             if (!ValidateDependencies())
             {
                 return;
             }
+
+            _spawnOrchestrator = new ResourceSpawnOrchestrator(
+                _tileManager,
+                _resourceSpawner,
+                _poolManager,
+                _gridManager,
+                transform);
         }
 
         private void OnEnable()
         {
             if (_resourceSpawner != null)
+            {
                 _resourceSpawner.OnResourceSpawned += HandleResourceSpawned;
+            }
         }
 
         private void OnDisable()
         {
             if (_resourceSpawner != null)
+            {
                 _resourceSpawner.OnResourceSpawned -= HandleResourceSpawned;
+            }
         }
-        
+
         private void Start()
         {
             if (!ValidateDependencies())
@@ -83,54 +87,70 @@ namespace Script.ResourceSystem
 
         private void Update()
         {
-            ProcessRegenerations();
+            if (_spawnOrchestrator == null)
+            {
+                return;
+            }
+
+            _spawnOrchestrator.Tick(Time.deltaTime);
+
+            while (_spawnOrchestrator.TryDequeueCompletedRegeneration(out var regen))
+            {
+                _spawnOrchestrator.CompleteRegeneration(regen);
+                GlobalEventBus.Publish(new ResourceRegeneratedEvent(regen.Position, regen.Data.resourceType));
+            }
         }
-        
+
+        private void OnDestroy()
+        {
+            _spawnOrchestrator?.RemoveAllResources();
+        }
+
         #endregion
 
         #region Initialization
-        
+
         private bool ValidateDependencies()
         {
             bool isValid = true;
 
             if (_tileManager == null)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
-                #endif
+#endif
                 isValid = false;
             }
-            
+
             if (_economyManager == null)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] GameEconomyManager non iniettato! VContainer dovrebbe averlo fornito.");
-                #endif
+#endif
                 isValid = false;
             }
-            
+
             if (_zoneManager == null)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ZoneManager non iniettato! VContainer dovrebbe averlo fornito.");
-                #endif
+#endif
                 isValid = false;
             }
-            
+
             if (_resourceSpawner == null)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ResourceSpawner non iniettato! VContainer dovrebbe averlo fornito.");
-                #endif
+#endif
                 isValid = false;
             }
-            
+
             if (_poolManager == null)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ResourcePoolManager non iniettato! VContainer dovrebbe averlo fornito.");
-                #endif
+#endif
                 isValid = false;
             }
 
@@ -141,93 +161,54 @@ namespace Script.ResourceSystem
         {
             if (_resourceSpawner == null)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] Impossibile inizializzare: ResourceSpawner è NULL!");
-                #endif
+#endif
                 return;
             }
-            
-            #if UNITY_EDITOR
+
+#if UNITY_EDITOR
             Debug.Log("[ResourceManager] ✓ Generazione risorse in corso...");
-            #endif
+#endif
             _resourceSpawner.GenerateAllResources();
         }
-        
+
         #endregion
 
         #region Resource Management
 
-        /// <summary>
-        /// Sottoscrive all'evento di spawn per istanziare, posizionare sulla griglia e inizializzare la logica ResourceInstance.
-        /// </summary>
         private void HandleResourceSpawned(ResourceType type, Vector2Int pos, GameObject instance)
         {
-            _activeResources[pos] = instance;
-            _gridManager.OccupyCell(pos, instance);
-            var ri = instance.GetComponent<ResourceInstance>();
-            
-            if (ri)
+            if (_spawnOrchestrator == null)
             {
-                ri.Initialize(_resourceSpawner.GetResourceDataSO(type), pos, this);
+                return;
             }
-            else
-            {
-                #if UNITY_EDITOR
-                Debug.LogError($"[ResourceManager] ResourceInstance component non trovato su {instance.name}!");
-                #endif
-            }
-            
-            // Pubblica evento GlobalEventBus
+
+            _spawnOrchestrator.HandleResourceSpawned(type, pos, instance, this);
             GlobalEventBus.Publish(new ResourceGeneratedEvent(type, pos));
         }
 
-        /// <summary>
-        /// Innescato dalla raccolta manuale. Aggiorna l'economia, invalida la risorsa corrente e ne gestisce l'eventuale rigenerazione.
-        /// </summary>
         public void HandleResourceCollected(Vector2Int pos, ResourceDataSO data)
         {
             UpdateEconomy(data);
-            RemoveResource(pos);
 
-            // Pubblica evento GlobalEventBus
+            if (_spawnOrchestrator != null)
+            {
+                _spawnOrchestrator.HandleResourceCollected(pos, data);
+            }
+
             GlobalEventBus.Publish(new ResourceCollectedEvent(
-                data.resourceType, 
-                data.collectedAmount, 
+                data.resourceType,
+                data.collectedAmount,
                 pos
             ));
 
             if (!data.isDestroyedOnCollect)
             {
-                // Risorsa rigenera → mantieni occupazione durante rigenerazione
-                ScheduleRegeneration(pos, data);
-            }
-            else
-            {
-                // Risorsa distrutta permanentemente → libera cella
-                _gridManager.FreeCell(pos);
+                GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
             }
         }
 
-        /// <summary>
-        /// Gestisce la logica di distruzione o rientro in pool dell'istanza fisica.
-        /// </summary>
-        private void RemoveResource(Vector2Int pos)
-        {
-            if (_activeResources.TryGetValue(pos, out var go) && go)
-            {
-                var data = GetResourceDataForInstance(go);
-                if (_poolManager && data)
-                    _poolManager.ReturnToPool(go, data);
-                else
-                    Destroy(go);
-            }
-            
-            _activeResources.Remove(pos);
-        }
-
-        /// <summary>
-        /// Accumula l'ammontare raccolto nel GameEconomyManager dipendente.
-        /// </summary>
         private void UpdateEconomy(ResourceDataSO data)
         {
             if (_economyManager != null)
@@ -236,154 +217,44 @@ namespace Script.ResourceSystem
             }
             else
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] GameEconomyManager non disponibile! Le risorse non verranno aggiunte all'economia.");
-                #endif
-            }
-        }
-        
-        #endregion
-
-        #region Regeneration System
-
-        /// <summary>
-        /// Aggiunge una risorsa alla coda di rigenerazione governata dal tick Update() invece che da coroutine.
-        /// </summary>
-        private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
-        {
-            // Previene ri-registrazioni duplicate sulla stessa cella (non dovrebbe succedere poichè la grid è bloccata)
-            if (_regenerationController.HasPendingAt(pos))
-            {
-                return;
-            }
-
-            // Spawna eventuale modello statico di rigenerazione (es. tronco tagliato)
-            Tile tile = _tileManager.GetGrid().GetValue(pos.x, pos.y);
-            GameObject regenVisual = null;
-
-            if (tile && data._regenPrefab)
-            {
-                regenVisual = Instantiate(data._regenPrefab, tile.transform.position + new Vector3(0, data.yOffset, 0), Quaternion.identity, transform);
-                _activeResources[pos] = regenVisual;
-                _gridManager.OccupyCell(pos, regenVisual);
-            }
-
-            _regenerationController.Add(pos, data, data.regenerationTime, regenVisual);
-            
-            GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
-        }
-
-        /// <summary>
-        /// Tick loop eseguito ad ogni frame. Scalando il tempo di ogni rigenerazione attiva.
-        /// </summary>
-        private void ProcessRegenerations()
-        {
-            _completedRegenerations.Clear();
-            _regenerationController.Tick(Time.deltaTime, _completedRegenerations);
-
-            for (int i = 0; i < _completedRegenerations.Count; i++)
-            {
-                CompleteRegeneration(_completedRegenerations[i]);
+#endif
             }
         }
 
-        private void CompleteRegeneration(ResourceRegenerationJob regen)
-        {
-            // Pulisci l'ostacolo/sprite temporaneo
-            if (regen.VisualObject)
-            {
-                Destroy(regen.VisualObject);
-            }
-            
-            _gridManager.FreeCell(regen.Position);
-            _activeResources.Remove(regen.Position);
-
-            // Spawna definitivamente il nuovo albero instanziando ResourceInstance class!
-            _resourceSpawner.SpawnResourceAtPosition(regen.Position, regen.Data);
-            
-            GlobalEventBus.Publish(new ResourceRegeneratedEvent(regen.Position, regen.Data.resourceType));
-        }
-        
-        #endregion
-
-        #region Cleanup
-
-        /// <summary>
-        /// Cleanup per liberare sottoscrizioni ad eventi e deregistrare l'esecuzione asincrona per evitare side effects.
-        /// </summary>
-        private void OnDestroy()
-        {
-            _regenerationController.Clear();
-            _completedRegenerations.Clear();
-        }
-        
         #endregion
 
         #region Editor Utilities
 
-        /// <summary>
-        /// [Debug] Distrugge tutte le istanze fisiche e rimuove i riferimenti nella matrice risorse attive.
-        /// </summary>
         [ContextMenu("Remove All Resources")]
         private void RemoveAllResources()
         {
-            foreach (var resource in _activeResources)
-            {
-                // Libera la cella occupata 
-                _gridManager.FreeCell(resource.Key);
-
-                // Distruggo il GameObject
-                Destroy(resource.Value);
-            }
-
-            _activeResources.Clear();
-            #if UNITY_EDITOR
+            _spawnOrchestrator?.RemoveAllResources();
+#if UNITY_EDITOR
             Debug.Log("[ResourceManager] All resources have been removed.");
-            #endif
+#endif
         }
 
-        /// <summary>
-        /// [Debug] Forza la rigenerazione istantanea per bypassare il timer di cooldown.
-        /// </summary>
         [ContextMenu("Regenerate All Resources")]
         private void RegenerateAllResources()
         {
-            RemoveAllResources(); // Elimina tutte le risorse
-            _resourceSpawner.GenerateAllResources(); // Rigenera tutte le risorse
-            #if UNITY_EDITOR
+            RemoveAllResources();
+            _resourceSpawner.GenerateAllResources();
+#if UNITY_EDITOR
             Debug.Log("[ResourceManager] All resources have been regenerated.");
-            #endif
+#endif
         }
 
-        #endregion
-
-        #region Helper Methods
-
-        /// <summary>
-        /// Mappatura utility da GameObject (di una risorsa viva su mappa) a ResourceDataSO tramite Spawner.
-        /// </summary>
-        private ResourceDataSO GetResourceDataForInstance(GameObject go)
-        {
-            var ri = go.GetComponent<ResourceInstance>();
-            return ri != null ? _resourceSpawner.GetResourceDataSO(ri.Data.resourceType) : null;
-        }
-        
-        #endregion
-
-        #region Inner Classes
-        
         #endregion
 
         #region Pathfinding Support
-        
-        /// <summary>
-        /// Verifica se una cella contiene una risorsa (ostacolo per pathfinding).
-        /// </summary>
+
         public bool HasResourceAt(Vector2Int cell)
         {
-            return _activeResources.ContainsKey(cell);
+            return _spawnOrchestrator != null && _spawnOrchestrator.HasResourceAt(cell);
         }
-        
+
         #endregion
     }
 }

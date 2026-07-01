@@ -13,7 +13,7 @@ namespace Script.ResourceSystem
         
         private ResourceDataSO _data;
         private Vector2Int _gridPosition;
-        private ResourceManager _manager;
+        private IResourceCollectionHandler _manager;
         private SpriteRenderer _spriteRenderer;
         private int _prefabIndex;
         private bool _isCollected;
@@ -43,7 +43,7 @@ namespace Script.ResourceSystem
         /// <summary>
         /// Inizializza l'istanza con i suoi dati e la collega al ResourceManager.
         /// </summary>
-        public void Initialize(ResourceDataSO data, Vector2Int gridPos, ResourceManager manager)
+        public void Initialize(ResourceDataSO data, Vector2Int gridPos, IResourceCollectionHandler manager)
         {
             _data = data;
             _gridPosition = gridPos;
