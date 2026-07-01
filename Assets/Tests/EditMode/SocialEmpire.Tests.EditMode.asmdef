@@ -1,0 +1,16 @@
+{
+  "name": "SocialEmpire.Tests.EditMode",
+  "references": [
+    "Assembly-CSharp"
+  ],
+  "includePlatforms": [
+    "Editor"
+  ],
+  "optionalUnityReferences": [
+    "TestAssemblies"
+  ],
+  "autoReferenced": false,
+  "overrideReferences": false,
+  "precompiledReferences": [],
+  "noEngineReferences": false
+}
