@@ -17,7 +17,6 @@ namespace Script.ResourceSystem
             public ResourceDataSO resourceData;
             public int initialSize = 10;
             public Transform parent;
-            public Queue<GameObject> objects = new();
         }
         
         #endregion
@@ -26,6 +25,7 @@ namespace Script.ResourceSystem
         
         [SerializeField] private List<Pool> pools;
         private Dictionary<ResourceDataSO, Pool> _poolDict = new();
+        private Dictionary<ResourceDataSO, Queue<GameObject>> _queues = new();
         
         #endregion
 
@@ -43,6 +43,9 @@ namespace Script.ResourceSystem
 
                 _poolDict.TryAdd(pool.resourceData, pool);
 
+                var queue = new Queue<GameObject>();
+                _queues[pool.resourceData] = queue;
+
                 for (var i = 0; i < pool.initialSize; i++)
                 {
                     var prefab = pool.resourceData.GetRandomPrefab();
@@ -50,7 +53,7 @@ namespace Script.ResourceSystem
 
                     var go = Instantiate(prefab, pool.parent);
                     go.SetActive(false);
-                    pool.objects.Enqueue(go);
+                    queue.Enqueue(go);
                 }
             }
         }
@@ -64,12 +67,12 @@ namespace Script.ResourceSystem
         /// </summary>
         public GameObject GetFromPool(ResourceDataSO data, Vector3 position, Quaternion rotation)
         {
-            if (!_poolDict.TryGetValue(data, out var pool)) return null;
+            if (!_poolDict.TryGetValue(data, out var pool) || !_queues.TryGetValue(data, out var queue)) return null;
 
             GameObject go;
-            if (pool.objects.Count > 0)
+            if (queue.Count > 0)
             {
-                go = pool.objects.Dequeue();
+                go = queue.Dequeue();
             }
             else
             {
@@ -91,14 +94,14 @@ namespace Script.ResourceSystem
         /// </summary>
         public void ReturnToPool(GameObject go, ResourceDataSO data)
         {
-            if (!_poolDict.TryGetValue(data, out var pool))
+            if (!_poolDict.TryGetValue(data, out _) || !_queues.TryGetValue(data, out var queue))
             {
                 Destroy(go);
                 return;
             }
 
             go.SetActive(false);
-            pool.objects.Enqueue(go);
+            queue.Enqueue(go);
         }
         
         #endregion

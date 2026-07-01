@@ -37,7 +37,7 @@ namespace Script.Core.Optimization
         }
 
         // Cache per evitare GetComponentsInChildren ad ogni tick
-        private readonly Dictionary<int, Renderer[]> _rendererCache = new();
+        private readonly Dictionary<EntityId, Renderer[]> _rendererCache = new();
 
         private void OnEnable()
         {
@@ -156,13 +156,13 @@ namespace Script.Core.Optimization
         /// </summary>
         private void ToggleRenderers(GameObject obj, bool isVisible)
         {
-            int instanceId = obj.GetInstanceID();
+            EntityId entityId = obj.GetEntityId();
             
-            if (!_rendererCache.TryGetValue(instanceId, out Renderer[] renderers))
+            if (!_rendererCache.TryGetValue(entityId, out Renderer[] renderers))
             {
                 // Unico GetComponents al primo incontro
                 renderers = obj.GetComponentsInChildren<Renderer>(true);
-                _rendererCache[instanceId] = renderers;
+                _rendererCache[entityId] = renderers;
             }
 
             // Evita allocazioni future

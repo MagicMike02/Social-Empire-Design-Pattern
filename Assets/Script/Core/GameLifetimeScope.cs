@@ -112,7 +112,7 @@ namespace Script.Core
         /// </summary>
         private void RegisterIfExists<T>(IContainerBuilder builder, Action<RegistrationBuilder> configure = null) where T : Component
         {
-            var component = FindFirstObjectByType<T>(FindObjectsInactive.Exclude);
+            var component = FindAnyObjectByType<T>(FindObjectsInactive.Exclude);
             
             if (component != null)
             {

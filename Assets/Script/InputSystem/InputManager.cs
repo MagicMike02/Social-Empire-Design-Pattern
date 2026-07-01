@@ -54,6 +54,7 @@ namespace Script.InputSystem
         // Non-alloc overlap buffers (tunable size)
         private const int MaxOverlaps = 16;
         private readonly Collider2D[] _overlapBuffer = new Collider2D[MaxOverlaps];
+        private static readonly ContactFilter2D OverlapFilter = ContactFilter2D.noFilter;
 
         private IHoverable _lastHovered;
         private Vector3 _lastMousePos;
@@ -98,7 +99,7 @@ namespace Script.InputSystem
                 Vector3 wp = _camera.ScreenToWorldPoint(mousePos);
                 Vector2 point = new Vector2(wp.x, wp.y);
 
-                int hitCount = Physics2D.OverlapPointNonAlloc(point, _overlapBuffer);
+                int hitCount = Physics2D.OverlapPoint(point, OverlapFilter, _overlapBuffer);
                 if (_debugMode && hitCount > 0)
                 {
                     Debug.Log($"[InputManager] OverlapPoint hits: {hitCount}");
