@@ -52,11 +52,19 @@ namespace Script.UI
 
         private void Awake()
         {
-            ValidateReferences();
+            if (!ValidateReferences())
+            {
+                return;
+            }
         }
 
         private void Start()
         {
+            if (!ValidateReferences())
+            {
+                return;
+            }
+
             InitializeUI();
         }
 
@@ -77,11 +85,14 @@ namespace Script.UI
         /// <summary>
         /// Controlla la sanità dei collegamenti iniettati o serializzati (Future Panels inclusi).
         /// </summary>
-        private void ValidateReferences()
+        private bool ValidateReferences()
         {
+            bool isValid = true;
+
             if (_resourceDisplayUI == null)
             {
                 Debug.LogError("[UIManager] ResourceDisplayUI non iniettato da VContainer!");
+                isValid = false;
             }
 
             // Log warnings per future panels non ancora implementati
@@ -99,6 +110,8 @@ namespace Script.UI
             {
                 Debug.Log("[UIManager] Settings Panel non assegnato (future feature)");
             }
+
+            return isValid;
         }
 
         /// <summary>

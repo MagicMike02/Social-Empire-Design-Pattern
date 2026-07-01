@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿#if UNITY_EDITOR
+using System.Collections.Generic;
 using Script.Core.Events;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -135,4 +136,4 @@ namespace Script.PathfindingSystem
         #endregion
     }
 }
-
+#endif

@@ -40,7 +40,11 @@ namespace Script.GridSystem
         
         private void Awake()
         {
-            ValidateDependencies();
+            if (!ValidateDependencies())
+            {
+                return;
+            }
+
             InitializeGrid();
         }
         
@@ -48,17 +52,23 @@ namespace Script.GridSystem
 
         #region Initialization
 
-        private void ValidateDependencies()
+        private bool ValidateDependencies()
         {
+            bool isValid = true;
+
             if (_tileManager == null)
             {
                 Debug.LogError("[GridManager] TileManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                isValid = false;
             }
 
             if (_zoneManager == null)
             {
                 Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
+                isValid = false;
             }
+
+            return isValid;
         }
 
         private void InitializeGrid()
@@ -474,4 +484,3 @@ namespace Script.GridSystem
         #endregion
     }
 }
-

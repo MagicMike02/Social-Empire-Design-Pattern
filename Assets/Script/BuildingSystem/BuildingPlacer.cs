@@ -78,6 +78,11 @@ namespace Script.BuildingSystem
 
         private void Start()
         {
+            if (!ValidateDependencies())
+            {
+                return;
+            }
+
             // Inizializza lo stato di inattività e lo imposta come stato corrente.
             _idleState = new IdlePlacementState(this);
             _currentState = _idleState;
@@ -86,6 +91,11 @@ namespace Script.BuildingSystem
 
         private void Update()
         {
+            if (_currentState == null)
+            {
+                return;
+            }
+
             // Delega logica Update allo stato corrente
             _currentState?.OnUpdate();
         }
@@ -174,6 +184,43 @@ namespace Script.BuildingSystem
             #if UNITY_EDITOR
             Debug.Log($"[BuildingPlacer] FSM Transition → {_currentState?.StateName ?? "null"}");
             #endif
+        }
+
+        private bool ValidateDependencies()
+        {
+            bool isValid = true;
+
+            if (_manager == null)
+            {
+                Debug.LogError("[BuildingPlacer] BuildingManager non iniettato!");
+                isValid = false;
+            }
+
+            if (_camera == null)
+            {
+                Debug.LogError("[BuildingPlacer] Camera non iniettata!");
+                isValid = false;
+            }
+
+            if (_previewSystem == null)
+            {
+                Debug.LogError("[BuildingPlacer] GenericPreviewSystem non iniettato!");
+                isValid = false;
+            }
+
+            if (_zoneManager == null)
+            {
+                Debug.LogError("[BuildingPlacer] ZoneManager non iniettato!");
+                isValid = false;
+            }
+
+            if (_commandHistory == null)
+            {
+                Debug.LogError("[BuildingPlacer] CommandHistory non iniettato!");
+                isValid = false;
+            }
+
+            return isValid;
         }
 
         #endregion
@@ -385,4 +432,3 @@ namespace Script.BuildingSystem
         #endregion
     }
 }
-

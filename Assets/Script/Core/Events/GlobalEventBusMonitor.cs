@@ -77,6 +77,11 @@ namespace Script.Core.Events
             }
         }
 
+        private void OnDestroy()
+        {
+            OnDisable();
+        }
+
         private void Update()
         {
             // Update stats periodicamente

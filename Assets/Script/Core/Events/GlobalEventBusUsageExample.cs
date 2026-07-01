@@ -1,4 +1,5 @@
-﻿using Script.ResourceSystem.Enums;
+﻿#if UNITY_EDITOR
+using Script.ResourceSystem.Enums;
 using UnityEngine;
 
 namespace Script.Core.Events
@@ -207,3 +208,4 @@ namespace Script.Core.Events
         #endregion
     }
 }
+#endif

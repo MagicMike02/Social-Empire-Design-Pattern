@@ -126,6 +126,20 @@ namespace Script.GridSystem
             CreatePurchaseSign(zone);
         }
 
+        private void OnDestroy()
+        {
+            foreach (var zone in _zones.Values)
+            {
+                if (zone?.purchaseSign != null)
+                {
+                    Destroy(zone.purchaseSign);
+                    zone.purchaseSign = null;
+                }
+            }
+
+            _zones.Clear();
+        }
+
         /// <summary>
         /// Popola la mappa con le macro-aree quadrate delle zone e imposta il punto centrale di partenza.
         /// </summary>

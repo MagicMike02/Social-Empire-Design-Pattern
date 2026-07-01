@@ -59,6 +59,11 @@ namespace Script.CameraSystem
             _zoomAction?.action?.Disable();
         }
 
+        private void OnDestroy()
+        {
+            OnDisable();
+        }
+
         void InitIsoMatrix()
         {
             isoMatrix = Matrix4x4.identity;

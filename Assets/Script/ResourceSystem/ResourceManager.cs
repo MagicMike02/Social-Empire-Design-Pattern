@@ -53,7 +53,10 @@ namespace Script.ResourceSystem
         
         private void Awake()
         {
-            ValidateDependencies();
+            if (!ValidateDependencies())
+            {
+                return;
+            }
         }
 
         private void OnEnable()
@@ -70,6 +73,11 @@ namespace Script.ResourceSystem
         
         private void Start()
         {
+            if (!ValidateDependencies())
+            {
+                return;
+            }
+
             InitializeResourceSystem();
         }
 
@@ -82,22 +90,41 @@ namespace Script.ResourceSystem
 
         #region Initialization
         
-        private void ValidateDependencies()
+        private bool ValidateDependencies()
         {
+            bool isValid = true;
+
             if (_tileManager == null)
+            {
                 Debug.LogError("[ResourceManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
+                isValid = false;
+            }
             
             if (_economyManager == null)
+            {
                 Debug.LogError("[ResourceManager] GameEconomyManager non iniettato! VContainer dovrebbe averlo fornito.");
+                isValid = false;
+            }
             
             if (_zoneManager == null)
+            {
                 Debug.LogError("[ResourceManager] ZoneManager non iniettato! VContainer dovrebbe averlo fornito.");
+                isValid = false;
+            }
             
             if (_resourceSpawner == null)
+            {
                 Debug.LogError("[ResourceManager] ResourceSpawner non iniettato! VContainer dovrebbe averlo fornito.");
+                isValid = false;
+            }
             
             if (_poolManager == null)
+            {
                 Debug.LogError("[ResourceManager] ResourcePoolManager non iniettato! VContainer dovrebbe averlo fornito.");
+                isValid = false;
+            }
+
+            return isValid;
         }
 
         private void InitializeResourceSystem()

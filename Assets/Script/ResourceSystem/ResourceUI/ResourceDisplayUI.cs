@@ -61,6 +61,12 @@ namespace Script.ResourceSystem.ResourceUI
 
         private void Start()
         {
+            if (_economyManager == null || resourceIcons == null || uiElements == null)
+            {
+                Debug.LogError("[ResourceDisplayUI] ResourceDisplayUI non inizializzata: dipendenze mancanti.");
+                return;
+            }
+
             if (_economyManager == null)
                 Debug.LogError("[ResourceDisplayUI] GameEconomyManager non iniettato da VContainer!");
 
