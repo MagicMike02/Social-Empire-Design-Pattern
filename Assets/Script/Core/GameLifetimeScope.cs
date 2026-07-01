@@ -32,11 +32,18 @@ namespace Script.Core
             try
             {
                 base.Awake();
-                if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Inizializzato");
+                if (debugMode)
+                {
+#if UNITY_EDITOR
+                    Debug.Log("[GameLifetimeScope] ✓ Inizializzato");
+#endif
+                }
             }
             catch (Exception ex)
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[GameLifetimeScope] ERRORE durante l'inizializzazione: {ex.Message}\n{ex.StackTrace}");
+#endif
                 throw;
             }
         }
@@ -46,7 +53,12 @@ namespace Script.Core
         /// </summary>
         protected override void Configure(IContainerBuilder builder)
         {
-            if (debugMode) Debug.Log("[GameLifetimeScope] Configurazione dei servizi in corso...");
+            if (debugMode)
+            {
+#if UNITY_EDITOR
+                Debug.Log("[GameLifetimeScope] Configurazione dei servizi in corso...");
+#endif
+            }
 
             // CORE - Economy
             RegisterIfExists<GameEconomyManager>(builder);
@@ -97,14 +109,26 @@ namespace Script.Core
             if (mainCamera != null)
             {
                 builder.RegisterInstance(mainCamera);
-                if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Camera registrata");
+                if (debugMode)
+                {
+#if UNITY_EDITOR
+                    Debug.Log("[GameLifetimeScope] ✓ Camera registrata");
+#endif
+                }
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[GameLifetimeScope] Camera.main non trovata!");
+#endif
             }
 
-            if (debugMode) Debug.Log("[GameLifetimeScope] ✓ Configurazione completata");
+            if (debugMode)
+            {
+#if UNITY_EDITOR
+                Debug.Log("[GameLifetimeScope] ✓ Configurazione completata");
+#endif
+            }
         }
 
         /// <summary>
@@ -118,11 +142,18 @@ namespace Script.Core
             {
                 var registration = builder.RegisterComponent(component);
                 configure?.Invoke(registration);
-                if (debugMode) Debug.Log($"[GameLifetimeScope] ✓ {typeof(T).Name}");
+                if (debugMode)
+                {
+#if UNITY_EDITOR
+                    Debug.Log($"[GameLifetimeScope] ✓ {typeof(T).Name}");
+#endif
+                }
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[GameLifetimeScope] ✗ {typeof(T).Name} non trovato in scena!");
+#endif
             }
         }
     }

@@ -31,7 +31,7 @@ namespace Script.GridSystem
         [SerializeField] private GameObject _purchaseSignPrefab;
         [SerializeField] private ZoneExpansionDataSO _expansionData;
         
-        private const int _zoneSize = 20;
+        [SerializeField] private int _zoneSize = 20;
         private Dictionary<Vector2Int, Zone> _zones = new();
         private Grid<Tile> _grid;
         
