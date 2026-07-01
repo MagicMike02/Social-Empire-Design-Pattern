@@ -66,8 +66,10 @@ namespace Script.ResourceSystem
             }
             else
             {
+                #if UNITY_EDITOR
                 // Aggiunto un warning per aiutare a debuggare se il SpriteRenderer non viene trovato.
                 Debug.LogWarning($"SpriteRenderer non trovato su {gameObject.name} o sui suoi figli per l'ordinamento.");
+                #endif
             }
         }
 
@@ -106,7 +108,9 @@ namespace Script.ResourceSystem
 
             if (_manager == null || _data == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogWarning($"[ResourceInstance] Impossibile raccogliere risorsa: Manager o Data non inizializzati su {gameObject.name}");
+                #endif
                 return;
             }
             

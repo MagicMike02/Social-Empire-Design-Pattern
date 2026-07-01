@@ -1,6 +1,5 @@
-﻿using System.Collections;
+﻿using System.Collections.Generic;
 using UnityEngine;
-using System.Collections.Generic;
 using Script.Core.Events;
 using Script.EconomySystem;
 using Script.GridSystem;
@@ -44,8 +43,9 @@ namespace Script.ResourceSystem
         
         #region Private Fields
         
-        private Dictionary<Vector2Int, GameObject> _activeResources = new();
-        private List<ActiveRegeneration> _activeRegenerations = new();
+        private readonly Dictionary<Vector2Int, GameObject> _activeResources = new();
+        private readonly ResourceRegenerationController _regenerationController = new();
+        private readonly List<ResourceRegenerationJob> _completedRegenerations = new();
         
         #endregion
 
@@ -96,31 +96,41 @@ namespace Script.ResourceSystem
 
             if (_tileManager == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
+                #endif
                 isValid = false;
             }
             
             if (_economyManager == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] GameEconomyManager non iniettato! VContainer dovrebbe averlo fornito.");
+                #endif
                 isValid = false;
             }
             
             if (_zoneManager == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ZoneManager non iniettato! VContainer dovrebbe averlo fornito.");
+                #endif
                 isValid = false;
             }
             
             if (_resourceSpawner == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ResourceSpawner non iniettato! VContainer dovrebbe averlo fornito.");
+                #endif
                 isValid = false;
             }
             
             if (_poolManager == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ResourcePoolManager non iniettato! VContainer dovrebbe averlo fornito.");
+                #endif
                 isValid = false;
             }
 
@@ -131,11 +141,15 @@ namespace Script.ResourceSystem
         {
             if (_resourceSpawner == null)
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] Impossibile inizializzare: ResourceSpawner è NULL!");
+                #endif
                 return;
             }
             
+            #if UNITY_EDITOR
             Debug.Log("[ResourceManager] ✓ Generazione risorse in corso...");
+            #endif
             _resourceSpawner.GenerateAllResources();
         }
         
@@ -158,7 +172,9 @@ namespace Script.ResourceSystem
             }
             else
             {
+                #if UNITY_EDITOR
                 Debug.LogError($"[ResourceManager] ResourceInstance component non trovato su {instance.name}!");
+                #endif
             }
             
             // Pubblica evento GlobalEventBus
@@ -220,7 +236,9 @@ namespace Script.ResourceSystem
             }
             else
             {
+                #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] GameEconomyManager non disponibile! Le risorse non verranno aggiunte all'economia.");
+                #endif
             }
         }
         
@@ -234,12 +252,9 @@ namespace Script.ResourceSystem
         private void ScheduleRegeneration(Vector2Int pos, ResourceDataSO data)
         {
             // Previene ri-registrazioni duplicate sulla stessa cella (non dovrebbe succedere poichè la grid è bloccata)
-            for (int i = 0; i < _activeRegenerations.Count; i++)
+            if (_regenerationController.HasPendingAt(pos))
             {
-                if (_activeRegenerations[i].Position == pos)
-                {
-                    return; // Sta già rigenerando
-                }
+                return;
             }
 
             // Spawna eventuale modello statico di rigenerazione (es. tronco tagliato)
@@ -253,9 +268,8 @@ namespace Script.ResourceSystem
                 _gridManager.OccupyCell(pos, regenVisual);
             }
 
-            _activeRegenerations.Add(new ActiveRegeneration(pos, data, data.regenerationTime, regenVisual));
+            _regenerationController.Add(pos, data, data.regenerationTime, regenVisual);
             
-            // Pubblica evento GlobalEventBus per UI/Audio
             GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
         }
 
@@ -264,31 +278,16 @@ namespace Script.ResourceSystem
         /// </summary>
         private void ProcessRegenerations()
         {
-            if (_activeRegenerations.Count == 0) return;
+            _completedRegenerations.Clear();
+            _regenerationController.Tick(Time.deltaTime, _completedRegenerations);
 
-            float dt = Time.deltaTime;
-
-            // Iterazione inversa sicura per rimuovere elementi in-place senza spezzare l'indice
-            for (int i = _activeRegenerations.Count - 1; i >= 0; i--)
+            for (int i = 0; i < _completedRegenerations.Count; i++)
             {
-                var regen = _activeRegenerations[i];
-                regen.TimeLeft -= dt;
-
-                if (regen.TimeLeft <= 0f)
-                {
-                    CompleteRegeneration(regen);
-                    _activeRegenerations.RemoveAt(i);
-                }
-                else
-                {
-                    // Aggiorna lo struct all'interno della lista 
-                    // (Poiché struct è pass-by-value, l'elemento va riassegnato)
-                    _activeRegenerations[i] = regen;
-                }
+                CompleteRegeneration(_completedRegenerations[i]);
             }
         }
 
-        private void CompleteRegeneration(ActiveRegeneration regen)
+        private void CompleteRegeneration(ResourceRegenerationJob regen)
         {
             // Pulisci l'ostacolo/sprite temporaneo
             if (regen.VisualObject)
@@ -314,7 +313,8 @@ namespace Script.ResourceSystem
         /// </summary>
         private void OnDestroy()
         {
-            _activeRegenerations.Clear();
+            _regenerationController.Clear();
+            _completedRegenerations.Clear();
         }
         
         #endregion
@@ -337,7 +337,9 @@ namespace Script.ResourceSystem
             }
 
             _activeResources.Clear();
+            #if UNITY_EDITOR
             Debug.Log("[ResourceManager] All resources have been removed.");
+            #endif
         }
 
         /// <summary>
@@ -348,7 +350,9 @@ namespace Script.ResourceSystem
         {
             RemoveAllResources(); // Elimina tutte le risorse
             _resourceSpawner.GenerateAllResources(); // Rigenera tutte le risorse
+            #if UNITY_EDITOR
             Debug.Log("[ResourceManager] All resources have been regenerated.");
+            #endif
         }
 
         #endregion
@@ -367,26 +371,6 @@ namespace Script.ResourceSystem
         #endregion
 
         #region Inner Classes
-        
-        /// <summary>
-        /// Struct compatta basata su dati che tiene traccia del progresso di rigenerazione di una risorsa.
-        /// Essendo uno struct limita l'overhead del Garbage Collector per allocazioni sul mucchio ad ogni albero spezzato.
-        /// </summary>
-        private struct ActiveRegeneration
-        {
-            public Vector2Int Position;
-            public ResourceDataSO Data;
-            public float TimeLeft;
-            public GameObject VisualObject;
-
-            public ActiveRegeneration(Vector2Int position, ResourceDataSO data, float timeLeft, GameObject visualObject)
-            {
-                Position = position;
-                Data = data;
-                TimeLeft = timeLeft;
-                VisualObject = visualObject;
-            }
-        }
         
         #endregion
 

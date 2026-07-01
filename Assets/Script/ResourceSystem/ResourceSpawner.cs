@@ -66,7 +66,9 @@ namespace Script.ResourceSystem
         /// </summary>
         public void GenerateAllResources()
         {
+            #if UNITY_EDITOR
             Debug.Log("Starting resource generation...");
+            #endif
             foreach (var resource in _resourceTypes)
             {
                 GenerateResourceGroups(resource);
