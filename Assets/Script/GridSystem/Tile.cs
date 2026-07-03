@@ -1,4 +1,4 @@
-﻿using Script.BuildingSystem;
+using Script.BuildingSystem;
 using Script.InputSystem;
 using TMPro;
 using UnityEngine;
@@ -14,7 +14,7 @@ namespace Script.GridSystem
     {
         #region Constants & Inspector
         
-        private const string DefaultShaderName = "Sprites/Default";
+        private static readonly int ColorPropertyId = Shader.PropertyToID("_Color");
         
         [SerializeField] private TextMeshPro _coordinatesText;
         [SerializeField] private Color _normalColor = Color.white;
@@ -34,8 +34,13 @@ namespace Script.GridSystem
         private Vector2Int _gridPosition;
         public Vector2Int GridPosition => _gridPosition;
         
+        /// <summary>
+        /// Ritorna il centro visivo del tile (SpriteRenderer.bounds.center) se disponibile, altrimenti transform.position.
+        /// </summary>
+        public Vector3 Center => _renderer != null ? _renderer.bounds.center : transform.position;
+        
         private SpriteRenderer _renderer;
-        private Color _savedColorBeforePreview; // Salva colore prima della preview
+        private MaterialPropertyBlock _propertyBlock; // Riutilizzato per ogni cambio colore (no GC)
         private bool _isShowingPreview; // Flag per tracciare se sta mostrando preview
         
         #endregion
@@ -50,14 +55,21 @@ namespace Script.GridSystem
 #if UNITY_EDITOR
                 Debug.LogError("Tile does not have a SpriteRenderer component!");
 #endif
-            }
-            else
-            {
-                _renderer.material = new Material(Shader.Find(DefaultShaderName));
-                _renderer.color = _normalColor;
-                SetState(TileState.Locked); // Inizialmente bloccato
+                return;
             }
 
+            // MaterialPropertyBlock per-tile: permette di variare il colore senza rompere il batching.
+            // Riutilizziamo la stessa istanza per ogni cambio colore (no allocazioni nel hot path).
+            _propertyBlock = new MaterialPropertyBlock();
+
+            ApplyColor(_normalColor);
+            SetState(TileState.Locked); // Inizialmente bloccato
+        }
+
+        void OnDestroy()
+        {
+            // Il materiale condiviso è ora ownership di TileManager: nessuna distruzione qui.
+            // (Risolve race condition: il primo Tile distrutto non rilascia più il materiale degli altri.)
         }
         
         #endregion
@@ -66,8 +78,9 @@ namespace Script.GridSystem
 
         /// <summary>
         /// Richiamato all'instanziazione. Salva la posizione in griglia come logica core assoluta.
+        /// Il materiale condiviso è fornito da TileManager (ownership centralizzata → no race condition).
         /// </summary>
-        public void Initialize(Vector2 gridPosition, Vector3 worldPosition, int sortingOrder)
+        public void Initialize(Vector2 gridPosition, Vector3 worldPosition, int sortingOrder, Material sharedMaterial)
         {
             // Cache grid position as Source of Truth
             _gridPosition = new Vector2Int((int)gridPosition.x, (int)gridPosition.y);
@@ -77,7 +90,10 @@ namespace Script.GridSystem
             
             // Imposta sorting order per rendering isometrico corretto
             if (_renderer != null)
+            {
+                _renderer.sharedMaterial = sharedMaterial;
                 _renderer.sortingOrder = sortingOrder;
+            }
 
             // Text sopra il tile per debug coordinate
             if (_coordinatesText != null)
@@ -96,7 +112,7 @@ namespace Script.GridSystem
         public void OnHoverEnter()
         {
             if (_isShowingPreview) return;
-            _renderer.color = _hoverColor;
+            ApplyColor(_hoverColor);
         }
 
         public void OnHoverExit()
@@ -130,13 +146,13 @@ namespace Script.GridSystem
         {
             State = state;
             
-            _renderer.color = state switch
+            ApplyColor(state switch
             {
                 TileState.Locked => _lockedColor,
                 TileState.Buyable => _buyableColor,
                 TileState.Unlocked => _unlockedColor,
                 _ => _renderer.color
-            };
+            });
         }
         
         /// <summary>
@@ -158,7 +174,7 @@ namespace Script.GridSystem
             if (_renderer == null) return;
            
             _isShowingPreview = true;
-            _renderer.color = color;
+            ApplyColor(color);
         }
 
         /// <summary>
@@ -168,13 +184,13 @@ namespace Script.GridSystem
         {
             if (_renderer == null) return;
 
-            _renderer.color = State switch
+            ApplyColor(State switch
             {
                 TileState.Locked => _lockedColor,
                 TileState.Buyable => _buyableColor,
                 TileState.Unlocked => _unlockedColor,
                 _ => _normalColor
-            };
+            });
 
             _isShowingPreview = false;
         }
@@ -185,7 +201,24 @@ namespace Script.GridSystem
         public void DebugSetColor(Color color)
         {
             if (_renderer == null) return;
-            _renderer.color = color;
+            ApplyColor(color);
+        }
+        
+        #endregion
+
+        #region Private Helpers
+
+        /// <summary>
+        /// Applica il colore tramite MaterialPropertyBlock invece di renderer.color.
+        /// Mantiene il materiale condiviso → abilita batching (SRP Batcher / dynamic batching).
+        /// </summary>
+        private void ApplyColor(Color color)
+        {
+            if (_renderer == null || _propertyBlock == null) return;
+
+            _renderer.GetPropertyBlock(_propertyBlock);
+            _propertyBlock.SetColor(ColorPropertyId, color);
+            _renderer.SetPropertyBlock(_propertyBlock);
         }
         
         #endregion

@@ -10,6 +10,8 @@ namespace Script.GridSystem
     {
         private readonly TileManager _tileManager;
         private readonly List<Vector2Int> _lastPreviewCells = new();
+        private readonly List<Vector2Int> _currentPreviewCells = new();
+        private readonly HashSet<Vector2Int> _currentPreviewCellLookup = new();
         private readonly Dictionary<Vector2Int, Tile> _previewTileCache = new();
 
         public GridPreviewTracker(TileManager tileManager)
@@ -24,7 +26,8 @@ namespace Script.GridSystem
             var grid = _tileManager.GetGrid();
             if (grid == null) return;
 
-            var newPreviewCells = new List<Vector2Int>();
+            _currentPreviewCells.Clear();
+            _currentPreviewCellLookup.Clear();
 
             if (width <= 0 || height <= 0)
             {
@@ -40,14 +43,16 @@ namespace Script.GridSystem
                     int y = originCell.y + dy;
                     if (x >= 0 && y >= 0 && x < _tileManager.Width && y < _tileManager.Height)
                     {
-                        newPreviewCells.Add(new Vector2Int(x, y));
+                        var cell = new Vector2Int(x, y);
+                        _currentPreviewCells.Add(cell);
+                        _currentPreviewCellLookup.Add(cell);
                     }
                 }
             }
 
             foreach (var cell in _lastPreviewCells)
             {
-                if (!newPreviewCells.Contains(cell) && _previewTileCache.TryGetValue(cell, out var tile))
+                if (!_currentPreviewCellLookup.Contains(cell) && _previewTileCache.TryGetValue(cell, out var tile))
                 {
                     tile?.ResetTint();
                     _previewTileCache.Remove(cell);
@@ -58,7 +63,7 @@ namespace Script.GridSystem
                 ? new Color(0f, 1f, 0f, 1f)
                 : new Color(1f, 0f, 0f, 1f);
 
-            foreach (var cell in newPreviewCells)
+            foreach (var cell in _currentPreviewCells)
             {
                 if (!_previewTileCache.TryGetValue(cell, out var tile))
                 {
@@ -73,7 +78,7 @@ namespace Script.GridSystem
             }
 
             _lastPreviewCells.Clear();
-            _lastPreviewCells.AddRange(newPreviewCells);
+            _lastPreviewCells.AddRange(_currentPreviewCells);
         }
 
         public void ClearPreview()

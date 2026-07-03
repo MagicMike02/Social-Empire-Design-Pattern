@@ -127,22 +127,10 @@ namespace Script.Core.Optimization
             // 1. Calcola il bounding box (AABB) espanso della telecamera
             Bounds camBounds = CalculateExpandedCameraBounds();
 
-            // 2. Culling sui Tile
-            var grid = _tileManager.GetGrid();
-            for (int x = 0; x < _tileManager.Width; x++)
-            {
-                for (int y = 0; y < _tileManager.Height; y++)
-                {
-                    Tile tile = grid.GetValue(x, y);
-                    if (tile != null)
-                    {
-                        // Usa la posizione in mondo del tile
-                        Vector3 worldPos = _gridManager.CellToWorld(new Vector3Int(x, y, 0));
-                        bool isVisible = camBounds.Contains(worldPos);
-                        ToggleRenderers(tile.gameObject, isVisible);
-                    }
-                }
-            }
+            // 2. Culling sui Tile — query spaziale invece di O(W×H) full scan.
+            //    Converte i 4 angoli del viewport in coordinate griglia e itera solo
+            //    sulle celle potenzialmente visibili (tipicamente << 100×100).
+            CullTilesInRange(camBounds);
 
             // 3. Culling su Entity occupanti (Edifici, Risorse, Cartelli)
             var occupancy = _gridManager.GetOccupancySnapshot();
@@ -158,6 +146,63 @@ namespace Script.Core.Optimization
                     
                     // Spegniamo solo i renderer, non i collider o script
                     ToggleRenderers(entityObj, isVisible);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Itera solo sulle celle che intersecano i bounds della camera (range query).
+        /// Su griglia 100×100 con camera che ne copre ~20×20, riduce le iterazioni da 10k a ~400.
+        /// </summary>
+        private void CullTilesInRange(Bounds camBounds)
+        {
+            var grid = _tileManager.GetGrid();
+            int gridW = _tileManager.Width;
+            int gridH = _tileManager.Height;
+
+            // Converte i 4 angoli del bounds in coordinate griglia.
+            // Per griglie isometriche usiamo TryWorldToCell che gestisce la matrice iso.
+            Vector3 min = camBounds.min;
+            Vector3 max = camBounds.max;
+
+            // Calcola il range di celle da controllare (con clamp ai bounds della griglia).
+            _gridManager.TryWorldToCell(min, out Vector3Int minCell);
+            _gridManager.TryWorldToCell(max, out Vector3Int maxCell);
+
+            // Se la camera è completamente fuori griglia, TryWorldToCell ritorna false
+            // ma i valori possono essere negativi/oob — clampiamo a [0, W/H].
+            int xMin = Mathf.Max(0, Mathf.Min(minCell.x, maxCell.x) - 1);
+            int xMax = Mathf.Min(gridW - 1, Mathf.Max(minCell.x, maxCell.x) + 1);
+            int yMin = Mathf.Max(0, Mathf.Min(minCell.y, maxCell.y) - 1);
+            int yMax = Mathf.Min(gridH - 1, Mathf.Max(minCell.y, maxCell.y) + 1);
+
+            // Edge case: range invalido (camera fuori griglia) → disabilita tutto.
+            if (xMin > xMax || yMin > yMax)
+            {
+                // Fallback: full scan per sicurezza (raro, solo se camera è fuori bounds).
+                for (int x = 0; x < gridW; x++)
+                {
+                    for (int y = 0; y < gridH; y++)
+                    {
+                        Tile tile = grid.GetValue(x, y);
+                        if (tile != null) ToggleRenderers(tile.gameObject, false);
+                    }
+                }
+                return;
+            }
+
+            // Itera solo sul sub-range visibile.
+            for (int x = xMin; x <= xMax; x++)
+            {
+                for (int y = yMin; y <= yMax; y++)
+                {
+                    Tile tile = grid.GetValue(x, y);
+                    if (tile != null)
+                    {
+                        Vector3 worldPos = _gridManager.CellToWorld(new Vector3Int(x, y, 0));
+                        bool isVisible = camBounds.Contains(worldPos);
+                        ToggleRenderers(tile.gameObject, isVisible);
+                    }
                 }
             }
         }

@@ -24,7 +24,7 @@ namespace Tests.EditMode.Grid
         }
 
         [Test]
-        public void GetSnapshot_ReturnsCopyOfOccupiedCells()
+        public void GetSnapshot_ReturnsReadOnlyViewOfOccupiedCells()
         {
             var tracker = new GridOccupancyTracker();
             var building = new GameObject("building");

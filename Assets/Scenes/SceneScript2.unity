@@ -1753,8 +1753,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fe63a925ef074bbfb1d2e7685d4e3ca0, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.Core.Commands.CommandInputHandler
-  _undoAction: {fileID: 0}
-  _redoAction: {fileID: 0}
+  _undoAction: {fileID: -6296288431492850209, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
+  _redoAction: {fileID: -8412790575312376789, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
 --- !u!1 &863127471
 GameObject:
   m_ObjectHideFlags: 0
@@ -2015,8 +2015,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a52889ebab5c232439b53da525ee85f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cullingInterval: 0.5
-  _overscanPadding: 5
+  _cullingInterval: 0.8
+  _overscanPadding: 10
 --- !u!114 &1000000002
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2661,7 +2661,6 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 1385738444}
-  - component: {fileID: 1385738443}
   - component: {fileID: 1385738442}
   m_Layer: 0
   m_Name: GlobalEventBusMonitor
@@ -2685,18 +2684,6 @@ MonoBehaviour:
   _logAllEvents: 0
   _updateInterval: 1
   _currentStats: 
---- !u!114 &1385738443
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1385738441}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9c04c6fc0d5f4dfaa1c19f208e5387e5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Script2.Core.Examples.GlobalEventBusUsageExample
 --- !u!4 &1385738444
 Transform:
   m_ObjectHideFlags: 0
@@ -4317,6 +4304,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Script2.GridSystem.ZoneManager
   _purchaseSignPrefab: {fileID: 6448893105892614570, guid: fe3a34deab274f940a41e72258ce4f28, type: 3}
   _expansionData: {fileID: 0}
+  _zoneSize: 20
 --- !u!1 &2123726703
 GameObject:
   m_ObjectHideFlags: 0

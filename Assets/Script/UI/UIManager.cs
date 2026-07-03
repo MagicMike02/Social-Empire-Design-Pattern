@@ -78,11 +78,6 @@ namespace Script.UI
             UnsubscribeFromZoneEvents();
         }
 
-        private void OnDestroy()
-        {
-            UnsubscribeFromZoneEvents();
-        }
-
         #endregion
 
         #region Initialization

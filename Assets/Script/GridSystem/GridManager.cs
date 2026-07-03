@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 using System.Collections.Generic;
 using Script.BuildingSystem;
 using VContainer;
@@ -286,50 +286,50 @@ namespace Script.GridSystem
         /// <summary>
         /// Esegue query sulla griglia per estrarre tutti i vicini attraversabili (8-way).
         /// </summary>
-        public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
+        public void GetWalkableNeighbors(Vector2Int cell, List<Vector2Int> neighbors)
         {
+            if (neighbors == null) return;
+
+            neighbors.Clear();
+
             // OPTIMIZED: 8-directional movement (4 cardinal + 4 diagonal)
-            // Allocate max capacity (8 neighbors)
-            var neighbors = new List<Vector2Int>(8);
-            
-            // ===== CARDINAL DIRECTIONS (cost = 1) =====
+            // Reuse caller-owned buffer to avoid per-call allocations.
             Vector2Int east = new Vector2Int(cell.x + 1, cell.y);
             if (IsValidCell(east) && IsCellWalkable(east))
                 neighbors.Add(east);
-            
+
             Vector2Int west = new Vector2Int(cell.x - 1, cell.y);
             if (IsValidCell(west) && IsCellWalkable(west))
                 neighbors.Add(west);
-            
+
             Vector2Int north = new Vector2Int(cell.x, cell.y + 1);
             if (IsValidCell(north) && IsCellWalkable(north))
                 neighbors.Add(north);
-            
+
             Vector2Int south = new Vector2Int(cell.x, cell.y - 1);
             if (IsValidCell(south) && IsCellWalkable(south))
                 neighbors.Add(south);
-            
+
             // ===== DIAGONAL DIRECTIONS (cost = sqrt(2) ≈ 1.414) =====
             // Only allow diagonal if BOTH adjacent cardinals are walkable (prevent corner-cutting)
             Vector2Int northEast = new Vector2Int(cell.x + 1, cell.y + 1);
             if (IsValidCell(northEast) && IsCellWalkable(northEast) && IsCellWalkable(east) && IsCellWalkable(north))
                 neighbors.Add(northEast);
-            
+
             Vector2Int northWest = new Vector2Int(cell.x - 1, cell.y + 1);
             if (IsValidCell(northWest) && IsCellWalkable(northWest) && IsCellWalkable(west) && IsCellWalkable(north))
                 neighbors.Add(northWest);
-            
+
             Vector2Int southEast = new Vector2Int(cell.x + 1, cell.y - 1);
             if (IsValidCell(southEast) && IsCellWalkable(southEast) && IsCellWalkable(east) && IsCellWalkable(south))
                 neighbors.Add(southEast);
-            
+
             Vector2Int southWest = new Vector2Int(cell.x - 1, cell.y - 1);
             if (IsValidCell(southWest) && IsCellWalkable(southWest) && IsCellWalkable(west) && IsCellWalkable(south))
                 neighbors.Add(southWest);
-            
-            return neighbors;
         }
 
+    
         /// <summary>
         /// Verifica se una cella è all'interno dei limiti della griglia.
         /// Fast bounds check before IsCellWalkable (avoids out-of-bounds access).

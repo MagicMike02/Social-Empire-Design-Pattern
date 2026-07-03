@@ -65,9 +65,14 @@ namespace Script.GridSystem
             return !_occupiedCells.ContainsKey(cell);
         }
 
+        /// <summary>
+        /// Restituisce una vista in sola lettura delle celle occupate.
+        /// Non alloca: espone direttamente il dizionario interno come IReadOnlyDictionary.
+        /// Il chiamante NON deve modificare la collezione ritornata.
+        /// </summary>
         public IReadOnlyDictionary<Vector2Int, GameObject> GetSnapshot()
         {
-            return new Dictionary<Vector2Int, GameObject>(_occupiedCells);
+            return _occupiedCells;
         }
 
         public void Clear()

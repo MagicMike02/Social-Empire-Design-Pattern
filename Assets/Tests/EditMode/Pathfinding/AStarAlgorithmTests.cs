@@ -84,22 +84,6 @@ namespace Tests.EditMode.Pathfinding
                 return cell.x >= 0 && cell.y >= 0 && cell.x < Width && cell.y < Height && !BlockedCells.Contains(cell);
             }
 
-            public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
-            {
-                var neighbors = new List<Vector2Int>();
-
-                AddIfWalkable(neighbors, new Vector2Int(cell.x + 1, cell.y));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x - 1, cell.y));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x, cell.y + 1));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x, cell.y - 1));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x + 1, cell.y + 1));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x - 1, cell.y + 1));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x + 1, cell.y - 1));
-                AddIfWalkable(neighbors, new Vector2Int(cell.x - 1, cell.y - 1));
-
-                return neighbors;
-            }
-
             private void AddIfWalkable(List<Vector2Int> neighbors, Vector2Int cell)
             {
                 if (IsCellWalkable(cell))
@@ -107,6 +91,24 @@ namespace Tests.EditMode.Pathfinding
                     neighbors.Add(cell);
                 }
             }
-        }
+
+			public void GetWalkableNeighbors(Vector2Int cell, List<Vector2Int> neighbors)
+			{
+				AddIfWalkable(neighbors, new Vector2Int(cell.x + 1, cell.y));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x - 1, cell.y));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x, cell.y + 1));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x, cell.y - 1));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x + 1, cell.y + 1));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x - 1, cell.y + 1));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x + 1, cell.y - 1));
+				AddIfWalkable(neighbors, new Vector2Int(cell.x - 1, cell.y - 1));
+			}
+
+			public List<Vector2Int> GetWalkableNeighbors(Vector2Int cell)
+			{
+				throw new System.NotImplementedException();
+			}
+
+		}
     }
 }
