@@ -33,6 +33,8 @@ namespace Script.GridSystem
         // Source of Truth: grid position (cached at Initialize, never computed)
         private Vector2Int _gridPosition;
         public Vector2Int GridPosition => _gridPosition;
+		public Vector3 WorldPosition { get; private set; }
+
         
         /// <summary>
         /// Ritorna il centro visivo del tile (SpriteRenderer.bounds.center) se disponibile, altrimenti transform.position.
@@ -83,9 +85,10 @@ namespace Script.GridSystem
         public void Initialize(Vector2 gridPosition, Vector3 worldPosition, int sortingOrder, Material sharedMaterial)
         {
             // Cache grid position as Source of Truth
+            WorldPosition = worldPosition; 
             _gridPosition = new Vector2Int((int)gridPosition.x, (int)gridPosition.y);
             
-            name = $"Tile_{_gridPosition.x}_{_gridPosition.y}";
+			name = $"Tile_{_gridPosition.x}_{_gridPosition.y}";
             transform.position = worldPosition;
             
             // Imposta sorting order per rendering isometrico corretto

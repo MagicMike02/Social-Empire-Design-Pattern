@@ -154,27 +154,37 @@ namespace Script.Core.Optimization
         /// Itera solo sulle celle che intersecano i bounds della camera (range query).
         /// Su griglia 100×100 con camera che ne copre ~20×20, riduce le iterazioni da 10k a ~400.
         /// </summary>
-        private void CullTilesInRange(Bounds camBounds)
+          private void CullTilesInRange(Bounds camBounds)
         {
             var grid = _tileManager.GetGrid();
             int gridW = _tileManager.Width;
             int gridH = _tileManager.Height;
 
-            // Converte i 4 angoli del bounds in coordinate griglia.
-            // Per griglie isometriche usiamo TryWorldToCell che gestisce la matrice iso.
-            Vector3 min = camBounds.min;
-            Vector3 max = camBounds.max;
+            // BUG FIX: in una griglia isometrica il mapping AABB-world → range-celle NON è
+            // rettangolare. Usare solo 2 angoli opposti (min, max) dell'AABB produce un range Y
+            // sistematicamente troppo stretto: alcune tile visibili non entrano mai nel loop
+            // e restano disabilitate (symptom: tile mancanti a zoom alto + drag veloce).
+            //
+            // Proiezione iso della griglia:
+            //   world.x = (gx - gy) * cs
+            //   world.y = (gx + gy) * cs * 0.5
+            // Invertendo:
+            //   gy_min reale = (camMin.y*2 - camMax.x) / (2*cs)  → dipende da camMax.x, non camMin.x
+            //   gy_max reale = (camMax.y*2 - camMin.x) / (2*cs)  → dipende da camMin.x, non camMax.x
+            //
+            // Fix: converti TUTTI e 4 gli angoli dell'AABB → prendi min/max sui 4 risultati.
+            Vector3 bMin = camBounds.min;
+            Vector3 bMax = camBounds.max;
 
-            // Calcola il range di celle da controllare (con clamp ai bounds della griglia).
-            _gridManager.TryWorldToCell(min, out Vector3Int minCell);
-            _gridManager.TryWorldToCell(max, out Vector3Int maxCell);
+            _gridManager.TryWorldToCell(new Vector3(bMin.x, bMin.y, 0), out Vector3Int c0);
+            _gridManager.TryWorldToCell(new Vector3(bMax.x, bMin.y, 0), out Vector3Int c1); // contiene gy_min reale
+            _gridManager.TryWorldToCell(new Vector3(bMin.x, bMax.y, 0), out Vector3Int c2); // contiene gy_max reale
+            _gridManager.TryWorldToCell(new Vector3(bMax.x, bMax.y, 0), out Vector3Int c3);
 
-            // Se la camera è completamente fuori griglia, TryWorldToCell ritorna false
-            // ma i valori possono essere negativi/oob — clampiamo a [0, W/H].
-            int xMin = Mathf.Max(0, Mathf.Min(minCell.x, maxCell.x) - 1);
-            int xMax = Mathf.Min(gridW - 1, Mathf.Max(minCell.x, maxCell.x) + 1);
-            int yMin = Mathf.Max(0, Mathf.Min(minCell.y, maxCell.y) - 1);
-            int yMax = Mathf.Min(gridH - 1, Mathf.Max(minCell.y, maxCell.y) + 1);
+            int xMin = Mathf.Max(0,         Mathf.Min(Mathf.Min(c0.x, c1.x), Mathf.Min(c2.x, c3.x)) - 1);
+            int xMax = Mathf.Min(gridW - 1,  Mathf.Max(Mathf.Max(c0.x, c1.x), Mathf.Max(c2.x, c3.x)) + 1);
+            int yMin = Mathf.Max(0,         Mathf.Min(Mathf.Min(c0.y, c1.y), Mathf.Min(c2.y, c3.y)) - 1);
+            int yMax = Mathf.Min(gridH - 1,  Mathf.Max(Mathf.Max(c0.y, c1.y), Mathf.Max(c2.y, c3.y)) + 1);
 
             // Edge case: range invalido (camera fuori griglia) → disabilita tutto.
             if (xMin > xMax || yMin > yMax)
@@ -199,8 +209,7 @@ namespace Script.Core.Optimization
                     Tile tile = grid.GetValue(x, y);
                     if (tile != null)
                     {
-                        Vector3 worldPos = _gridManager.CellToWorld(new Vector3Int(x, y, 0));
-                        bool isVisible = camBounds.Contains(worldPos);
+                        bool isVisible = camBounds.Contains(tile.WorldPosition);
                         ToggleRenderers(tile.gameObject, isVisible);
                     }
                 }
