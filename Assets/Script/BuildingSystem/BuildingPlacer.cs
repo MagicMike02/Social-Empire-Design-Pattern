@@ -175,14 +175,12 @@ namespace Script.BuildingSystem
 
         private bool ValidateDependencies()
         {
-            bool isValid = true;
-
             if (_manager == null)
             {
 #if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] BuildingManager non iniettato!");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_camera == null)
@@ -190,7 +188,7 @@ namespace Script.BuildingSystem
 #if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] Camera non iniettata!");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_previewSystem == null)
@@ -198,7 +196,7 @@ namespace Script.BuildingSystem
 #if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] GenericPreviewSystem non iniettato!");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_commandHistory == null)
@@ -206,10 +204,10 @@ namespace Script.BuildingSystem
 #if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] CommandHistory non iniettato!");
 #endif
-                isValid = false;
+                return false;
             }
 
-            return isValid;
+            return true;
         }
 
         #endregion

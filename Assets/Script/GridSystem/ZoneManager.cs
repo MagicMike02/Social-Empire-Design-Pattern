@@ -204,8 +204,21 @@ namespace Script.GridSystem
             _gridManager.OccupyCell(centerTilePos, signObj);
            
             var sign = signObj.GetComponent<PurchaseSign>();
-            var cost = _expansionData != null ? _expansionData.GetCostForNextZone(_unlockedZonesCount) : new Dictionary<ResourceType, int>();
-            
+            Dictionary<ResourceType, int> cost;
+            try
+            {
+                cost = _expansionData != null
+                    ? _expansionData.GetCostForNextZone(_unlockedZonesCount)
+                    : new Dictionary<ResourceType, int>();
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ZoneManager] Errore lettura _expansionData.GetCostForNextZone: {ex.Message}. Uso costo vuoto.");
+#endif
+                cost = new Dictionary<ResourceType, int>();
+            }
+
             sign.Setup(zone.start, _economyManager, this, cost);
             zone.purchaseSign = signObj;
             
@@ -217,7 +230,20 @@ namespace Script.GridSystem
         
         private void UpdateAllPurchaseSignCosts()
         {
-            var nextCost = _expansionData != null ? _expansionData.GetCostForNextZone(_unlockedZonesCount) : new Dictionary<ResourceType, int>();
+            Dictionary<ResourceType, int> nextCost;
+            try
+            {
+                nextCost = _expansionData != null
+                    ? _expansionData.GetCostForNextZone(_unlockedZonesCount)
+                    : new Dictionary<ResourceType, int>();
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ZoneManager] Errore lettura _expansionData in UpdateAllPurchaseSignCosts: {ex.Message}. Uso costo vuoto.");
+#endif
+                nextCost = new Dictionary<ResourceType, int>();
+            }
 
             foreach (var zone in _zones.Values)
             {

@@ -87,14 +87,12 @@ namespace Script.UI
         /// </summary>
         private bool ValidateReferences()
         {
-            bool isValid = true;
-
             if (_resourceDisplayUI == null)
             {
 #if UNITY_EDITOR
                 Debug.LogError("[UIManager] ResourceDisplayUI non iniettato da VContainer!");
 #endif
-                isValid = false;
+                return false;
             }
 
             // Log warnings per future panels non ancora implementati
@@ -119,7 +117,7 @@ namespace Script.UI
 #endif
             }
 
-            return isValid;
+            return true;
         }
 
         /// <summary>

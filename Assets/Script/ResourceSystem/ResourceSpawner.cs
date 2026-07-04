@@ -69,6 +69,14 @@ namespace Script.ResourceSystem
 #if UNITY_EDITOR
             Debug.Log("Starting resource generation...");
 #endif
+            if (_resourceTypes == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[ResourceSpawner] _resourceTypes non assegnato! Nessuna risorsa generata.");
+#endif
+                return;
+            }
+
             foreach (var resource in _resourceTypes)
             {
                 GenerateResourceGroups(resource);
@@ -84,20 +92,47 @@ namespace Script.ResourceSystem
         /// </summary>
         private void GenerateResourceGroups(ResourceDataSO resource)
         {
+            if (resource == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[ResourceSpawner] ResourceDataSO null in _resourceTypes. Skip.");
+#endif
+                return;
+            }
+
             int attempts = 0;
             int groupsCreated = 0;
             int width = _tileManager.Width;
             int height = _tileManager.Height;
 
-            while (groupsCreated < resource.groupCount && attempts < resource.groupCount * 20)
+            int groupCount;
+            int defaultGroupSize;
+            List<int> possibleGroupSizes;
+            bool isDestroyedOnCollect;
+            try
+            {
+                groupCount = resource.groupCount;
+                defaultGroupSize = resource.defaultGroupSize;
+                possibleGroupSizes = resource.possibleGroupSizes;
+                isDestroyedOnCollect = resource.isDestroyedOnCollect;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ResourceSpawner] Errore lettura ResourceDataSO '{resource.name}': {ex.Message}. Skip.");
+#endif
+                return;
+            }
+
+            while (groupsCreated < groupCount && attempts < groupCount * 20)
             {
                 attempts++;
                 Vector2Int origin = GetRandomTileOutsideCentralZone(width, height);
-                int groupSize = resource.possibleGroupSizes[Random.Range(0, resource.possibleGroupSizes.Count)];
+                int groupSize = possibleGroupSizes[Random.Range(0, possibleGroupSizes.Count)];
 
-                if (resource.isDestroyedOnCollect)
+                if (isDestroyedOnCollect)
                 {
-                    groupSize = resource.defaultGroupSize;
+                    groupSize = defaultGroupSize;
                     SetGenerationStrategy(_singleRandomStrategy);
                 }
                 else

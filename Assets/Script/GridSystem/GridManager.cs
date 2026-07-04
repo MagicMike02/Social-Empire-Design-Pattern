@@ -59,14 +59,12 @@ namespace Script.GridSystem
 
         private bool ValidateDependencies()
         {
-            bool isValid = true;
-
             if (_tileManager == null)
             {
 #if UNITY_EDITOR
                 Debug.LogError("[GridManager] TileManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_zoneManager == null)
@@ -74,10 +72,10 @@ namespace Script.GridSystem
 #if UNITY_EDITOR
                 Debug.LogError("[GridManager] ZoneManager non assegnato nell'Inspector! Assegna il riferimento per evitare errori di runtime.");
 #endif
-                isValid = false;
+                return false;
             }
 
-            return isValid;
+            return true;
         }
 
         private void InitializeGrid()

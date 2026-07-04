@@ -43,19 +43,18 @@ namespace Script.Core.Optimization
 
         private void OnEnable()
         {
-            if (_mainCamera != null && _gridManager != null && _tileManager != null)
-            {
-                _cullingCts?.Cancel();
-                _cullingCts?.Dispose();
-                _cullingCts = new CancellationTokenSource();
-                _ = RunCullingLoopAsync(_cullingCts.Token);
-            }
-            else
+            if (_mainCamera == null || _gridManager == null || _tileManager == null)
             {
 #if UNITY_EDITOR
                 Debug.LogWarning("[GridCullingManager] Dipendenze mancanti. Assicurati che VContainer le abbia iniettate.");
 #endif
+                return;
             }
+
+            _cullingCts?.Cancel();
+            _cullingCts?.Dispose();
+            _cullingCts = new CancellationTokenSource();
+            _ = RunCullingLoopAsync(_cullingCts.Token);
         }
 
         private void OnDisable()

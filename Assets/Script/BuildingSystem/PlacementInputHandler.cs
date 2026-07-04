@@ -97,10 +97,19 @@ namespace Script.BuildingSystem
                         var config = _availableBuildings[i];
                         if (config != null)
                         {
-                            _placer.SelectBuilding(config);
+                            try
+                            {
+                                _placer.SelectBuilding(config);
 #if UNITY_EDITOR							
-                            Debug.Log($"[PlacementInputHandler] Selected {config.name} (Key {i + 1})");
+                                Debug.Log($"[PlacementInputHandler] Selected {config.name} (Key {i + 1})");
 #endif
+                            }
+                            catch (System.Exception ex)
+                            {
+#if UNITY_EDITOR
+                                Debug.LogError($"[PlacementInputHandler] Errore SelectBuilding su '{config.name}' (Key {i + 1}): {ex.Message}");
+#endif
+                            }
                         }
                     }
                 }

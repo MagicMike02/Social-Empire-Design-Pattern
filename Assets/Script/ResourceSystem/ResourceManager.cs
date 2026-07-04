@@ -112,14 +112,12 @@ namespace Script.ResourceSystem
 
         private bool ValidateDependencies()
         {
-            bool isValid = true;
-
             if (_tileManager == null)
             {
 #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_economyManager == null)
@@ -127,7 +125,7 @@ namespace Script.ResourceSystem
 #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] GameEconomyManager non iniettato! VContainer dovrebbe averlo fornito.");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_zoneManager == null)
@@ -135,7 +133,7 @@ namespace Script.ResourceSystem
 #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ZoneManager non iniettato! VContainer dovrebbe averlo fornito.");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_resourceSpawner == null)
@@ -143,7 +141,7 @@ namespace Script.ResourceSystem
 #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ResourceSpawner non iniettato! VContainer dovrebbe averlo fornito.");
 #endif
-                isValid = false;
+                return false;
             }
 
             if (_poolManager == null)
@@ -151,10 +149,10 @@ namespace Script.ResourceSystem
 #if UNITY_EDITOR
                 Debug.LogError("[ResourceManager] ResourcePoolManager non iniettato! VContainer dovrebbe averlo fornito.");
 #endif
-                isValid = false;
+                return false;
             }
 
-            return isValid;
+            return true;
         }
 
         private void InitializeResourceSystem()

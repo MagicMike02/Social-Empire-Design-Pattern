@@ -103,7 +103,16 @@ namespace Script.ResourceSystem.ResourceUI
 
                 if (element.iconImage && resourceIcons)
                 {
-                    element.iconImage.sprite = resourceIcons.GetIcon(type);
+                    try
+                    {
+                        element.iconImage.sprite = resourceIcons.GetIcon(type);
+                    }
+                    catch (System.Exception ex)
+                    {
+#if UNITY_EDITOR
+                        Debug.LogError($"[ResourceDisplayUI] Errore GetIcon per {type}: {ex.Message}");
+#endif
+                    }
                 }
                 break;
             }
