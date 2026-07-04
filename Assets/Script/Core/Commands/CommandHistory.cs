@@ -9,11 +9,17 @@ namespace Script.Core.Commands
     /// Pattern: Memento (traccia history comandi).
     /// 
     /// UNIVERSALE: Gestisce BuildingCommands, ResourceCommands, UnitCommands (future).
+    /// 
+    /// DESIGN: Usa LinkedList per trim O(1) sul limite history (vs Stack O(N)).
+    /// Lo State del Command è read-only all'esterno: CommandHistory chiama
+    /// Confirm()/Undo(), non setta mai command.State direttamente.
     /// </summary>
     public class CommandHistory
     {
-        private readonly Stack<ICommand> _undoStack = new();
-        private readonly Stack<ICommand> _redoStack = new();
+        // LinkedList: AddLast/RemoveFirst = O(1) per il trim del limite history.
+        // Last = comando più recente, First = comando più vecchio.
+        private readonly LinkedList<ICommand> _undoList = new();
+        private readonly LinkedList<ICommand> _redoList = new();
         private const int MaxHistorySize = 50; // Limit memory (configurabile)
 
         /// <summary>
@@ -36,42 +42,20 @@ namespace Script.Core.Commands
 
             if (success)
             {
-                command.State = CommandState.Confirmed;
+                // Conferma tramite il metodo del Command (non setta State direttamente).
+                command.Confirm();
 
-                // Aggiungi a undo stack
-                _undoStack.Push(command);
+                // Aggiungi a undo list (coda = più recente)
+                _undoList.AddLast(command);
 
-                // Invalida redo stack (nuova branch)
-                _redoStack.Clear();
+                // Invalida redo list (nuova branch)
+                _redoList.Clear();
 
-                // Limit history size (gestione memoria)
-                if (_undoStack.Count > MaxHistorySize)
-                {
-                    // Rimuovi comando più vecchio (FIFO on overflow)
-                    var tempStack = new Stack<ICommand>();
-                    
-                    // Sposta tutti tranne il più vecchio
-                    for (int i = 0; i < MaxHistorySize; i++)
-                    {
-                        tempStack.Push(_undoStack.Pop());
-                    }
-                    
-                    // Scarta il più vecchio
-                    _undoStack.Clear();
-                    
-                    // Ripristina stack
-                    while (tempStack.Count > 0)
-                    {
-                        _undoStack.Push(tempStack.Pop());
-                    }
-
-                    #if UNITY_EDITOR
-                    Debug.LogWarning($"[CommandHistory] History limit reached ({MaxHistorySize}), oldest command discarded");
-#endif
-                }
+                // Limit history size O(1): rimuovi il più vecchio in testa.
+                TrimUndoHistory();
 
                 #if UNITY_EDITOR
-                Debug.Log($"[CommandHistory] ✓ Executed: {command.Description} (Undo stack: {_undoStack.Count})");
+                Debug.Log($"[CommandHistory] ✓ Executed: {command.Description} (Undo stack: {_undoList.Count})");
                 #endif
             }
             else
@@ -105,38 +89,20 @@ namespace Script.Core.Commands
 
             if (success)
             {
-                command.State = CommandState.Confirmed;
+                // Conferma tramite il metodo del Command (non setta State direttamente).
+                command.Confirm();
 
-                // Aggiungi a undo stack
-                _undoStack.Push(command);
+                // Aggiungi a undo list (coda = più recente)
+                _undoList.AddLast(command);
 
-                // Invalida redo stack (nuova branch)
-                _redoStack.Clear();
+                // Invalida redo list (nuova branch)
+                _redoList.Clear();
 
-                // Limit history size (gestione memoria)
-                if (_undoStack.Count > MaxHistorySize)
-                {
-                    var tempStack = new Stack<ICommand>();
-
-                    for (int i = 0; i < MaxHistorySize; i++)
-                    {
-                        tempStack.Push(_undoStack.Pop());
-                    }
-
-                    _undoStack.Clear();
-
-                    while (tempStack.Count > 0)
-                    {
-                        _undoStack.Push(tempStack.Pop());
-                    }
+                // Limit history size O(1): rimuovi il più vecchio in testa.
+                TrimUndoHistory();
 
 #if UNITY_EDITOR
-                    Debug.LogWarning($"[CommandHistory] History limit reached ({MaxHistorySize}), oldest command discarded");
-#endif
-                }
-
-#if UNITY_EDITOR
-                Debug.Log($"[CommandHistory] ✓ Executed (async): {command.Description} (Undo stack: {_undoStack.Count})");
+                Debug.Log($"[CommandHistory] ✓ Executed (async): {command.Description} (Undo stack: {_undoList.Count})");
 #endif
             }
             else
@@ -156,7 +122,7 @@ namespace Script.Core.Commands
         /// <returns>True se annullato con successo</returns>
         public bool Undo()
         {
-            if (_undoStack.Count == 0)
+            if (_undoList.Count == 0)
             {
 #if UNITY_EDITOR
                 Debug.LogWarning("[CommandHistory] Nothing to undo (stack vuoto)");
@@ -164,22 +130,23 @@ namespace Script.Core.Commands
                 return false;
             }
 
-            var command = _undoStack.Pop();
+            var command = _undoList.Last.Value;
+            _undoList.RemoveLast();
             bool success = command.Undo();
 
             if (success)
             {
-                command.State = CommandState.RolledBack;
-                _redoStack.Push(command);
+                // Lo State.RolledBack viene impostato dal Command stesso dentro Undo().
+                _redoList.AddLast(command);
                 
 #if UNITY_EDITOR
-                Debug.Log($"[CommandHistory] ✓ Undone: {command.Description} (Redo stack: {_redoStack.Count})");
+                Debug.Log($"[CommandHistory] ✓ Undone: {command.Description} (Redo stack: {_redoList.Count})");
 #endif
             }
             else
             {
-                // Undo failed, ripristina stack (mantieni coerenza)
-                _undoStack.Push(command);
+                // Undo failed, ripristina list (mantieni coerenza)
+                _undoList.AddLast(command);
 #if UNITY_EDITOR
                 Debug.LogError($"[CommandHistory] ✗ Failed to undo: {command.Description}");
 #endif
@@ -195,7 +162,7 @@ namespace Script.Core.Commands
         /// <returns>True se rieseguito con successo</returns>
         public bool Redo()
         {
-            if (_redoStack.Count == 0)
+            if (_redoList.Count == 0)
             {
 #if UNITY_EDITOR
                 Debug.LogWarning("[CommandHistory] Nothing to redo (stack vuoto)");
@@ -203,22 +170,27 @@ namespace Script.Core.Commands
                 return false;
             }
 
-            var command = _redoStack.Pop();
+            var command = _redoList.Last.Value;
+            _redoList.RemoveLast();
             bool success = command.Execute();
 
             if (success)
             {
-                command.State = CommandState.Confirmed;
-                _undoStack.Push(command);
+                // Conferma tramite il metodo del Command (non setta State direttamente).
+                command.Confirm();
+                _undoList.AddLast(command);
+
+                // Limit history size O(1) anche sul redo→undo.
+                TrimUndoHistory();
                 
 #if UNITY_EDITOR
-                Debug.Log($"[CommandHistory] ✓ Redone: {command.Description} (Undo stack: {_undoStack.Count})");
+                Debug.Log($"[CommandHistory] ✓ Redone: {command.Description} (Undo stack: {_undoList.Count})");
 #endif
             }
             else
             {
-                // Redo failed, ripristina stack
-                _redoStack.Push(command);
+                // Redo failed, ripristina list
+                _redoList.AddLast(command);
 #if UNITY_EDITOR
                 Debug.LogError($"[CommandHistory] ✗ Failed to redo: {command.Description}");
 #endif
@@ -232,11 +204,11 @@ namespace Script.Core.Commands
         /// </summary>
         public void Clear()
         {
-            int undoCount = _undoStack.Count;
-            int redoCount = _redoStack.Count;
+            int undoCount = _undoList.Count;
+            int redoCount = _redoList.Count;
             
-            _undoStack.Clear();
-            _redoStack.Clear();
+            _undoList.Clear();
+            _redoList.Clear();
             
 #if UNITY_EDITOR
             Debug.Log($"[CommandHistory] History cleared ({undoCount} undo + {redoCount} redo commands)");
@@ -249,19 +221,35 @@ namespace Script.Core.Commands
         /// <returns>(undoCount, redoCount)</returns>
         public (int undoCount, int redoCount) GetStats() 
         {
-            return (_undoStack.Count, _redoStack.Count);
+            return (_undoList.Count, _redoList.Count);
         }
 
         /// <summary>
         /// Verifica se è possibile annullare.
         /// Utile per abilitare/disabilitare pulsante Undo in UI.
         /// </summary>
-        public bool CanUndo() => _undoStack.Count > 0;
+        public bool CanUndo() => _undoList.Count > 0;
 
         /// <summary>
         /// Verifica se è possibile rieseguire.
         /// Utile per abilitare/disabilitare pulsante Redo in UI.
         /// </summary>
-        public bool CanRedo() => _redoStack.Count > 0;
+        public bool CanRedo() => _redoList.Count > 0;
+
+        /// <summary>
+        /// Mantiene l'undo list entro MaxHistorySize rimuovendo i comandi più vecchi.
+        /// O(1) per ogni elemento in eccesso (RemoveFirst su LinkedList).
+        /// </summary>
+        private void TrimUndoHistory()
+        {
+            while (_undoList.Count > MaxHistorySize)
+            {
+                _undoList.RemoveFirst();
+
+#if UNITY_EDITOR
+                Debug.LogWarning($"[CommandHistory] History limit reached ({MaxHistorySize}), oldest command discarded");
+#endif
+            }
+        }
     }
 }

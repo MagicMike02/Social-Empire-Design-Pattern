@@ -27,7 +27,7 @@ namespace Script.GridSystem.Commands
 
         #region Properties
 
-        public CommandState State { get; set; } = CommandState.Pending;
+        public CommandState State { get; private set; } = CommandState.Pending;
         public string Description => $"Purchase zone at {_zoneCoord}";
         
         #endregion
@@ -134,6 +134,8 @@ namespace Script.GridSystem.Commands
 #if UNITY_EDITOR
             Debug.Log($"[PurchaseZoneCommand] ✓ Undone: {Description} (100% refund)");
 #endif
+
+            State = CommandState.RolledBack;
 
             return true;
         }

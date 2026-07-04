@@ -34,7 +34,7 @@ namespace Script.BuildingSystem.Commands
 
         #region Properties
 
-        public CommandState State { get; set; } = CommandState.Pending;
+        public CommandState State { get; private set; } = CommandState.Pending;
         public string Description => $"Destroy {_config.name} at {_gridPosition}";
         
         #endregion
@@ -183,6 +183,8 @@ namespace Script.BuildingSystem.Commands
             #if UNITY_EDITOR
             Debug.Log($"[DestroyBuildingCommand] ✓ Undone: {Description} (building rebuilt)");
             #endif
+
+            State = CommandState.RolledBack;
 
             return true;
         }

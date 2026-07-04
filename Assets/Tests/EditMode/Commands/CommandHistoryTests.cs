@@ -56,7 +56,7 @@ namespace Tests.EditMode.Commands
             public int ExecuteCalls { get; private set; }
             public int UndoCalls { get; private set; }
 
-	     	public CommandState State { get; set; } = CommandState.Pending;
+	     	public CommandState State { get; private set; } = CommandState.Pending;
 
 
             public FakeCommand(bool executeResult, bool undoResult)

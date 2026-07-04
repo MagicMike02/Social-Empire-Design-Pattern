@@ -26,10 +26,11 @@ namespace Script.Core.Commands
     public interface ICommand
     {
         /// <summary>
-        /// Stato corrente del comando nel lifecycle.
-        /// Viene aggiornato automaticamente da CommandHistory dopo Execute/Undo/Redo.
+        /// Stato corrente del comando nel lifecycle (read-only all'esterno).
+        /// Modificabile solo dal Command stesso tramite Confirm() e Undo().
+        /// CommandHistory NON deve scrivere direttamente questo membro.
         /// </summary>
-        CommandState State { get; set; }
+        CommandState State { get; }
 
         /// <summary>
         /// Esegue il comando (es. Piazza edificio, raccogli risorsa, muovi unità).

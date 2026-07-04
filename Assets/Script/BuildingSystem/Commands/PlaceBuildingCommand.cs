@@ -33,7 +33,7 @@ namespace Script.BuildingSystem.Commands
 
         #region Properties
 
-        public CommandState State { get; set; } = CommandState.Pending;
+        public CommandState State { get; private set; } = CommandState.Pending;
         public string Description => $"Place {_config.name} at {_gridPosition}";
         
         #endregion
@@ -192,6 +192,8 @@ namespace Script.BuildingSystem.Commands
             // UNDO: Distruggi GameObject
             Object.Destroy(_placedBuilding.gameObject);
             _placedBuilding = null;
+
+            State = CommandState.RolledBack;
 
 #if UNITY_EDITOR
             Debug.Log($"[PlaceBuildingCommand] ✓ Undone: {Description} (100% refund)");
