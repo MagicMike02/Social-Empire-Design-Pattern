@@ -37,9 +37,9 @@ namespace Script.ResourceSystem
             {
                 if (!pool.resourceData)
                 {
-                    #if UNITY_EDITOR
+#if UNITY_EDITOR
                     Debug.LogWarning("[PoolManager] ResourceDataSO nullo in pool!");
-                    #endif
+#endif
                     continue;
                 }
 

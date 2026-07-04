@@ -76,8 +76,10 @@ namespace Script.BuildingSystem
             {
                 if (!_loggedMissingDependency)
                 {
+#if UNITY_EDITOR
                     Debug.LogError("[PlacementInputHandler] BuildingPlacer è NULL! VContainer non ha iniettato la dipendenza.");
-                    _loggedMissingDependency = true;
+#endif
+				    _loggedMissingDependency = true;
                 }
                 return;
             }
@@ -96,7 +98,9 @@ namespace Script.BuildingSystem
                         if (config != null)
                         {
                             _placer.SelectBuilding(config);
+#if UNITY_EDITOR							
                             Debug.Log($"[PlacementInputHandler] Selected {config.name} (Key {i + 1})");
+#endif
                         }
                     }
                 }

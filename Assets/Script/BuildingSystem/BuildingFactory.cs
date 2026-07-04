@@ -17,13 +17,17 @@ namespace Script.BuildingSystem
         {
             if (config == null || config.Prefab == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[BuildingFactory] Impossibile creare edificio: config o prefab mancante!");
+#endif
                 return null;
             }
 
             if (_poolManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[BuildingFactory] PoolManager non inizializzato!");
+#endif
                 return null;
             }
 

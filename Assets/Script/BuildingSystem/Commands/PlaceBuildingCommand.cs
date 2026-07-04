@@ -72,9 +72,9 @@ namespace Script.BuildingSystem.Commands
             // VALIDATION 1: Celle libere?
             if (!_gridService.AreCellsFree(_gridPosition, _config.Width, _config.Height))
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PlaceBuildingCommand] Cannot place {_config.name}: cells occupied at {_gridPosition}");
-                #endif
+#endif
                 return false;
             }
 
@@ -82,9 +82,9 @@ namespace Script.BuildingSystem.Commands
             var costs = _config.ToDictionary();
             if (!_economy.CanAfford(costs))
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PlaceBuildingCommand] Cannot afford {_config.name}: insufficient resources");
-                #endif
+#endif
                 return false;
             }
 
@@ -152,9 +152,9 @@ namespace Script.BuildingSystem.Commands
             Object.Destroy(_placedBuilding.gameObject);
             _placedBuilding = null;
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[PlaceBuildingCommand] ✓ Undone: {Description} (100% refund)");
-            #endif
+#endif
 
             return true;
         }

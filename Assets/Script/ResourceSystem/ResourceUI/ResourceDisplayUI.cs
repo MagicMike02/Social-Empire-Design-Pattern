@@ -63,15 +63,25 @@ namespace Script.ResourceSystem.ResourceUI
         {
             if (_economyManager == null || resourceIcons == null || uiElements == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceDisplayUI] ResourceDisplayUI non inizializzata: dipendenze mancanti.");
+#endif
                 return;
             }
 
             if (_economyManager == null)
+            {
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceDisplayUI] GameEconomyManager non iniettato da VContainer!");
+#endif
+            }
 
             if (resourceIcons == null || uiElements == null)
+            {
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceDisplayUI] ResourceIcons o UIElements non assegnati nell'Inspector!");
+#endif
+            }
         }
 
         // Handler per GlobalEventBus (riceve struct invece di parametri separati)

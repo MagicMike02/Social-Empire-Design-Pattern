@@ -90,9 +90,9 @@ namespace Script.GridSystem.Commands
                 _economy.AddResource(resource.Key, resource.Value);
             }
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[PurchaseZoneCommand] ✓ Undone: {Description} (100% refund)");
-            #endif
+#endif
 
             return true;
         }

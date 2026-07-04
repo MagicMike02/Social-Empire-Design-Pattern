@@ -31,7 +31,9 @@ namespace Script.Core.Events
         {
             if (handler == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[GlobalEventBus] Tentativo di subscribe con handler null");
+#endif
                 return;
             }
 
@@ -44,9 +46,9 @@ namespace Script.Core.Events
 
             _eventHandlers[eventType] = Delegate.Combine(_eventHandlers[eventType], handler);
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[GlobalEventBus] ✓ Subscribed to {eventType.Name} (total subscribers: {GetSubscriberCount<T>()})");
-            #endif
+#endif
         }
 
         /// <summary>
@@ -59,7 +61,9 @@ namespace Script.Core.Events
         {
             if (handler == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[GlobalEventBus] Tentativo di unsubscribe con handler null");
+#endif
                 return;
             }
 
@@ -75,13 +79,15 @@ namespace Script.Core.Events
                     _eventHandlers.Remove(eventType);
                 }
 
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.Log($"[GlobalEventBus] ✓ Unsubscribed from {eventType.Name} (remaining: {GetSubscriberCount<T>()})");
-                #endif
+#endif
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[GlobalEventBus] Tentativo di unsubscribe da {eventType.Name} ma nessun handler registrato");
+#endif
             }
         }
 
@@ -104,20 +110,22 @@ namespace Script.Core.Events
                 {
                     (handler as Action<T>)?.Invoke(eventData);
 
-                    #if UNITY_EDITOR
+#if UNITY_EDITOR
                     Debug.Log($"[GlobalEventBus] → Published {eventType.Name} to {GetSubscriberCount<T>()} subscriber(s)");
-                    #endif
+#endif
                 }
                 catch (Exception ex)
                 {
+#if UNITY_EDITOR
                     Debug.LogError($"[GlobalEventBus] Errore durante invocazione handler per {eventType.Name}: {ex.Message}\n{ex.StackTrace}");
+#endif
                 }
             }
             else
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.Log($"[GlobalEventBus] → Published {eventType.Name} ma nessun subscriber (ignorato)");
-                #endif
+#endif
             }
         }
 
@@ -149,7 +157,9 @@ namespace Script.Core.Events
             var eventCount = _eventHandlers.Count;
             _eventHandlers.Clear();
 
+#if UNITY_EDITOR
             Debug.LogWarning($"[GlobalEventBus] ⚠️ ClearAllSubscriptions: rimossi {eventCount} tipi di eventi");
+#endif
         }
 
         /// <summary>

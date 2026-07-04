@@ -45,9 +45,9 @@ namespace Script.PathfindingSystem
             // Cache hit
             if (_cache.TryGetValue(cacheKey, out var cachedPath))
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.Log($"[CachedPathfinding] Cache HIT: {start} → {goal}");
-                #endif
+#endif
                 return new List<Vector2Int>(cachedPath); // Return copy
             }
 
@@ -59,16 +59,16 @@ namespace Script.PathfindingSystem
             {
                 var firstKey = _cache.Keys.First();
                 _cache.Remove(firstKey);
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.Log($"[CachedPathfinding] LRU eviction: removed {firstKey}");
-                #endif
+#endif
             }
 
             _cache[cacheKey] = new List<Vector2Int>(path);
 
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[CachedPathfinding] Cache MISS: {start} → {goal}, cached result");
-            #endif
+#endif
 
             return path;
         }
@@ -79,9 +79,9 @@ namespace Script.PathfindingSystem
         public void ClearCache()
         {
             _cache.Clear();
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log("[CachedPathfinding] Cache cleared");
-            #endif
+#endif
         }
 
         /// <summary>

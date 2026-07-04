@@ -59,20 +59,26 @@ namespace Script.PathfindingSystem
         {
             if (path == null || path.Count == 0)
             {
+#if UNITY_EDITOR
                 Debug.Log("[DebugPathfinding] No path to visualize");
+#endif
                 return;
             }
 
             if (_tileManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[DebugPathfinding] TileManager is null");
+#endif
                 return;
             }
 
             var grid = _tileManager.GetGrid();
             if (grid == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[DebugPathfinding] Grid is null");
+#endif
                 return;
             }
 
@@ -95,7 +101,9 @@ namespace Script.PathfindingSystem
                     tile.DebugSetColor(pathColor);
             }
 
+#if UNITY_EDITOR
             Debug.Log($"[DebugPathfinding] Visualized {path.Count} cells");
+#endif
         }
         
         #endregion

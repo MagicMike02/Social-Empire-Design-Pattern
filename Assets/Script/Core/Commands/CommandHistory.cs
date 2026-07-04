@@ -25,7 +25,9 @@ namespace Script.Core.Commands
         {
             if (command == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[CommandHistory] Tentativo di eseguire comando null!");
+#endif
                 return false;
             }
 
@@ -60,7 +62,9 @@ namespace Script.Core.Commands
                         _undoStack.Push(tempStack.Pop());
                     }
 
+                    #if UNITY_EDITOR
                     Debug.LogWarning($"[CommandHistory] History limit reached ({MaxHistorySize}), oldest command discarded");
+#endif
                 }
 
                 #if UNITY_EDITOR
@@ -69,7 +73,9 @@ namespace Script.Core.Commands
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[CommandHistory] ✗ Failed to execute: {command.Description}");
+#endif
             }
 
             return success;
@@ -84,9 +90,9 @@ namespace Script.Core.Commands
         {
             if (_undoStack.Count == 0)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning("[CommandHistory] Nothing to undo (stack vuoto)");
-                #endif
+#endif
                 return false;
             }
 
@@ -97,15 +103,17 @@ namespace Script.Core.Commands
             {
                 _redoStack.Push(command);
                 
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.Log($"[CommandHistory] ✓ Undone: {command.Description} (Redo stack: {_redoStack.Count})");
-                #endif
+#endif
             }
             else
             {
                 // Undo failed, ripristina stack (mantieni coerenza)
                 _undoStack.Push(command);
+#if UNITY_EDITOR
                 Debug.LogError($"[CommandHistory] ✗ Failed to undo: {command.Description}");
+#endif
             }
 
             return success;
@@ -120,9 +128,9 @@ namespace Script.Core.Commands
         {
             if (_redoStack.Count == 0)
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning("[CommandHistory] Nothing to redo (stack vuoto)");
-                #endif
+#endif
                 return false;
             }
 
@@ -133,15 +141,17 @@ namespace Script.Core.Commands
             {
                 _undoStack.Push(command);
                 
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.Log($"[CommandHistory] ✓ Redone: {command.Description} (Undo stack: {_undoStack.Count})");
-                #endif
+#endif
             }
             else
             {
                 // Redo failed, ripristina stack
                 _redoStack.Push(command);
+#if UNITY_EDITOR
                 Debug.LogError($"[CommandHistory] ✗ Failed to redo: {command.Description}");
+#endif
             }
 
             return success;
@@ -158,7 +168,9 @@ namespace Script.Core.Commands
             _undoStack.Clear();
             _redoStack.Clear();
             
+#if UNITY_EDITOR
             Debug.Log($"[CommandHistory] History cleared ({undoCount} undo + {redoCount} redo commands)");
+#endif
         }
 
         /// <summary>

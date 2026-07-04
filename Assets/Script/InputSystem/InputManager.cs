@@ -102,12 +102,14 @@ namespace Script.InputSystem
                 int hitCount = Physics2D.OverlapPoint(point, OverlapFilter, _overlapBuffer);
                 if (_debugMode && hitCount > 0)
                 {
+#if UNITY_EDITOR
                     Debug.Log($"[InputManager] OverlapPoint hits: {hitCount}");
                     for (int i = 0; i < hitCount; i++)
                     {
                         if (_overlapBuffer[i])
                             Debug.Log($"  [{i}] {_overlapBuffer[i].gameObject.name} (layer {_overlapBuffer[i].gameObject.layer})");
                     }
+#endif
                 }
 
                 // Unica chiamata ottimizzata che filtra per priorità decrescente con TryGetComponent O(1) in allocazioni
@@ -125,7 +127,9 @@ namespace Script.InputSystem
             {
                 _lastHovered?.OnClick();
                 if (_debugMode && _lastHovered != null) 
+#if UNITY_EDITOR
                     Debug.Log($"[InputManager] Click on {_lastHovered.GetType().Name}");
+#endif
 
                 // Collider-First: pass the Tile itself, not a calculated cell
                 // Subscriber reads tile.GridPosition (cached at Initialize, authoritative Source of Truth)
@@ -140,7 +144,9 @@ namespace Script.InputSystem
                 _lastHovered?.OnRightClick(wp);
                 OnMapRightClicked?.Invoke();
                 if (_debugMode && _lastHovered != null) 
+#if UNITY_EDITOR
                     Debug.Log($"[InputManager] RightClick on {_lastHovered.GetType().Name} at {wp}");
+#endif
             }
         }
         
@@ -196,7 +202,10 @@ namespace Script.InputSystem
                         // TryGetComponent non alloca costrutti null se il Component non esiste
                         if (col.TryGetComponent<IHoverable>(out var hoverable))
                         {
-                            if (_debugMode) Debug.Log($"[InputManager] {col.gameObject.name} is IHoverable");
+                            if (_debugMode)
+#if UNITY_EDITOR
+                                Debug.Log($"[InputManager] {col.gameObject.name} is IHoverable");
+#endif
                             return hoverable;
                         }
                     }

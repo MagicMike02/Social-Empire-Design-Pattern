@@ -21,11 +21,11 @@ namespace Script.Core
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         private static void ValidateLayers()
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             if (Tile == -1) Debug.LogError("[LayerRegistry] Layer 'Tile' non trovato");
             if (Resource == -1) Debug.LogWarning("[LayerRegistry] Layer 'Resource' non trovato");
             if (ZoneSign == -1) Debug.LogWarning("[LayerRegistry] Layer 'ZoneSign' non trovato");
-            #endif
+#endif
         }
     }
 }

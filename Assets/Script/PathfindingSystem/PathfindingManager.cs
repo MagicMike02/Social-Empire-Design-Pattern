@@ -78,13 +78,17 @@ namespace Script.PathfindingSystem
             // Validate dependencies
             if (_gridService == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[PathfindingManager] IGridService non iniettato! VContainer dovrebbe averlo fornito.");
+#endif
                 return;
             }
 
             if (_tileManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[PathfindingManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
+#endif
                 return;
             }
 
@@ -99,13 +103,17 @@ namespace Script.PathfindingSystem
             if (_enableDebugVisualization)
             {
                 algorithm = new DebugPathfindingDecorator(algorithm, _tileManager);
+#if UNITY_EDITOR
                 Debug.Log("[PathfindingManager] ✓ Debug visualization ENABLED");
+#endif
             }
 
             _pathfindingAlgorithm = algorithm;
 
+#if UNITY_EDITOR
             Debug.Log("[PathfindingManager] ✓ Initialized with A* + Caching" +
                       (_enableDebugVisualization ? " + Debug" : ""));
+#endif
         }
         
         #endregion
@@ -121,8 +129,10 @@ namespace Script.PathfindingSystem
             // Grid events (edifici e risorse)
             GlobalEventBus.Subscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Subscribe<CellsFreedEvent>(OnCellsFreed);
-            
+#if UNITY_EDITOR
             Debug.Log("[PathfindingManager] ✓ Subscribed to Grid events (cache auto-invalidation)");
+#endif            
+
         }
 
         /// <summary>
@@ -170,7 +180,9 @@ namespace Script.PathfindingSystem
         {
             if (_pathfindingAlgorithm == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[PathfindingManager] Pathfinding non inizializzato!");
+#endif
                 return new List<Vector2Int>();
             }
 
@@ -178,9 +190,9 @@ namespace Script.PathfindingSystem
             var path = _pathfindingAlgorithm.FindPath(start, goal, _gridService);
             sw.Stop();
             
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[PathfindingManager] FindPath: {start} → {goal} = {path.Count} cells in {sw.ElapsedMilliseconds}ms");
-            #endif
+#endif
             
             return path;
         }

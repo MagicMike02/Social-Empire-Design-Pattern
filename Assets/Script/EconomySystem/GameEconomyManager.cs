@@ -50,7 +50,9 @@ namespace Script.EconomySystem
         {
             if (amount < 0)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"Attempted to add negative amount of {type}. Use SpendResources instead.");
+#endif
                 return;
             }
 
@@ -75,7 +77,9 @@ namespace Script.EconomySystem
         {
             if (amount < 0)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"Attempted to spend negative amount of {type}. Use AddResource instead.");
+#endif
                 return false;
             }
 
@@ -92,7 +96,9 @@ namespace Script.EconomySystem
                 return true;
             }
 
+#if UNITY_EDITOR
             Debug.LogWarning($"Not enough {type} to spend {amount}. Current: {_resources.GetValueOrDefault(type, 0)}");
+#endif
             return false;
         }
 
@@ -123,7 +129,9 @@ namespace Script.EconomySystem
                 return true;
             }
 
+#if UNITY_EDITOR
             Debug.LogWarning("Cannot afford purchase. Not enough resources.");
+#endif
             return false;
         }
 

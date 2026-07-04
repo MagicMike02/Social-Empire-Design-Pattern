@@ -34,9 +34,9 @@ namespace Script.BuildingSystem.States
         /// </summary>
         public void OnEnter()
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log("[PlacementFSM] → Idle (nessun edificio selezionato)");
-            #endif
+#endif
             
             // Assicurati che preview sia disattivata
             _context.ClearPreview();
@@ -80,9 +80,9 @@ namespace Script.BuildingSystem.States
         public void OnPlacementConfirmed()
         {
             // Idle: nessun edificio selezionato, ignora
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.LogWarning("[IdlePlacementState] OnPlacementConfirmed chiamato in Idle (ignorato)");
-            #endif
+#endif
         }
 
         public void OnPlacementCancelled()

@@ -38,9 +38,9 @@ namespace Script.BuildingSystem.States
         /// </summary>
         public void OnEnter()
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[PlacementFSM] → Confirming (executing placement for {_selectedConfig.name})");
-            #endif
+#endif
             
             bool success = false;
             

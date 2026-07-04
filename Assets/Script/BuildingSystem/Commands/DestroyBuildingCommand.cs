@@ -76,7 +76,9 @@ namespace Script.BuildingSystem.Commands
         {
             if (_originalBuilding == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("[DestroyBuildingCommand] Building already destroyed or null");
+#endif
                 return false;
             }
 
@@ -111,7 +113,9 @@ namespace Script.BuildingSystem.Commands
 
             if (_rebuiltBuilding == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[DestroyBuildingCommand] Failed to rebuild {_config.name} during undo!");
+#endif
                 return false;
             }
 
@@ -129,7 +133,9 @@ namespace Script.BuildingSystem.Commands
                 if (!removed)
                 {
                     // Se player ha speso le risorse nel frattempo, warning
+#if UNITY_EDITOR
                     Debug.LogWarning($"[DestroyBuildingCommand] Undo: Insufficient {cost.Key} to remove refund (player spent them)");
+#endif
                 }
             }
 
