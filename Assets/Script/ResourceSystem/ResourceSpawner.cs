@@ -22,10 +22,19 @@ namespace Script.ResourceSystem
         [Inject]
         public void Construct(TileManager tileManager, ZoneManager zoneManager, ResourcePoolManager poolManager, GridManager gridManager)
         {
-            _tileManager = tileManager;
-            _zoneManager = zoneManager;
-            _poolManager = poolManager;
-            _gridManager = gridManager;
+            try
+            {
+                _tileManager = tileManager;
+                _zoneManager = zoneManager;
+                _poolManager = poolManager;
+                _gridManager = gridManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ResourceSpawner] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

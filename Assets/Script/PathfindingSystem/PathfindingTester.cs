@@ -35,7 +35,16 @@ namespace Script.PathfindingSystem
         [Inject]
         public void Construct(PathfindingManager pathfindingManager)
         {
-            _pathfindingManager = pathfindingManager;
+            try
+            {
+                _pathfindingManager = pathfindingManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[PathfindingTester] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         private void OnEnable()

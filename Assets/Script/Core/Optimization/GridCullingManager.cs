@@ -33,9 +33,18 @@ namespace Script.Core.Optimization
         [Inject]
         public void Construct(Camera mainCamera, GridManager gridManager, TileManager tileManager)
         {
-            _mainCamera = mainCamera;
-            _gridManager = gridManager;
-            _tileManager = tileManager;
+            try
+            {
+                _mainCamera = mainCamera;
+                _gridManager = gridManager;
+                _tileManager = tileManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GridCullingManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         // Cache per evitare GetComponentsInChildren ad ogni tick

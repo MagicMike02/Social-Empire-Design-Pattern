@@ -21,8 +21,17 @@ namespace Script.GridSystem
             TileManager tileManager,
             ZoneManager zoneManager)
         {
-            _tileManager = tileManager;
-            _zoneManager = zoneManager;
+            try
+            {
+                _tileManager = tileManager;
+                _zoneManager = zoneManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GridManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

@@ -32,12 +32,21 @@ namespace Script.ResourceSystem
             ResourcePoolManager poolManager,
             GridManager gridManager)
         {
-            _tileManager = tileManager;
-            _economyManager = economyManager;
-            _zoneManager = zoneManager;
-            _resourceSpawner = resourceSpawner;
-            _poolManager = poolManager;
-            _gridManager = gridManager;
+            try
+            {
+                _tileManager = tileManager;
+                _economyManager = economyManager;
+                _zoneManager = zoneManager;
+                _resourceSpawner = resourceSpawner;
+                _poolManager = poolManager;
+                _gridManager = gridManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ResourceManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         #endregion

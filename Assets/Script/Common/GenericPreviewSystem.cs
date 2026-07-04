@@ -43,7 +43,16 @@ namespace Script.Common
         [Inject]
         public void Construct(PrefabPoolManager poolManager)
         {
-            _poolManager = poolManager;
+            try
+            {
+                _poolManager = poolManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GenericPreviewSystem] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         #region Properties

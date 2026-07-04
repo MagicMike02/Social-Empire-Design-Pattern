@@ -77,7 +77,16 @@ namespace Script.GridSystem
         [Inject]
         public void Construct(PrefabPoolManager poolManager)
         {
-            _poolManager = poolManager;
+            try
+            {
+                _poolManager = poolManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[TileManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

@@ -29,7 +29,16 @@ namespace Script.ResourceSystem.ResourceUI
         [Inject]
         public void Construct(GameEconomyManager economyManager)
         {
-            _economyManager = economyManager;
+            try
+            {
+                _economyManager = economyManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ResourceDisplayUI] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

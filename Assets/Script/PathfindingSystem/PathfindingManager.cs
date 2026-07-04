@@ -28,8 +28,17 @@ namespace Script.PathfindingSystem
         [Inject]
         public void Construct(IGridService gridService, TileManager tileManager)
         {
-            _gridService = gridService;
-            _tileManager = tileManager;
+            try
+            {
+                _gridService = gridService;
+                _tileManager = tileManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[PathfindingManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

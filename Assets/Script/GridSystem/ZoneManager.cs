@@ -20,8 +20,17 @@ namespace Script.GridSystem
         [Inject]
         public void Construct(GameEconomyManager economyManager, CommandHistory commandHistory)
         {
-            _economyManager = economyManager;
-            _commandHistory = commandHistory;
+            try
+            {
+                _economyManager = economyManager;
+                _commandHistory = commandHistory;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ZoneManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

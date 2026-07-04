@@ -2015,7 +2015,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a52889ebab5c232439b53da525ee85f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cullingInterval: 0.8
+  _cullingInterval: 0.5
   _overscanPadding: 10
 --- !u!114 &1000000002
 MonoBehaviour:

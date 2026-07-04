@@ -28,8 +28,17 @@ namespace Script.BuildingSystem
         [Inject]
         public void Construct(BuildingPlacer placer, InputManager inputManager)
         {
-            _placer = placer;
-            _inputManager = inputManager;
+            try
+            {
+                _placer = placer;
+                _inputManager = inputManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[PlacementInputHandler] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         private void OnEnable()

@@ -34,7 +34,16 @@ namespace Script.UI
         [Inject]
         public void Construct(ResourceDisplayUI resourceDisplayUI)
         {
-            _resourceDisplayUI = resourceDisplayUI;
+            try
+            {
+                _resourceDisplayUI = resourceDisplayUI;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[UIManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion

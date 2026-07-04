@@ -11,7 +11,16 @@ namespace Script.BuildingSystem
         [Inject]
         public void Construct(PrefabPoolManager poolManager)
         {
-            _poolManager = poolManager;
+            try
+            {
+                _poolManager = poolManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[BuildingFactory] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         public Building CreateBuilding(BuildingConfigSO config, Vector3 worldPos, Transform parent = null)
         {

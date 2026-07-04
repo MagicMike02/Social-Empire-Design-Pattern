@@ -21,14 +21,23 @@ namespace Script.BuildingSystem
         [Inject]
         public void Construct(
             BuildingManager manager,
-            Camera mainCamera, 
+            Camera mainCamera,
             GenericPreviewSystem previewSystem,
             CommandHistory commandHistory)
         {
-            _manager = manager;
-            _camera = mainCamera;
-            _previewSystem = previewSystem;
-            _commandHistory = commandHistory;
+            try
+            {
+                _manager = manager;
+                _camera = mainCamera;
+                _previewSystem = previewSystem;
+                _commandHistory = commandHistory;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[BuildingPlacer] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         #endregion

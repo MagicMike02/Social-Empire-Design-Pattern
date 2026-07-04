@@ -25,7 +25,16 @@ namespace Script.Core.Commands
         [Inject]
         public void Construct(CommandHistory commandHistory)
         {
-            _commandHistory = commandHistory;
+            try
+            {
+                _commandHistory = commandHistory;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[CommandInputHandler] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         private void Update()
