@@ -1,5 +1,6 @@
 ﻿using Script.Core.Commands;
 using Script.EconomySystem;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Script.BuildingSystem.Commands
@@ -122,6 +123,28 @@ namespace Script.BuildingSystem.Commands
             #if UNITY_EDITOR
             Debug.Log($"[PlaceBuildingCommand] ✓ Executed: {Description}");
             #endif
+
+            return true;
+        }
+
+        /// <summary>
+        /// Esegue il comando in modalità asincrona con optimistic update + conferma.
+        /// Per ora: esegue l'optimistic update (Execute) e conferma immediatamente.
+        /// In futuro: attenderà la conferma da IBackendService.
+        /// </summary>
+        public async Task<bool> ExecuteAsync()
+        {
+            // Step 1: Optimistic update (validazione + esecuzione sincrona)
+            bool success = Execute();
+            if (!success) return false;
+
+            // Step 2: Future — await _backendService.ConfirmBuildAsync(...)
+            // Per ora conferma immediata
+            await Task.CompletedTask;
+
+#if UNITY_EDITOR
+            Debug.Log($"[PlaceBuildingCommand] ✓ Async confirmed: {Description}");
+#endif
 
             return true;
         }

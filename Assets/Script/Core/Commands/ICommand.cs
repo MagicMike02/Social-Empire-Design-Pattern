@@ -1,4 +1,6 @@
-﻿namespace Script.Core.Commands
+﻿using System.Threading.Tasks;
+
+namespace Script.Core.Commands
 {
     /// <summary>
     /// Stato del comando nel suo lifecycle.
@@ -36,6 +38,16 @@
         /// Fallimenti possibili: validazione fallita, risorse insufficienti, celle occupate.
         /// </returns>
         bool Execute();
+
+        /// <summary>
+        /// Esegue il comando in modalità asincrona con optimistic update + conferma.
+        /// Per ora esegue l'optimistic update e conferma immediatamente.
+        /// In futuro: attenderà la conferma da IBackendService.
+        /// </summary>
+        /// <returns>
+        /// True se eseguito e confermato con successo, False se fallito.
+        /// </returns>
+        Task<bool> ExecuteAsync();
 
         /// <summary>
         /// Annulla il comando (ripristina stato precedente).

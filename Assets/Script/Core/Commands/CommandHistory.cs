@@ -1,4 +1,5 @@
 ﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Script.Core.Commands
@@ -77,6 +78,71 @@ namespace Script.Core.Commands
             {
 #if UNITY_EDITOR
                 Debug.LogWarning($"[CommandHistory] ✗ Failed to execute: {command.Description}");
+#endif
+            }
+
+            return success;
+        }
+
+        /// <summary>
+        /// Esegue comando in modalità asincrona con optimistic update + conferma.
+        /// Per ora esegue l'optimistic update e conferma immediatamente.
+        /// In futuro: attenderà la conferma da IBackendService.
+        /// </summary>
+        /// <param name="command">Comando da eseguire (Building, Resource, Unit...)</param>
+        /// <returns>True se eseguito e confermato con successo</returns>
+        public async Task<bool> ExecuteCommandAsync(ICommand command)
+        {
+            if (command == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogWarning("[CommandHistory] Tentativo di eseguire comando null!");
+#endif
+                return false;
+            }
+
+            bool success = await command.ExecuteAsync();
+
+            if (success)
+            {
+                command.State = CommandState.Confirmed;
+
+                // Aggiungi a undo stack
+                _undoStack.Push(command);
+
+                // Invalida redo stack (nuova branch)
+                _redoStack.Clear();
+
+                // Limit history size (gestione memoria)
+                if (_undoStack.Count > MaxHistorySize)
+                {
+                    var tempStack = new Stack<ICommand>();
+
+                    for (int i = 0; i < MaxHistorySize; i++)
+                    {
+                        tempStack.Push(_undoStack.Pop());
+                    }
+
+                    _undoStack.Clear();
+
+                    while (tempStack.Count > 0)
+                    {
+                        _undoStack.Push(tempStack.Pop());
+                    }
+
+#if UNITY_EDITOR
+                    Debug.LogWarning($"[CommandHistory] History limit reached ({MaxHistorySize}), oldest command discarded");
+#endif
+                }
+
+#if UNITY_EDITOR
+                Debug.Log($"[CommandHistory] ✓ Executed (async): {command.Description} (Undo stack: {_undoStack.Count})");
+#endif
+            }
+            else
+            {
+#if UNITY_EDITOR
+                Debug.LogWarning($"[CommandHistory] ✗ Failed to execute (async): {command.Description}");
 #endif
             }
 
