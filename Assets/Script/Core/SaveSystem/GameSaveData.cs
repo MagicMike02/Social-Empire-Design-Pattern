@@ -1,15 +1,16 @@
 
 using System;
+using System.Collections.Generic;
 using Script.ResourceSystem.Enums;
 
 namespace Script.Core.SaveSystem
 {
     /// <summary>
-    /// DTO serializzabile per l'intero stato di gioco.
+    /// DTO per l'intero stato di gioco.
     /// Progettato per serializzazione JSON sparsa: solo tile occupate, non l'intera griglia 100x100.
-    /// Compatibile con JsonUtility (Unity) — usa tipi serializzabili, non record C# puri.
+    /// Serializzato con Newtonsoft.Json (supporta Dictionary nativi, null, polimorfismo).
+    /// NON usa [Serializable] Unity: serializzazione solo via Newtonsoft.Json.
     /// </summary>
-    [Serializable]
     public sealed class GameSaveData
     {
         #region Metadata
@@ -36,9 +37,9 @@ namespace Script.Core.SaveSystem
 
         /// <summary>
         /// Stato dell'economia: risorse possedute dal giocatore.
-        /// Serializzato come array di coppie chiave-valore (JsonUtility non supporta Dictionary nativamente).
+        /// Serializzato come dizionario { "Wood": 100, "Stone": 50, ... }.
         /// </summary>
-        public ResourceEntry[] resources;
+        public Dictionary<string, int> resources;
 
         /// <summary>
         /// Livello del giocatore (progressione).
@@ -63,7 +64,7 @@ namespace Script.Core.SaveSystem
         /// Solo celle occupate da edifici — formato sparse {(x,y): buildingId}.
         /// Non serializza le 10.000 tile vuote.
         /// </summary>
-        public PlacedBuildingEntry[] placedBuildings;
+        public Dictionary<string, string> placedBuildings;
 
         #endregion
 
@@ -72,51 +73,12 @@ namespace Script.Core.SaveSystem
         /// <summary>
         /// Indici delle zone sbloccate (es. [0, 1, 2, 5, 6]).
         /// </summary>
-        public int[] unlockedZoneIndices;
+        public List<int> unlockedZoneIndices;
 
         /// <summary>
         /// Dimensione di una zona in tile (es. 20 per zone 20x20).
         /// </summary>
         public int zoneSize;
-
-        #endregion
-
-        #region Nested Serializable Types
-
-        /// <summary>
-        /// Coppia chiave-valore per risorsa (JsonUtility-compatibile).
-        /// </summary>
-        [Serializable]
-        public struct ResourceEntry
-        {
-            public string type;
-            public int amount;
-
-            public ResourceEntry(ResourceType type, int amount)
-            {
-                this.type = type.ToString();
-                this.amount = amount;
-            }
-        }
-
-        /// <summary>
-        /// Entry per un edificio piazzato sulla griglia (formato sparse).
-        /// </summary>
-        [Serializable]
-        public struct PlacedBuildingEntry
-        {
-            /// <summary>Coordinata X sulla griglia (origine, angolo in basso a sinistra dell'edificio).</summary>
-            public int x;
-
-            /// <summary>Coordinata Y sulla griglia (origine).</summary>
-            public int y;
-
-            /// <summary>Identificatore del tipo di edificio (es. "house_1", "farm").</summary>
-            public string buildingId;
-
-            /// <summary>Timestamp UTC di quando l'edificio è stato piazzato.</summary>
-            public string placedAt;
-        }
 
         #endregion
 
@@ -132,12 +94,12 @@ namespace Script.Core.SaveSystem
                 schemaVersion = 1,
                 savedAt = DateTime.UtcNow.ToString("o"),
                 lastExitAt = DateTime.UtcNow.ToString("o"),
-                resources = System.Array.Empty<ResourceEntry>(),
+                resources = new Dictionary<string, int>(),
                 playerLevel = 1,
                 gridWidth = gridWidth,
                 gridHeight = gridHeight,
-                placedBuildings = System.Array.Empty<PlacedBuildingEntry>(),
-                unlockedZoneIndices = new[] { 0 }, // solo zona iniziale sbloccata
+                placedBuildings = new Dictionary<string, string>(),
+                unlockedZoneIndices = new List<int> { 0 }, // solo zona iniziale sbloccata
                 zoneSize = zoneSize
             };
         }
@@ -157,11 +119,15 @@ namespace Script.Core.SaveSystem
             if (resources == null || placedBuildings == null || unlockedZoneIndices == null) return false;
 
             // Verifica che gli edifici siano dentro i bounds della griglia
-            foreach (var b in placedBuildings)
+            foreach (var kvp in placedBuildings)
             {
-                if (b.x < 0 || b.y < 0 || b.x >= gridWidth || b.y >= gridHeight)
+                var parts = kvp.Key.Split(',');
+                if (parts.Length != 2) return false;
+                if (!int.TryParse(parts[0], out int x) || !int.TryParse(parts[1], out int y))
                     return false;
-                if (string.IsNullOrEmpty(b.buildingId))
+                if (x < 0 || y < 0 || x >= gridWidth || y >= gridHeight)
+                    return false;
+                if (string.IsNullOrEmpty(kvp.Value))
                     return false;
             }
 

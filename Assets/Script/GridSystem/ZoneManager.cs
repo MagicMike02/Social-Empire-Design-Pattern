@@ -99,6 +99,52 @@ namespace Script.GridSystem
             _zones.TryGetValue(coord, out var zone) && zone.isUnlocked;
 
         /// <summary>
+        /// Restituisce le coordinate delle zone attualmente sbloccate.
+        /// Usato da SaveManager per serializzare lo stato delle zone.
+        /// </summary>
+        public IReadOnlyList<Vector2Int> GetUnlockedZoneCoords()
+        {
+            var result = new List<Vector2Int>();
+            foreach (var kvp in _zones)
+            {
+                if (kvp.Value.isUnlocked)
+                    result.Add(kvp.Key);
+            }
+            return result;
+        }
+
+        /// <summary>
+        /// Imposta lo stato di sblocco di una zona senza effetti collaterali (sign, tile).
+        /// Usato da SaveManager per ripristinare lo stato delle zone dal save.
+        /// </summary>
+        public void SetZoneUnlockedState(Vector2Int coord, bool unlocked)
+        {
+            if (!_zones.TryGetValue(coord, out var zone)) return;
+
+            bool wasUnlocked = zone.isUnlocked;
+            zone.isUnlocked = unlocked;
+
+            if (unlocked && !wasUnlocked)
+            {
+                _unlockedZonesCount++;
+                foreach (var tile in zone.tiles)
+                    if (tile) tile.Unlock();
+                if (zone.purchaseSign)
+                {
+                    Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+                    _gridManager.FreeCell(signGridPos);
+                    Destroy(zone.purchaseSign);
+                }
+            }
+            else if (!unlocked && wasUnlocked)
+            {
+                _unlockedZonesCount--;
+                foreach (var tile in zone.tiles)
+                    if (tile) tile.SetState(TileState.Locked);
+            }
+        }
+
+        /// <summary>
         /// Aggiorna a livello di root tutte le tile della zona sbloccandole e rimuovendo il sign.
         /// </summary>
         public void UnlockZone(Vector2Int coord)

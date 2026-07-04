@@ -2,6 +2,7 @@
 using Script.BuildingSystem;
 using Script.Common;
 using Script.Core.Commands;
+using Script.Core.SaveSystem;
 using Script.EconomySystem;
 using Script.GridSystem;
 using Script.InputSystem;
@@ -104,6 +105,10 @@ namespace Script.Core
             // OPTIMIZATION SYSTEM
             RegisterIfExists<GridCullingManager>(builder);
 
+            // SAVE SYSTEM
+            builder.Register<JsonSaveSystem>(Lifetime.Singleton).As<IPersistenceManager>();
+            builder.Register<SaveManager>(Lifetime.Singleton);
+
             // CAMERA
             var mainCamera = Camera.main;
             if (mainCamera != null)
@@ -130,6 +135,70 @@ namespace Script.Core
 #endif
             }
         }
+
+        #region App Lifecycle - Save Hooks (S3-03)
+
+        /// <summary>
+        /// Persiste il timestamp di uscita quando l'app viene messa in pausa
+        /// (es. utente passa ad un'altra app, preme Home, riceve una chiamata).
+        /// </summary>
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus)
+            {
+                SaveOnExit();
+            }
+        }
+
+        /// <summary>
+        /// Persiste il timestamp di uscita quando l'app viene chiusa o terminata.
+        /// </summary>
+        private void OnApplicationQuit()
+        {
+            SaveOnExit();
+        }
+
+        /// <summary>
+        /// Risolve SaveManager dal container e invoca Save() per persistere lastExitAt.
+        /// SaveManager.Save() imposta già lastExitAt = DateTime.UtcNow.ToString("o").
+        /// </summary>
+        private void SaveOnExit()
+        {
+            try
+            {
+                if (Container == null)
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning("[GameLifetimeScope] Container null: salvataggio di uscita saltato.");
+#endif
+                    return;
+                }
+
+                if (!Container.TryResolve<SaveManager>(out var saveManager) || saveManager == null)
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning("[GameLifetimeScope] SaveManager non risolvibile: salvataggio di uscita saltato.");
+#endif
+                    return;
+                }
+
+                saveManager.Save();
+#if UNITY_EDITOR
+                if (debugMode)
+                {
+                    Debug.Log("[GameLifetimeScope] ✓ Salvataggio di uscita completato (lastExitAt persistito).");
+                }
+#endif
+            }
+            catch (Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GameLifetimeScope] Errore durante il salvataggio di uscita: {ex.Message}");
+#endif
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// Estrae GameObject presenti nella scena e li lega formalmente al contesto Di Container (DependencyInjection).
