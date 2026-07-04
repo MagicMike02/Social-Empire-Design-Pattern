@@ -1,6 +1,19 @@
 ﻿namespace Script.Core.Commands
 {
     /// <summary>
+    /// Stato del comando nel suo lifecycle.
+    /// Pending: Creato ma non ancora eseguito.
+    /// Confirmed: Eseguito con successo (o redo).
+    /// RolledBack: Annullato (undo) o fallito dopo un tentativo.
+    /// </summary>
+    public enum CommandState
+    {
+        Pending,
+        Confirmed,
+        RolledBack
+    }
+
+    /// <summary>
     /// Command Pattern - Interface base universale per tutti i comandi del gioco.
     /// Utilizzato da: BuildingCommands, ResourceCommands, UnitCommands (future).
     /// Permette Undo/Redo tramite CommandHistory centralizzato.
@@ -9,6 +22,12 @@
     /// </summary>
     public interface ICommand
     {
+        /// <summary>
+        /// Stato corrente del comando nel lifecycle.
+        /// Viene aggiornato automaticamente da CommandHistory dopo Execute/Undo/Redo.
+        /// </summary>
+        CommandState State { get; set; }
+
         /// <summary>
         /// Esegue il comando (es. Piazza edificio, raccogli risorsa, muovi unità).
         /// </summary>

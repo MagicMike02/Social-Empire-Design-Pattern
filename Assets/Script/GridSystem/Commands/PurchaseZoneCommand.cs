@@ -26,6 +26,7 @@ namespace Script.GridSystem.Commands
 
         #region Properties
 
+        public CommandState State { get; set; } = CommandState.Pending;
         public string Description => $"Purchase zone at {_zoneCoord}";
         
         #endregion

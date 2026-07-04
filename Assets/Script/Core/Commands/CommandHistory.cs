@@ -35,6 +35,8 @@ namespace Script.Core.Commands
 
             if (success)
             {
+                command.State = CommandState.Confirmed;
+
                 // Aggiungi a undo stack
                 _undoStack.Push(command);
 
@@ -101,6 +103,7 @@ namespace Script.Core.Commands
 
             if (success)
             {
+                command.State = CommandState.RolledBack;
                 _redoStack.Push(command);
                 
 #if UNITY_EDITOR
@@ -139,6 +142,7 @@ namespace Script.Core.Commands
 
             if (success)
             {
+                command.State = CommandState.Confirmed;
                 _undoStack.Push(command);
                 
 #if UNITY_EDITOR

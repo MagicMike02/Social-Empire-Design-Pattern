@@ -32,6 +32,7 @@ namespace Script.BuildingSystem.Commands
 
         #region Properties
 
+        public CommandState State { get; set; } = CommandState.Pending;
         public string Description => $"Place {_config.name} at {_gridPosition}";
         
         #endregion
