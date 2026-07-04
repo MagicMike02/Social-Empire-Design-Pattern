@@ -128,6 +128,23 @@ namespace Script.BuildingSystem.Commands
         }
 
         /// <summary>
+        /// Conferma il comando dopo ricezione conferma server.
+        /// Chiamato da CommandHistory quando il backend conferma l'operazione.
+        /// Sincronizza valori autoritativi dal server (es. saldo oro).
+        /// </summary>
+        public void Confirm()
+        {
+            State = CommandState.Confirmed;
+            
+            // Future: sincronizza valori autoritativi dal server
+            // Es: _economy.SyncGoldFromServer(serverGoldAmount);
+            
+#if UNITY_EDITOR
+            Debug.Log($"[DestroyBuildingCommand] ✓ Confirmed by server: {Description}");
+#endif
+        }
+
+        /// <summary>
         /// Effettua il rollback della distruzione ri-creando l'edificio tramite la Factory.
         /// </summary>
         public bool Undo()

@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System;
+using System.Threading.Tasks;
 
 namespace Script.Core.Commands
 {
@@ -48,6 +49,13 @@ namespace Script.Core.Commands
         /// True se eseguito e confermato con successo, False se fallito.
         /// </returns>
         Task<bool> ExecuteAsync();
+
+        /// <summary>
+        /// Conferma il comando dopo ricezione conferma server.
+        /// Chiamato da CommandHistory quando il backend conferma l'operazione.
+        /// Sincronizza valori autoritativi dal server (es. saldo oro).
+        /// </summary>
+        void Confirm();
 
         /// <summary>
         /// Annulla il comando (ripristina stato precedente).

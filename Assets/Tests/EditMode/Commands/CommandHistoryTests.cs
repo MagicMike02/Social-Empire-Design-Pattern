@@ -1,3 +1,4 @@
+using System.Threading.Tasks;
 using NUnit.Framework;
 using Script.Core.Commands;
 
@@ -73,7 +74,15 @@ namespace Tests.EditMode.Commands
                 return _undoResult;
             }
 
-            public string Description => "FakeCommand";
-        }
+			public Task<bool> ExecuteAsync()
+			{
+				ExecuteCalls++;
+                return Task.FromResult(_executeResult);
+			}
+
+			public string Description => "FakeCommand";
+
+	     	public CommandState State { get; set; } = CommandState.Pending;
+		}
     }
 }
