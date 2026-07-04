@@ -56,6 +56,9 @@ namespace Tests.EditMode.Commands
             public int ExecuteCalls { get; private set; }
             public int UndoCalls { get; private set; }
 
+	     	public CommandState State { get; set; } = CommandState.Pending;
+
+
             public FakeCommand(bool executeResult, bool undoResult)
             {
                 _executeResult = executeResult;
@@ -80,9 +83,14 @@ namespace Tests.EditMode.Commands
                 return Task.FromResult(_executeResult);
 			}
 
+			public void Confirm()
+			{
+				State = CommandState.Confirmed;		
+			}
+
+
 			public string Description => "FakeCommand";
 
-	     	public CommandState State { get; set; } = CommandState.Pending;
 		}
     }
 }
