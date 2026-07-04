@@ -11,44 +11,80 @@ namespace Script.Core.SaveSystem
 
         public void SaveGame(GameSaveData data)
         {
-            string json = JsonConvert.SerializeObject(data, Formatting.Indented);
-            File.WriteAllText(SavePath, json);
+            if (data == null)
+            {
 #if UNITY_EDITOR
-            Debug.Log($"Game saved to {SavePath}");
+                Debug.LogWarning("[JsonSaveSystem] SaveGame chiamato con data null. Salvataggio saltato.");
 #endif
+                return;
+            }
+
+            try
+            {
+                string json = JsonConvert.SerializeObject(data, Formatting.Indented);
+                File.WriteAllText(SavePath, json);
+#if UNITY_EDITOR
+                Debug.Log($"Game saved to {SavePath}");
+#endif
+            }
+            catch (Exception ex) when (ex is IOException || ex is JsonException || ex is UnauthorizedAccessException)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[JsonSaveSystem] Errore I/O durante SaveGame: {ex.Message}");
+#endif
+            }
         }
 
         public GameSaveData LoadGame()
         {
-            if (!File.Exists(SavePath))
+            try
+            {
+                if (!File.Exists(SavePath))
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning($"Save file not found at {SavePath}");
+#endif
+                    return null;
+                }
+
+                string json = File.ReadAllText(SavePath);
+                GameSaveData data = JsonConvert.DeserializeObject<GameSaveData>(json);
+#if UNITY_EDITOR
+                Debug.Log($"Game loaded from {SavePath}");
+#endif
+                return data;
+            }
+            catch (Exception ex) when (ex is IOException || ex is JsonException || ex is UnauthorizedAccessException)
             {
 #if UNITY_EDITOR
-                Debug.LogWarning($"Save file not found at {SavePath}");
+                Debug.LogError($"[JsonSaveSystem] Errore I/O durante LoadGame: {ex.Message}. Fallback a stato default.");
 #endif
                 return null;
             }
-
-            string json = File.ReadAllText(SavePath);
-            GameSaveData data = JsonConvert.DeserializeObject<GameSaveData>(json);
-#if UNITY_EDITOR
-            Debug.Log($"Game loaded from {SavePath}");
-#endif
-            return data;
         }
 
         public void DeleteGame()
         {
-            if (File.Exists(SavePath))
+            try
             {
-                File.Delete(SavePath);
+                if (File.Exists(SavePath))
+                {
+                    File.Delete(SavePath);
 #if UNITY_EDITOR
-                Debug.Log($"Save file deleted at {SavePath}");
+                    Debug.Log($"Save file deleted at {SavePath}");
 #endif
+                }
+                else
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning($"Save file not found at {SavePath} for deletion");
+#endif
+                }
             }
-            else
+            catch (Exception ex) when (ex is IOException || ex is UnauthorizedAccessException)
             {
 #if UNITY_EDITOR
-                Debug.LogWarning($"Save file not found at {SavePath} for deletion");
+                Debug.LogError($"[JsonSaveSystem] Errore I/O durante DeleteGame: {ex.Message}");
 #endif
             }
         }

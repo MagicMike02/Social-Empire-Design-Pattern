@@ -75,10 +75,21 @@ namespace Script.Core.SaveSystem
                 return null;
             }
 
-            _persistence.SaveGame(data);
+            try
+            {
+                _persistence.SaveGame(data);
 #if UNITY_EDITOR
-            Debug.Log("[SaveManager] Salvataggio completato.");
+                Debug.Log("[SaveManager] Salvataggio completato.");
 #endif
+            }
+            catch (Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[SaveManager] Errore durante il salvataggio su disco: {ex.Message}");
+#endif
+                return null;
+            }
+
             return data;
         }
 
