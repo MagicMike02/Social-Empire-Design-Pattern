@@ -4,9 +4,30 @@
 Social Empire è un videogioco basato su Unity che implementa una rigorosa architettura a design pattern per garantire scalabilità e manutenibilità. Il progetto si concentra su meccaniche di gameplay sociale, gestione delle risorse e sistemi di costruzione strategica.
 
 ## 2. Stack Tecnologico
-- Linguaggio Primario: C# (Unity)
-- Motore di Gioco: Unity
-- Architettura: Component-based con enfasi sui Design Pattern.
+
+### Versioni e Target
+- **Unity**: 6000.5.2f1 (Unity 6 LTS)
+- **C# (LangVersion)**: 9.0
+- **Target Framework**: netstandard2.1
+- **Pipeline di Rendering**: Universal Render Pipeline (URP) 17.5.0
+
+### Librerie e Pacchetti Principali
+| Pacchetto | Versione | Ruolo |
+|---|---|---|
+| **VContainer** (`jp.hadashikick.vcontainer`) | 1.19.0 | DI/IoC Container — Dependency Injection (da OpenUPM) |
+| **Newtonsoft.Json** (`com.unity.nuget.newtonsoft-json`) | 3.2.1 | Serializzazione JSON per save system |
+| **Unity Input System** | 1.19.0 | Nuovo Input System |
+| **Unity Test Framework** | 1.7.0 | Unit testing (EditMode + PlayMode) |
+| **Unity UI (uGUI)** | 2.5.0 | UI Toolkit / uGUI |
+
+### Polyfill Necessario
+- **`IsExternalInit`** (`Assets/Script/Core/IsExternalInit.cs`): Classe marker vuota in `System.Runtime.CompilerServices`. Necessaria per supportare `record` e `init`-only setters (C# 9) su netstandard2.1. **Non rimuovere.**
+
+### Architettura
+- **DI Container**: VContainer — `GameLifetimeScope.cs` in `Core/` è il root del container.
+- **Testing**: `SocialEmpire.Tests.EditMode` (test logici) + `SocialEmpire.Tests.PlayMode` (test runtime).
+- **Moduli**: BuildingSystem, GridSystem, ResourceSystem, EconomySystem, InputSystem, CameraSystem, PathfindingSystem, UI, Core, Common.
+- **Nessun Assembly Definition (.asmdef)**: tutto in `Assembly-CSharp`.
 
 ## 3. Direttive di Stile e Convenzioni di Codice
 - Utilizzare `[SerializeField]` per campi privati che necessitano di visibilità nell'Inspector.
