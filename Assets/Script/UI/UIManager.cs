@@ -1,4 +1,5 @@
 ﻿using Script.Core.Events;
+using Script.Core.SaveSystem;
 using Script.ResourceSystem.ResourceUI;
 using UnityEngine;
 using VContainer;
@@ -30,13 +31,15 @@ namespace Script.UI
         #region Dependencies (Injected by VContainer)
         
         private ResourceDisplayUI _resourceDisplayUI;
+        private SaveManager _saveManager;
 
         [Inject]
-        public void Construct(ResourceDisplayUI resourceDisplayUI)
+        public void Construct(ResourceDisplayUI resourceDisplayUI, SaveManager saveManager)
         {
             try
             {
                 _resourceDisplayUI = resourceDisplayUI;
+                _saveManager = saveManager;
             }
             catch (System.Exception ex)
             {
@@ -53,7 +56,7 @@ namespace Script.UI
         [Header("Future Panels (Placeholder)")]
         [SerializeField] private GameObject _buildingSelectionPanel; // Future: UI per selezionare edifici
         [SerializeField] private GameObject _unitSelectionPanel;     // Future: UI per unità selezionate
-        [SerializeField] private GameObject _settingsPanel;          // Future: Settings menu
+        [SerializeField] private GameObject _settingsPanel;          // Future: Settings menu (include Save/Load buttons)
 
         #endregion
 
@@ -104,6 +107,14 @@ namespace Script.UI
                 return false;
             }
 
+            if (_saveManager == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[UIManager] SaveManager non iniettato da VContainer!");
+#endif
+                return false;
+            }
+
             // Log warnings per future panels non ancora implementati
             if (_buildingSelectionPanel == null)
             {
@@ -139,9 +150,61 @@ namespace Script.UI
             // Future: Centralizzare qui inizializzazione
 
             HideAllFuturePanels();
+            WireSettingsButtons();
 
 #if UNITY_EDITOR
             Debug.Log("[UIManager] ✓ UI Initialized");
+#endif
+        }
+
+        /// <summary>
+        /// S3-08: Collega automaticamente i bottoni Save/Load nel Settings Panel
+        /// ai metodi OnSaveButtonClicked / OnLoadButtonClicked.
+        /// Cerca i bottoni per nome ("SaveButton", "LoadButton") nei children del _settingsPanel.
+        /// </summary>
+        private void WireSettingsButtons()
+        {
+            if (_settingsPanel == null) return;
+
+            var saveBtn = _settingsPanel.transform.Find("SaveButton");
+            var loadBtn = _settingsPanel.transform.Find("LoadButton");
+
+            if (saveBtn != null)
+            {
+                var btn = saveBtn.GetComponent<UnityEngine.UI.Button>();
+                if (btn != null)
+                {
+                    btn.onClick.RemoveAllListeners();
+                    btn.onClick.AddListener(OnSaveButtonClicked);
+#if UNITY_EDITOR
+                    Debug.Log("[UIManager] ✓ SaveButton wired");
+#endif
+                }
+            }
+#if UNITY_EDITOR
+            else
+            {
+                Debug.LogWarning("[UIManager] SaveButton non trovato nel Settings Panel");
+            }
+#endif
+
+            if (loadBtn != null)
+            {
+                var btn = loadBtn.GetComponent<UnityEngine.UI.Button>();
+                if (btn != null)
+                {
+                    btn.onClick.RemoveAllListeners();
+                    btn.onClick.AddListener(OnLoadButtonClicked);
+#if UNITY_EDITOR
+                    Debug.Log("[UIManager] ✓ LoadButton wired");
+#endif
+                }
+            }
+#if UNITY_EDITOR
+            else
+            {
+                Debug.LogWarning("[UIManager] LoadButton non trovato nel Settings Panel");
+            }
 #endif
         }
 
@@ -277,6 +340,82 @@ namespace Script.UI
                 _settingsPanel.SetActive(!isActive);
 #if UNITY_EDITOR
                 Debug.Log($"[UIManager] Settings Panel {(isActive ? "hidden" : "shown")}");
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Callback per il bottone "Salva Partita" nell'UI (S3-08).
+        /// Chiamato da: UI Button (Settings Panel > Save Button)
+        /// </summary>
+        public void OnSaveButtonClicked()
+        {
+            if (_saveManager == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[UIManager] SaveManager non iniettato - impossibile salvare");
+#endif
+                return;
+            }
+
+            try
+            {
+                var saveData = _saveManager.Save();
+                if (saveData != null)
+                {
+#if UNITY_EDITOR
+                    Debug.Log("[UIManager] ✓ Salvataggio manuale completato");
+#endif
+                }
+                else
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning("[UIManager] Salvataggio manuale fallito - dati non validi");
+#endif
+                }
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[UIManager] Errore durante salvataggio manuale: {ex.Message}");
+#endif
+            }
+        }
+
+        /// <summary>
+        /// Callback per il bottone "Carica Partita" nell'UI (S3-08).
+        /// Chiamato da: UI Button (Settings Panel > Load Button)
+        /// </summary>
+        public void OnLoadButtonClicked()
+        {
+            if (_saveManager == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[UIManager] SaveManager non iniettato - impossibile caricare");
+#endif
+                return;
+            }
+
+            try
+            {
+                var saveData = _saveManager.Load();
+                if (saveData != null)
+                {
+#if UNITY_EDITOR
+                    Debug.Log("[UIManager] ✓ Caricamento manuale completato");
+#endif
+                }
+                else
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning("[UIManager] Nessun salvataggio trovato o dati non validi");
+#endif
+                }
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[UIManager] Errore durante caricamento manuale: {ex.Message}");
 #endif
             }
         }

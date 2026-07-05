@@ -123,6 +123,36 @@ namespace Script.Core.SaveSystem
 #endif
         }
 
+        /// <summary>
+        /// Carica il salvataggio da disco tramite IPersistenceManager e distribuisce lo stato.
+        /// Overload senza parametri per uso UI (S3-08).
+        /// Restituisce il GameSaveData caricato, o null se non disponibile.
+        /// </summary>
+        public GameSaveData Load()
+        {
+            try
+            {
+                var data = _persistence.LoadGame();
+                if (data == null)
+                {
+#if UNITY_EDITOR
+                    Debug.LogWarning("[SaveManager] Nessun salvataggio trovato su disco.");
+#endif
+                    return null;
+                }
+
+                Load(data);
+                return data;
+            }
+            catch (Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[SaveManager] Errore durante il caricamento da disco: {ex.Message}");
+#endif
+                return null;
+            }
+        }
+
         #endregion
 
         #region Gather (Save)
