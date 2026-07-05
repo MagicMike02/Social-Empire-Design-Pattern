@@ -54,6 +54,10 @@ namespace Script.GridSystem
 			}
 
 			_previewTracker = new GridPreviewTracker(_tileManager);
+		}
+
+		private void Start()
+		{
 			InitializeGrid();
 		}
 
