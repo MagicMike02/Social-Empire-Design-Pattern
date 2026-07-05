@@ -23,18 +23,26 @@ namespace Script.Core.DTO
 		/// <summary>Livello giocatore richiesto (0 = nessun requisito).</summary>
 		public int RequiredLevel { get; init; }
 
+		/// <summary>
+		/// Cooldown di raccolta in secondi (0 = raccolta immediata).
+		/// Tempo minimo tra due raccolte successive di risorse prodotte.
+		/// </summary>
+		public double CollectCooldownSeconds { get; init; }
+
 		public BuildingConfigData(
 			string id,
 			int width,
 			int height,
 			IReadOnlyDictionary<string, int> costs = null,
-			int requiredLevel = 0)
+			int requiredLevel = 0,
+			double collectCooldownSeconds = 0)
 		{
 			Id = id;
 			Width = width;
 			Height = height;
 			Costs = costs ?? new Dictionary<string, int>();
 			RequiredLevel = requiredLevel;
+			CollectCooldownSeconds = collectCooldownSeconds;
 		}
 
 		/// <summary>Factory di convenienza per edificio 1×1 con costo singolo.</summary>
