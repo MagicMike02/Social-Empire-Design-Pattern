@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using System.Threading;
 using UnityEngine;
 using Script.BuildingSystem;
+using Script.Core.Events;
 using Script.EconomySystem;
 using Script.GridSystem;
 using Script.ResourceSystem.Enums;
@@ -16,7 +16,7 @@ namespace Script.Core.SaveSystem
 	/// e delega la serializzazione a IPersistenceManager (JsonSaveSystem).
 	/// Al caricamento, distribuisce lo stato ai manager.
 	/// </summary>
-	public sealed class SaveManager : ISaveable
+	public sealed class SaveManager : ISaveable, IDisposable
 	{
 		#region Dependencies
 
@@ -39,6 +39,9 @@ namespace Script.Core.SaveSystem
 			_gridManager = gridManager ?? throw new ArgumentNullException(nameof(gridManager));
 			_zoneManager = zoneManager ?? throw new ArgumentNullException(nameof(zoneManager));
 			_buildingManager = buildingManager ?? throw new ArgumentNullException(nameof(buildingManager));
+
+			// Sottoscrive GridInitializedEvent per triggerare Load() dopo che la griglia è pronta.
+			GlobalEventBus.Subscribe<GridInitializedEvent>(OnGridInitialized);
 		}
 
 		#endregion
@@ -49,6 +52,32 @@ namespace Script.Core.SaveSystem
 
 		// TODO(progression): sostituire con PlayerProgressionManager.CurrentLevel quando disponibile.
 		private const int CurrentDefaultPlayerLevel = 1;
+
+		#endregion
+
+		#region IDisposable
+
+		/// <summary>
+		/// Disiscrive da GlobalEventBus per prevenire memory leak.
+		/// Chiamato da GameLifetimeScope.OnDestroy.
+		/// </summary>
+		public void Dispose()
+		{
+			GlobalEventBus.Unsubscribe<GridInitializedEvent>(OnGridInitialized);
+		}
+
+		#endregion
+
+		#region Event Handlers
+
+		/// <summary>
+		/// Triggerato quando GridManager completa InitializeGrid.
+		/// Esegue Load() per ripristinare lo stato salvato all'avvio del gioco.
+		/// </summary>
+		private void OnGridInitialized(GridInitializedEvent _)
+		{
+			Load();
+		}
 
 		#endregion
 
