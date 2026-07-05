@@ -95,7 +95,7 @@ namespace Script.Core.SaveSystem
                 savedAt = DateTime.UtcNow.ToString("o"),
                 lastExitAt = DateTime.UtcNow.ToString("o"),
                 resources = new Dictionary<string, int>(),
-                playerLevel = 1,
+                playerLevel = 1, // TODO(progression): raccordo con PlayerProgressionManager (default nuova partita)
                 gridWidth = gridWidth,
                 gridHeight = gridHeight,
                 placedBuildings = new Dictionary<string, string>(),
