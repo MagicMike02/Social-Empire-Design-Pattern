@@ -3438,8 +3438,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Script2.BuildingSystem.KeyboardPlacementInput
   _availableBuildings:
-  - {fileID: 11400000, guid: 302b8138fbb01f245af068671baa8250, type: 2}
-  - {fileID: 11400000, guid: 2642035a3ab47fc4e83469808153475a, type: 2}
+  - {fileID: 11400000, guid: a516fd8da1aff9749aecba020527245d, type: 2}
+  - {fileID: 11400000, guid: 6f99233fbe92ceb4f98b2f146b8ef503, type: 2}
   _selectBuildingActions:
   - {fileID: 6807742298211538387, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   - {fileID: 4894637267126041950, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}

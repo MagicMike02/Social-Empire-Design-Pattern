@@ -143,10 +143,12 @@ namespace Script.InputSystem
                 Vector3 wp = _camera.ScreenToWorldPoint(_lastMousePos);
                 _lastHovered?.OnRightClick(wp);
                 OnMapRightClicked?.Invoke();
-                if (_debugMode && _lastHovered != null) 
+                if (_debugMode && _lastHovered != null)
+				{	
 #if UNITY_EDITOR
                     Debug.Log($"[InputManager] RightClick on {_lastHovered.GetType().Name} at {wp}");
 #endif
+				}
             }
         }
         

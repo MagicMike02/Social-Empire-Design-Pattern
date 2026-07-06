@@ -20,8 +20,6 @@ namespace Script.Core.Commands
 	/// Command Pattern - Interface base universale per tutti i comandi del gioco.
 	/// Utilizzato da: BuildingCommands, ResourceCommands, UnitCommands (future).
 	/// Permette Undo/Redo tramite CommandHistory centralizzato.
-	/// 
-	/// DESIGN: Generico (non legato a specifici sistemi) per massima riusabilità.
 	/// </summary>
 	public interface ICommand
 	{
@@ -31,7 +29,6 @@ namespace Script.Core.Commands
 		/// CommandHistory NON deve scrivere direttamente questo membro.
 		/// </summary>
 		CommandState State { get; }
-
 		/// <summary>
 		/// Esegue il comando (es. Piazza edificio, raccogli risorsa, muovi unità).
 		/// </summary>
