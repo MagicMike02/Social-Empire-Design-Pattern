@@ -91,6 +91,13 @@ namespace Script.ResourceSystem
                 return;
             }
 
+            // Aspetta che GridManager abbia inizializzato la griglia prima di generare risorse
+            GlobalEventBus.Subscribe<GridInitializedEvent>(OnGridInitialized);
+        }
+
+        private void OnGridInitialized(GridInitializedEvent _)
+        {
+            GlobalEventBus.Unsubscribe<GridInitializedEvent>(OnGridInitialized);
             InitializeResourceSystem();
         }
 
@@ -112,6 +119,7 @@ namespace Script.ResourceSystem
 
         private void OnDestroy()
         {
+            GlobalEventBus.Unsubscribe<GridInitializedEvent>(OnGridInitialized);
             _spawnOrchestrator?.RemoveAllResources();
         }
 
