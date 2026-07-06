@@ -81,6 +81,7 @@ namespace Script.Core
 			RegisterIfExists<ResourceManager>(builder);
 
 			// BUILDING SYSTEM
+			builder.Register<BuildingCatalog>(Lifetime.Singleton).As<IBuildingCatalog>();
 			RegisterIfExists<BuildingFactory>(builder);
 			RegisterIfExists<BuildingManager>(builder);
 

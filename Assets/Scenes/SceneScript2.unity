@@ -920,6 +920,7 @@ MonoBehaviour:
   autoRun: 1
   autoInjectGameObjects: []
   debugMode: 1
+  _autoSaveConfig: {fileID: 11400000, guid: 5491c7e9478ff3b438ed7e78d07f997f, type: 2}
 --- !u!4 &381727348
 Transform:
   m_ObjectHideFlags: 0

@@ -25,6 +25,7 @@ namespace Script.Core.SaveSystem
 		private readonly GridManager _gridManager;
 		private readonly ZoneManager _zoneManager;
 		private readonly BuildingManager _buildingManager;
+		private readonly IBuildingCatalog _buildingCatalog;
 
 		[Inject]
 		public SaveManager(
@@ -32,13 +33,15 @@ namespace Script.Core.SaveSystem
 			GameEconomyManager economyManager,
 			GridManager gridManager,
 			ZoneManager zoneManager,
-			BuildingManager buildingManager)
+			BuildingManager buildingManager,
+			IBuildingCatalog buildingCatalog)
 		{
 			_persistence = persistence ?? throw new ArgumentNullException(nameof(persistence));
 			_economyManager = economyManager ?? throw new ArgumentNullException(nameof(economyManager));
 			_gridManager = gridManager ?? throw new ArgumentNullException(nameof(gridManager));
 			_zoneManager = zoneManager ?? throw new ArgumentNullException(nameof(zoneManager));
 			_buildingManager = buildingManager ?? throw new ArgumentNullException(nameof(buildingManager));
+			_buildingCatalog = buildingCatalog ?? throw new ArgumentNullException(nameof(buildingCatalog));
 
 			// Sottoscrive GridInitializedEvent per triggerare Load() dopo che la griglia è pronta.
 			GlobalEventBus.Subscribe<GridInitializedEvent>(OnGridInitialized);
@@ -281,7 +284,7 @@ namespace Script.Core.SaveSystem
 				return;
 			}
 
-			var catalog = LoadBuildingCatalog();
+			var catalog = _buildingCatalog.GetCatalog();
 			var grid = _gridManager;
 
 			foreach (var kvp in data.placedBuildings)
@@ -316,21 +319,6 @@ namespace Script.Core.SaveSystem
 			}
 		}
 
-		/// <summary>
-		/// Carica tutti i BuildingConfigSO da Resources/Buildings e li indicizza per nome asset.
-		/// Usato per mappare il buildingId salvato (Config.name) al runtime config durante il restore.
-		/// TODO: sostituire con un IBuildingCatalog dedicato quando introdotto.
-		/// </summary>
-		private Dictionary<string, BuildingConfigSO> LoadBuildingCatalog()
-		{
-			var configs = Resources.LoadAll<BuildingConfigSO>("Buildings");
-			var catalog = new Dictionary<string, BuildingConfigSO>(configs.Length);
-			foreach (var c in configs)
-			{
-				if (c != null) catalog[c.name] = c;
-			}
-			return catalog;
-		}
 
 		private void RestoreZones(GameSaveData data)
 		{
