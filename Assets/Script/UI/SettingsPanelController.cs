@@ -126,5 +126,13 @@ namespace Script.UI
 #endif
 			}
 		}
+
+		private void OnDestroy()
+		{
+			if (_saveButton != null) _saveButton.onClick.RemoveListener(OnSaveButtonClicked);
+			if (_loadButton != null) _loadButton.onClick.RemoveListener(OnLoadButtonClicked);
+		}
+
+
 	}
 }
