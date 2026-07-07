@@ -1,0 +1,25 @@
+{
+	"name": "SocialEmpire.Tests.EditMode",
+	"rootNamespace": "SocialEmpire.Tests.EditMode",
+	"references": [
+		"UnityEngine.TestRunner",
+		"UnityEditor.TestRunner",
+		"Assembly-CSharp"
+	],
+	"includePlatforms": [
+		"Editor"
+	],
+	"excludePlatforms": [],
+	"allowUnsafeCode": false,
+	"overrideReferences": true,
+	"precompiledReferences": [
+		"nunit.framework.dll",
+		"Newtonsoft.Json.dll"
+	],
+	"autoReferenced": false,
+	"defineConstraints": [
+		"UNITY_INCLUDE_TESTS"
+	],
+	"versionDefines": [],
+	"noEngineReferences": false
+}
