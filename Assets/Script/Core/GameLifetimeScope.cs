@@ -73,7 +73,17 @@ namespace Script.Core
 			// GRID SYSTEM
 			RegisterIfExists<TileManager>(builder);
 			RegisterIfExists<ZoneManager>(builder);
-			RegisterIfExists<GridManager>(builder, r => r.As<IGridService>());
+
+			// Register GridManager both as its interface and as concrete type for injection into other services.
+			RegisterIfExists<GridManager>(builder, r =>
+			{
+				r.As<IGridService>();
+				r.AsSelf();
+			});
+
+			builder.Register<GridStateService>(Lifetime.Singleton).As<IGridStateService>();
+			builder.Register<GridQueryService>(Lifetime.Singleton);
+			builder.Register<GridVisualService>(Lifetime.Singleton);
 
 			// RESOURCE SYSTEM
 			RegisterIfExists<ResourceSpawner>(builder);
@@ -112,12 +122,9 @@ namespace Script.Core
 			builder.Register<JsonSaveSystem>(Lifetime.Singleton).As<IPersistenceManager>();
 			builder.Register<SaveManager>(Lifetime.Singleton);
 
-			// AUTOSAVE (S3-09) — lifecycle gestito da AutoSaveLifecycle (IStartable + IDisposable)
+			// AUTOSAVE — lifecycle gestito da AutoSaveLifecycle (IStartable + IDisposable)
 			builder.Register<AutoSaveManager>(Lifetime.Singleton)
-				   .As<IAutoSaveManager>()
-				   .AsSelf();
-			builder.RegisterInstance(_autoSaveConfig);
-			builder.RegisterEntryPoint<AutoSaveLifecycle>(Lifetime.Singleton);
+				   .As<IAutoSaveManager>();
 
 			// CAMERA
 			var mainCamera = Camera.main;
