@@ -33,7 +33,6 @@
   <Project Path="Unity.UnifiedRayTracing.Runtime.csproj" />
   <Project Path="Unity.VisualScripting.State.Editor.csproj" />
   <Project Path="Assembly-CSharp.csproj" />
-  <Project Path="SocialEmpire.Tests.EditMode.csproj" />
   <Project Path="Unity.Burst.CodeGen.csproj" />
   <Project Path="Unity.VisualScripting.Flow.csproj" />
   <Project Path="Unity.PerformanceTesting.csproj" />
