@@ -1,338 +1,342 @@
 ﻿﻿using System.Collections.Generic;
- using Script.Core.Commands;
- using Script.Core.Events;
- using Script.EconomySystem;
- using Script.GridSystem.Commands;
- using Script.ResourceSystem.Enums;
- using VContainer;
+using Script.Core.Commands;
+using Script.Core.Events;
+using Script.EconomySystem;
+using Script.GridSystem.Commands;
+using Script.ResourceSystem.Enums;
+using VContainer;
 using UnityEngine;
 
 namespace Script.GridSystem
 {
-    public class ZoneManager : MonoBehaviour
-    {
-        #region Dependencies
-        
-        private GameEconomyManager _economyManager;
-        private CommandHistory _commandHistory;
-        private GridManager _gridManager;
+	public class ZoneManager : MonoBehaviour
+	{
+		#region Dependencies
 
-        [Inject]
-        public void Construct(GameEconomyManager economyManager, CommandHistory commandHistory)
-        {
-            try
-            {
-                _economyManager = economyManager;
-                _commandHistory = commandHistory;
-            }
-            catch (System.Exception ex)
-            {
+		private GameEconomyManager _economyManager;
+		private CommandHistory _commandHistory;
+		private GridManager _gridManager;
+
+		[Inject]
+		public void Construct(GameEconomyManager economyManager, CommandHistory commandHistory)
+		{
+			try
+			{
+				_economyManager = economyManager;
+				_commandHistory = commandHistory;
+			}
+			catch (System.Exception ex)
+			{
 #if UNITY_EDITOR
-                Debug.LogError($"[ZoneManager] Errore durante Construct: {ex.Message}");
+				Debug.LogError($"[ZoneManager] Errore durante Construct: {ex.Message}");
 #endif
-            }
-        }
-        
-        #endregion
+			}
+		}
 
-        #region Config & Fields
-        
-        [SerializeField] private GameObject _purchaseSignPrefab;
-        [SerializeField] private ZoneExpansionDataSO _expansionData;
-        
-        [SerializeField] private int _zoneSize = 20;
-        private Dictionary<Vector2Int, Zone> _zones = new();
-        private Grid<Tile> _grid;
-        
-        private int _unlockedZonesCount = 0;
-        
-        #endregion
+		#endregion
 
-        #region Properties
+		#region Config & Fields
 
-        public int ZoneSize => _zoneSize;
-        
-        #endregion
+		[SerializeField] private GameObject _purchaseSignPrefab;
+		[SerializeField] private ZoneExpansionDataSO _expansionData;
 
-        #region Initialization
+		[SerializeField] private int _zoneSize = 20;
+		private Dictionary<Vector2Int, Zone> _zones = new();
+		private Grid<Tile> _grid;
 
-        /// <summary>
-        /// Inizializza il manager interfacciandolo con la griglia base.
-        /// </summary>
-        public void Initialize(Grid<Tile> grid, GridManager gridManager)
-        {
-            _grid = grid;
-            _gridManager = gridManager;
-        }
-        #endregion
-        
-        #region Public APIs
+		private int _unlockedZonesCount = 0;
 
-        /// <summary>
-        /// Lancia un comando d'acquisto per validare le risorse e completarne la transazione da UI.
-        /// </summary>
-        public void PurchaseZone(Vector2Int zoneCoord, Dictionary<ResourceType, int> cost)
-        {
-            var command = new PurchaseZoneCommand(this, _economyManager, zoneCoord, cost);
-            if (_commandHistory.ExecuteCommand(command))
-            {
-                GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
-                
-                // Aggiorna anche gli altri sign sulla mappa affinchè riflettano il nuovo costo
-                UpdateAllPurchaseSignCosts();
-            }
-            else
-            {
-                GlobalEventBus.Publish(new ZonePurchaseFailedEvent(zoneCoord, "Purchase failed"));
-            }
-        }
+		#endregion
 
-        /// <summary>
-        /// Controlla se la coordinata ha una zona istanziata.
-        /// </summary>
-        public bool HasZone(Vector2Int coord) => _zones.ContainsKey(coord);
+		#region Properties
 
-        /// <summary>
-        /// Restituisce lo stato sbloccato della zona data la sua coordinata.
-        /// </summary>
-        public bool IsZoneUnlocked(Vector2Int coord) => 
-            _zones.TryGetValue(coord, out var zone) && zone.isUnlocked;
+		public int ZoneSize => _zoneSize;
 
-        /// <summary>
-        /// Restituisce le coordinate delle zone attualmente sbloccate.
-        /// Usato da SaveManager per serializzare lo stato delle zone.
-        /// </summary>
-        public IReadOnlyList<Vector2Int> GetUnlockedZoneCoords()
-        {
-            var result = new List<Vector2Int>();
-            foreach (var kvp in _zones)
-            {
-                if (kvp.Value.isUnlocked)
-                    result.Add(kvp.Key);
-            }
-            return result;
-        }
+		#endregion
 
-        /// <summary>
-        /// Imposta lo stato di sblocco di una zona senza effetti collaterali (sign, tile).
-        /// Usato da SaveManager per ripristinare lo stato delle zone dal save.
-        /// </summary>
-        public void SetZoneUnlockedState(Vector2Int coord, bool unlocked)
-        {
-            if (!_zones.TryGetValue(coord, out var zone)) return;
+		#region Initialization
 
-            bool wasUnlocked = zone.isUnlocked;
-            zone.isUnlocked = unlocked;
+		/// <summary>
+		/// Inizializza il manager interfacciandolo con la griglia base.
+		/// </summary>
+		public void Initialize(Grid<Tile> grid, GridManager gridManager)
+		{
+			_grid = grid;
+			_gridManager = gridManager;
+		}
+		#endregion
 
-            if (unlocked && !wasUnlocked)
-            {
-                _unlockedZonesCount++;
-                foreach (var tile in zone.tiles)
-                    if (tile) tile.Unlock();
-                if (zone.purchaseSign)
-                {
-                    Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-                    _gridManager.FreeCell(signGridPos);
-                    Destroy(zone.purchaseSign);
-                }
-            }
-            else if (!unlocked && wasUnlocked)
-            {
-                _unlockedZonesCount--;
-                foreach (var tile in zone.tiles)
-                    if (tile) tile.SetState(TileState.Locked);
-            }
-        }
+		#region Public APIs
 
-        /// <summary>
-        /// Aggiorna a livello di root tutte le tile della zona sbloccandole e rimuovendo il sign.
-        /// </summary>
-        public void UnlockZone(Vector2Int coord)
-        {
-            if (!_zones.TryGetValue(coord, out var zone)) return;
+		/// <summary>
+		/// Lancia un comando d'acquisto per validare le risorse e completarne la transazione da UI.
+		/// </summary>
+		public void PurchaseZone(Vector2Int zoneCoord, Dictionary<ResourceType, int> cost)
+		{
+			var command = new PurchaseZoneCommand(this, _economyManager, zoneCoord, cost);
+			if (_commandHistory.ExecuteCommand(command))
+			{
+				GlobalEventBus.Publish(new ZoneUnlockedEvent(0, zoneCoord));
 
-            zone.isUnlocked = true;
-            _unlockedZonesCount++;
-            
-            foreach (var tile in zone.tiles)
-                if (tile) tile.Unlock();
+				// Aggiorna anche gli altri sign sulla mappa affinchè riflettano il nuovo costo
+				UpdateAllPurchaseSignCosts();
+			}
+			else
+			{
+				GlobalEventBus.Publish(new ZonePurchaseFailedEvent(zoneCoord, "Purchase failed"));
+			}
+		}
 
-            if (zone.purchaseSign)
-            {
-                Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-                _gridManager.FreeCell(signGridPos);
-                Destroy(zone.purchaseSign);
-            }
-        }
+		/// <summary>
+		/// Controlla se la coordinata ha una zona istanziata.
+		/// </summary>
+		public bool HasZone(Vector2Int coord) => _zones.ContainsKey(coord);
 
-        /// <summary>
-        /// Ri-blocca la zona, ricreando il suo Sign d'acquisto.
-        /// </summary>
-        public void LockZone(Vector2Int coord)
-        {
-            if (!_zones.TryGetValue(coord, out var zone)) return;
+		/// <summary>
+		/// Restituisce lo stato sbloccato della zona data la sua coordinata.
+		/// </summary>
+		public bool IsZoneUnlocked(Vector2Int coord) =>
+			_zones.TryGetValue(coord, out var zone) && zone.isUnlocked;
 
-            zone.isUnlocked = false;
-            _unlockedZonesCount--;
-            
-            foreach (var tile in zone.tiles)
-                if (tile) tile.SetState(TileState.Locked);
+		/// <summary>
+		/// Restituisce le coordinate delle zone attualmente sbloccate.
+		/// Usato da SaveManager per serializzare lo stato delle zone.
+		/// </summary>
+		public IReadOnlyList<Vector2Int> GetUnlockedZoneCoords()
+		{
+			var result = new List<Vector2Int>();
+			foreach (var kvp in _zones)
+			{
+				if (kvp.Value.isUnlocked)
+					result.Add(kvp.Key);
+			}
+			return result;
+		}
 
-            CreatePurchaseSign(zone);
-        }
+		/// <summary>
+		/// Imposta lo stato di sblocco di una zona senza effetti collaterali (sign, tile).
+		/// Usato da SaveManager per ripristinare lo stato delle zone dal save.
+		/// </summary>
+		public void SetZoneUnlockedState(Vector2Int coord, bool unlocked)
+		{
+			if (!_zones.TryGetValue(coord, out var zone)) return;
 
-        private void OnDestroy()
-        {
-            foreach (var zone in _zones.Values)
-            {
-                if (zone?.purchaseSign != null)
-                {
-                    Destroy(zone.purchaseSign);
-                    zone.purchaseSign = null;
-                }
-            }
+			bool wasUnlocked = zone.isUnlocked;
+			zone.isUnlocked = unlocked;
 
-            _zones.Clear();
-        }
+			if (unlocked && !wasUnlocked)
+			{
+				_unlockedZonesCount++;
+				foreach (var tile in zone.tiles)
+					if (tile) tile.SetState(TileState.Unlocked);
+				if (zone.purchaseSign)
+				{
+					Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+					_gridManager.FreeCell(signGridPos);
+					Destroy(zone.purchaseSign);
+				}
+			}
+			else if (!unlocked && wasUnlocked)
+			{
+				_unlockedZonesCount--;
+				foreach (var tile in zone.tiles)
+					if (tile) tile.SetState(TileState.Locked);
+			}
+		}
 
-        /// <summary>
-        /// Popola la mappa con le macro-aree quadrate delle zone e imposta il punto centrale di partenza.
-        /// </summary>
-        public void CreateZones(int width, int height)
-        {
-            for (int x = 0; x < width; x += _zoneSize)
-            {
-                for (int y = 0; y < height; y += _zoneSize)
-                {
-                    Vector2Int zoneCoord = new(x, y);
-                    Zone zone = new Zone(zoneCoord, _zoneSize);
+		/// <summary>
+		/// Aggiorna a livello di root tutte le tile della zona sbloccandole e rimuovendo il sign.
+		/// </summary>
+		public void UnlockZone(Vector2Int coord)
+		{
+			if (!_zones.TryGetValue(coord, out var zone)) return;
 
-                    for (int dx = 0; dx < _zoneSize; dx++)
-                    {
-                        for (int dy = 0; dy < _zoneSize; dy++)
-                        {
-                            int gx = x + dx;
-                            int gy = y + dy;
-                            if (gx < width && gy < height)
-                                zone.tiles[dx, dy] = _grid.GetValue(gx, gy);
-                        }
-                    }
+			zone.isUnlocked = true;
+			_unlockedZonesCount++;
 
-                    Vector2Int centerCoord = new(width / 2 - _zoneSize / 2, height / 2 - _zoneSize / 2);
-                    if (zoneCoord == centerCoord)
-                    {
-                        zone.isUnlocked = true;
-                        _unlockedZonesCount++;
-                        for (int dx = 0; dx < _zoneSize; dx++)
-                        {
-                            for (int dy = 0; dy < _zoneSize; dy++)
-                            {
-                                if (zone.tiles[dx, dy] != null)
-                                    zone.tiles[dx, dy].SetState(TileState.Unlocked);
-                            }
-                        }
-                    }
-                    else if (Mathf.Abs(zoneCoord.x - centerCoord.x) <= _zoneSize &&
-                             Mathf.Abs(zoneCoord.y - centerCoord.y) <= _zoneSize)
-                    {
-                        CreatePurchaseSign(zone);
-                    }
-                    _zones[zoneCoord] = zone;
-                }
-            }
-        }
+			foreach (var tile in zone.tiles)
+				if (tile) tile.Unlock();
 
-        #endregion
+			if (zone.purchaseSign)
+			{
+				Vector2Int signGridPos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+				_gridManager.FreeCell(signGridPos);
+				Destroy(zone.purchaseSign);
+			}
+		}
 
-        #region Internal Utilities
+		/// <summary>
+		/// Ri-blocca la zona, ricreando il suo Sign d'acquisto.
+		/// </summary>
+		public void LockZone(Vector2Int coord)
+		{
+			if (!_zones.TryGetValue(coord, out var zone)) return;
 
-        private void CreatePurchaseSign(Zone zone)
-        {
-            Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
-            Vector3 worldPos = _grid.GetIsoToWorldPosition(centerTilePos.x, centerTilePos.y);
-            
-            Vector3 signOffset = new Vector3(0, 0.45f, 0);
-            Vector3 signPosition = worldPos + signOffset;
-            
-            GameObject signObj = Instantiate(_purchaseSignPrefab, signPosition, Quaternion.identity, transform);
-            
-            _gridManager.OccupyCell(centerTilePos, signObj);
-           
-            var sign = signObj.GetComponent<PurchaseSign>();
-            Dictionary<ResourceType, int> cost;
-            try
-            {
-                cost = _expansionData != null
-                    ? _expansionData.GetCostForNextZone(_unlockedZonesCount)
-                    : new Dictionary<ResourceType, int>();
-            }
-            catch (System.Exception ex)
-            {
+			zone.isUnlocked = false;
+			_unlockedZonesCount--;
+
+			foreach (var tile in zone.tiles)
+				if (tile) tile.SetState(TileState.Locked);
+
+			CreatePurchaseSign(zone);
+		}
+
+		private void OnDestroy()
+		{
+			foreach (var zone in _zones.Values)
+			{
+				if (zone?.purchaseSign != null)
+				{
+					Destroy(zone.purchaseSign);
+					zone.purchaseSign = null;
+				}
+			}
+
+			_zones.Clear();
+		}
+
+		/// <summary>
+		/// Popola la mappa con le macro-aree quadrate delle zone e imposta il punto centrale di partenza.
+		/// </summary>
+		public void CreateZones(int width, int height)
+		{
+			for (int x = 0; x < width; x += _zoneSize)
+			{
+				for (int y = 0; y < height; y += _zoneSize)
+				{
+					Vector2Int zoneCoord = new(x, y);
+					Zone zone = new Zone(zoneCoord, _zoneSize);
+
+					for (int dx = 0; dx < _zoneSize; dx++)
+					{
+						for (int dy = 0; dy < _zoneSize; dy++)
+						{
+							int gx = x + dx;
+							int gy = y + dy;
+							if (gx < width && gy < height)
+								zone.tiles[dx, dy] = _grid.GetValue(gx, gy);
+						}
+					}
+
+					Vector2Int centerCoord = new(width / 2 - _zoneSize / 2, height / 2 - _zoneSize / 2);
+					if (zoneCoord == centerCoord)
+					{
+						zone.isUnlocked = true;
+						_unlockedZonesCount++;
+						for (int dx = 0; dx < _zoneSize; dx++)
+						{
+							for (int dy = 0; dy < _zoneSize; dy++)
+							{
+								if (zone.tiles[dx, dy] != null)
+									zone.tiles[dx, dy].SetState(TileState.Unlocked);
+							}
+						}
+					}
+					else if (Mathf.Abs(zoneCoord.x - centerCoord.x) <= _zoneSize &&
+							 Mathf.Abs(zoneCoord.y - centerCoord.y) <= _zoneSize)
+					{
+						CreatePurchaseSign(zone);
+					}
+					_zones[zoneCoord] = zone;
+				}
+			}
+			// Log the total number of zones created for debugging.
 #if UNITY_EDITOR
-                Debug.LogError($"[ZoneManager] Errore lettura _expansionData.GetCostForNextZone: {ex.Message}. Uso costo vuoto.");
+			Debug.Log($"[ZoneManager] Created {_zones.Count} zones (grid {width}x{height}, zoneSize {_zoneSize}).");
 #endif
-                cost = new Dictionary<ResourceType, int>();
-            }
+		}
 
-            sign.Setup(zone.start, _economyManager, this, cost);
-            zone.purchaseSign = signObj;
-            
-            foreach (var tile in zone.tiles)
-            {
-                if (tile != null) tile.SetState(TileState.Buyable);
-            }
-        }
-        
-        private void UpdateAllPurchaseSignCosts()
-        {
-            Dictionary<ResourceType, int> nextCost;
-            try
-            {
-                nextCost = _expansionData != null
-                    ? _expansionData.GetCostForNextZone(_unlockedZonesCount)
-                    : new Dictionary<ResourceType, int>();
-            }
-            catch (System.Exception ex)
-            {
+		#endregion
+
+		#region Internal Utilities
+
+		private void CreatePurchaseSign(Zone zone)
+		{
+			Vector2Int centerTilePos = zone.start + new Vector2Int(_zoneSize / 2, _zoneSize / 2);
+			Vector3 worldPos = _grid.GetIsoToWorldPosition(centerTilePos.x, centerTilePos.y);
+
+			Vector3 signOffset = new Vector3(0, 0.45f, 0);
+			Vector3 signPosition = worldPos + signOffset;
+
+			GameObject signObj = Instantiate(_purchaseSignPrefab, signPosition, Quaternion.identity, transform);
+
+			_gridManager.OccupyCell(centerTilePos, signObj);
+
+			var sign = signObj.GetComponent<PurchaseSign>();
+			Dictionary<ResourceType, int> cost;
+			try
+			{
+				cost = _expansionData != null
+					? _expansionData.GetCostForNextZone(_unlockedZonesCount)
+					: new Dictionary<ResourceType, int>();
+			}
+			catch (System.Exception ex)
+			{
 #if UNITY_EDITOR
-                Debug.LogError($"[ZoneManager] Errore lettura _expansionData in UpdateAllPurchaseSignCosts: {ex.Message}. Uso costo vuoto.");
+				Debug.LogError($"[ZoneManager] Errore lettura _expansionData.GetCostForNextZone: {ex.Message}. Uso costo vuoto.");
 #endif
-                nextCost = new Dictionary<ResourceType, int>();
-            }
+				cost = new Dictionary<ResourceType, int>();
+			}
 
-            foreach (var zone in _zones.Values)
-            {
-                if (!zone.isUnlocked && zone.purchaseSign != null)
-                {
-                    var sign = zone.purchaseSign.GetComponent<PurchaseSign>();
-                    if (sign != null)
-                    {
-                        sign.Setup(zone.start, _economyManager, this, nextCost);
-                    }
-                }
-            }
-        }
-        
-        #endregion
+			sign.Setup(zone.start, _economyManager, this, cost);
+			zone.purchaseSign = signObj;
 
-        #region Inner Classes
+			foreach (var tile in zone.tiles)
+			{
+				if (tile != null) tile.SetState(TileState.Buyable);
+			}
+		}
 
-        /// <summary>
-        /// Container interno che rappresenta la logica di array per le celle all'interno della zona.
-        /// </summary>
-        public class Zone
-        {
-            public Vector2Int start;
-            public Tile[,] tiles;
-            public bool isUnlocked;
-            public GameObject purchaseSign;
-            public Zone(Vector2Int start, int size)
-            {
-                this.start = start;
-                tiles = new Tile[size, size];
-            }
-        }
-        
-        #endregion
-    }
+		private void UpdateAllPurchaseSignCosts()
+		{
+			Dictionary<ResourceType, int> nextCost;
+			try
+			{
+				nextCost = _expansionData != null
+					? _expansionData.GetCostForNextZone(_unlockedZonesCount)
+					: new Dictionary<ResourceType, int>();
+			}
+			catch (System.Exception ex)
+			{
+#if UNITY_EDITOR
+				Debug.LogError($"[ZoneManager] Errore lettura _expansionData in UpdateAllPurchaseSignCosts: {ex.Message}. Uso costo vuoto.");
+#endif
+				nextCost = new Dictionary<ResourceType, int>();
+			}
+
+			foreach (var zone in _zones.Values)
+			{
+				if (!zone.isUnlocked && zone.purchaseSign != null)
+				{
+					var sign = zone.purchaseSign.GetComponent<PurchaseSign>();
+					if (sign != null)
+					{
+						sign.Setup(zone.start, _economyManager, this, nextCost);
+					}
+				}
+			}
+		}
+
+		#endregion
+
+		#region Inner Classes
+
+		/// <summary>
+		/// Container interno che rappresenta la logica di array per le celle all'interno della zona.
+		/// </summary>
+		public class Zone
+		{
+			public Vector2Int start;
+			public Tile[,] tiles;
+			public bool isUnlocked;
+			public GameObject purchaseSign;
+			public Zone(Vector2Int start, int size)
+			{
+				this.start = start;
+				tiles = new Tile[size, size];
+			}
+		}
+
+		#endregion
+	}
 }

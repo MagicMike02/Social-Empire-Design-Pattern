@@ -78,7 +78,14 @@ namespace Tests.EditMode.SaveSystem
 					{ "0,0", "TownHall_L1" },
 					{ "99,99", "Watchtower_L3" }
 				},
-				unlockedZoneIndices = new List<int> { 0, 1, 2, 5, 6 },
+				unlockedZones = new List<GameSaveData.ZoneCoord>
+				{
+					new GameSaveData.ZoneCoord(0, 0),
+					new GameSaveData.ZoneCoord(20, 0),
+					new GameSaveData.ZoneCoord(40, 0),
+					new GameSaveData.ZoneCoord(0, 100),
+					new GameSaveData.ZoneCoord(20, 100)
+				},
 				zoneSize = TestZoneSize
 			};
 
@@ -119,9 +126,9 @@ namespace Tests.EditMode.SaveSystem
 			Assert.That(restored.placedBuildings["99,99"], Is.EqualTo("Watchtower_L3"));
 
 			// Zone
-			Assert.That(restored.unlockedZoneIndices, Is.Not.Null);
-			Assert.That(restored.unlockedZoneIndices.Count, Is.EqualTo(original.unlockedZoneIndices.Count));
-			Assert.That(restored.unlockedZoneIndices, Is.EquivalentTo(new[] { 0, 1, 2, 5, 6 }));
+			Assert.That(restored.unlockedZones, Is.Not.Null);
+			Assert.That(restored.unlockedZones.Count, Is.EqualTo(original.unlockedZones.Count));
+			Assert.That(restored.unlockedZones, Is.EquivalentTo(original.unlockedZones));
 
 			// Validazione
 			Assert.That(restored.IsValid(), Is.True);
@@ -392,7 +399,7 @@ namespace Tests.EditMode.SaveSystem
 			Assert.That(data.zoneSize, Is.EqualTo(TestZoneSize));
 			Assert.That(data.resources, Is.Not.Null.And.Empty);
 			Assert.That(data.placedBuildings, Is.Not.Null.And.Empty);
-			Assert.That(data.unlockedZoneIndices, Is.EquivalentTo(new[] { 0 }));
+			Assert.That(data.unlockedZones, Is.EquivalentTo(new[] { new GameSaveData.ZoneCoord(0, 0) }));
 			Assert.That(data.savedAt, Is.Not.Null.And.Not.Empty);
 			Assert.That(data.lastExitAt, Is.Not.Null.And.Not.Empty);
 			Assert.That(data.IsValid(), Is.True);

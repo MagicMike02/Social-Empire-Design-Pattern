@@ -101,7 +101,7 @@ namespace Script.Core.SaveSystem
 				gridWidth = _gridManager.Width,
 				gridHeight = _gridManager.Height,
 				placedBuildings = GatherPlacedBuildings(),
-				unlockedZoneIndices = GatherUnlockedZoneIndices(),
+				unlockedZones = GatherUnlockedZoneIndices(),
 				zoneSize = _zoneManager.ZoneSize
 			};
 
@@ -153,9 +153,10 @@ namespace Script.Core.SaveSystem
 			}
 
 			// TODO: migrazioni schema future (data.schemaVersion < CurrentSchemaVersion)
+			// Restore zones before placing buildings to ensure zones are unlocked when buildings are instantiated.
 			RestoreResources(data);
-			RestorePlacedBuildings(data);
 			RestoreZones(data);
+			RestorePlacedBuildings(data);
 #if UNITY_EDITOR
 			Debug.Log("[SaveManager] Caricamento completato.");
 #endif
@@ -210,41 +211,59 @@ namespace Script.Core.SaveSystem
 
 		private Dictionary<string, string> GatherPlacedBuildings()
 		{
+			// Otteniamo lo snapshot delle celle occupate. Ogni cella punta al GameObject che la occupa.
+			// Per edifici che occupano più celle (es. case 2x2) lo snapshot contiene più voci duplicate.
+			// Per evitare di salvare più volte lo stesso edificio, raccogliamo solo la cella di origine
+			// (la cella corrispondente alla posizione del GameObject) e usiamo un HashSet per
+			// garantire che ogni edificio venga serializzato una sola volta.
 			var occupancy = _gridManager.GetOccupancySnapshot();
 			var result = new Dictionary<string, string>(occupancy.Count);
+			var processedBuildings = new System.Collections.Generic.HashSet<GameObject>();
 
 			foreach (var kvp in occupancy)
 			{
-				Vector2Int cell = kvp.Key;
 				GameObject go = kvp.Value;
 				if (go == null) continue;
+
+				// Salta se l'edificio è già stato processato da una cella precedente.
+				if (!processedBuildings.Add(go)) continue;
 
 				var building = go.GetComponent<Building>();
 				if (building == null || building.Config == null) continue;
 
-				string key = $"{cell.x},{cell.y}";
-				string buildingId = building.Config.name;
-				result[key] = buildingId;
+				// Calcoliamo la cella di origine usando la posizione del GameObject.
+				Vector3Int originCell = Vector3Int.zero;
+				if (_gridManager.TryWorldToCell(building.transform.position, out originCell))
+				{
+					string key = $"{originCell.x},{originCell.y}";
+					string buildingId = building.Config.name;
+					result[key] = buildingId;
+				}
+				else
+				{
+					// Fallback: usa la prima cella trovata nello snapshot.
+					Vector2Int cell = kvp.Key;
+					string key = $"{cell.x},{cell.y}";
+					string buildingId = building.Config.name;
+					result[key] = buildingId;
+				}
 			}
 
 			return result;
 		}
 
-		private List<int> GatherUnlockedZoneIndices()
+		private List<GameSaveData.ZoneCoord> GatherUnlockedZoneIndices()
 		{
 			var coords = _zoneManager.GetUnlockedZoneCoords();
-			var result = new List<int>(coords.Count);
+			var result = new List<GameSaveData.ZoneCoord>(coords.Count);
 
 			int zoneSize = _zoneManager.ZoneSize;
 			if (zoneSize <= 0) return result;
 
-			int gridWidth = _gridManager.Width;
+			// Store the explicit top‑left cell coordinate for each unlocked zone.
 			foreach (var coord in coords)
 			{
-				// Indice lineare: zoneCoord.x + zoneCoord.y * (gridWidth / zoneSize)
-				int zonesPerRow = gridWidth / zoneSize;
-				int linearIndex = coord.x + coord.y * zonesPerRow;
-				result.Add(linearIndex);
+				result.Add(new GameSaveData.ZoneCoord(coord.x, coord.y));
 			}
 
 			return result;
@@ -322,21 +341,27 @@ namespace Script.Core.SaveSystem
 
 		private void RestoreZones(GameSaveData data)
 		{
-			if (data.unlockedZoneIndices == null) return;
+			if (data.unlockedZones == null) return;
 
-			int zoneSize = _zoneManager.ZoneSize;
-			int gridWidth = data.gridWidth;
-			if (zoneSize <= 0 || gridWidth <= 0) return;
-
-			int zonesPerRow = gridWidth / zoneSize;
-
-			foreach (int linearIndex in data.unlockedZoneIndices)
+			// No need for grid dimensions when we store explicit coordinates.
+			foreach (var zoneCoord in data.unlockedZones)
 			{
-				int zx = linearIndex % zonesPerRow;
-				int zy = linearIndex / zonesPerRow;
-				var coord = new Vector2Int(zx, zy);
+				var coord = new Vector2Int(zoneCoord.x, zoneCoord.y);
 
-				_zoneManager.SetZoneUnlockedState(coord, true);
+				#if UNITY_EDITOR
+				if (!_zoneManager.HasZone(coord))
+				{
+					Debug.LogWarning($"[SaveManager] Zone coordinate {coord} not found during restore. Skipping.");
+				}
+				else
+				{
+					Debug.Log($"[SaveManager] Restoring unlocked zone at {coord}.");
+					_zoneManager.SetZoneUnlockedState(coord, true);
+				}
+				#else
+				if (_zoneManager.HasZone(coord))
+					_zoneManager.SetZoneUnlockedState(coord, true);
+				#endif
 			}
 		}
 
