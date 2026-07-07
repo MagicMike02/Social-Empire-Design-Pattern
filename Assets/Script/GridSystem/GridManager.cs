@@ -16,11 +16,13 @@ namespace Script.GridSystem
 
 		private TileManager _tileManager;
 		private ZoneManager _zoneManager;
+		private GridBootstrapService _bootstrapService;
 
 		[Inject]
 		public void Construct(
 			TileManager tileManager,
 			ZoneManager zoneManager,
+			GridBootstrapService bootstrapService,
 			IGridStateService stateService,
 			GridQueryService queryService,
 			GridVisualService visualService)
@@ -29,6 +31,7 @@ namespace Script.GridSystem
 			{
 				_tileManager = tileManager;
 				_zoneManager = zoneManager;
+				_bootstrapService = bootstrapService;
 				_stateService = stateService;
 				_queryService = queryService;
 				_visualService = visualService;
@@ -97,19 +100,15 @@ namespace Script.GridSystem
 
 		private void InitializeGrid()
 		{
-			if (_tileManager == null) return;
-
-			// Inizializza la griglia tramite TileManager
-			_tileManager.CreateGrid();
-			var grid = _tileManager.GetGrid();
-
-			if (_zoneManager == null) return;
-
-			_zoneManager.Initialize(grid, this);
-			_zoneManager.CreateZones(_tileManager.Width, _tileManager.Height);
-
-			// Notifica che la griglia è pronta (SaveManager triggera Load all'avvio)
-			GlobalEventBus.Publish(new GridInitializedEvent(_tileManager.Width, _tileManager.Height));
+			if (_bootstrapService != null)
+			{
+				// Pass the current GridManager instance to avoid circular DI.
+				_bootstrapService.InitializeGrid(this);
+			}
+			else
+			{
+				Debug.LogError("[GridManager] GridBootstrapService not injected – cannot initialize grid.");
+			}
 		}
 
 		#endregion

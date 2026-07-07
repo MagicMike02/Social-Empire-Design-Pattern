@@ -15,6 +15,10 @@ namespace Script.GridSystem
 		// Cache dimensions to avoid repeated property look‑ups.
 		private int _width;
 		private int _height;
+		// Cache for cell-to-world conversion to avoid repeated calculations.
+		private readonly Dictionary<Vector3Int, Vector3> _cellToWorldCache = new();
+		// Optional cache for free cells (populated lazily).
+		private readonly HashSet<Vector2Int> _freeCellsCache = new();
 
 		[Inject]
 		public void Construct(TileManager tileManager, IGridStateService stateService)
@@ -38,8 +42,12 @@ namespace Script.GridSystem
 
 		public Vector3 CellToWorld(Vector3Int cell)
 		{
+			if (_cellToWorldCache.TryGetValue(cell, out var cachedWorld))
+				return cachedWorld;
 			var grid = _tileManager.GetGrid();
-			return grid.GetIsoToWorldPosition(cell.x, cell.y);
+			var world = grid.GetIsoToWorldPosition(cell.x, cell.y);
+			_cellToWorldCache[cell] = world;
+			return world;
 		}
 
 		public bool AreCellsFree(Vector3Int originCell, int width, int height)

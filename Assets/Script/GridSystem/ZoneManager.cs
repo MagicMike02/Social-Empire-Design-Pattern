@@ -335,6 +335,30 @@ namespace Script.GridSystem
 				this.start = start;
 				tiles = new Tile[size, size];
 			}
+
+			/// <summary>
+			/// Returns a human‑readable directional label for this zone based on a reference point.
+			/// The reference point is typically the map centre or the player position (world‑space).
+			/// Example results: "Center", "North", "South‑East", "North‑West".
+			/// </summary>
+			public string GetDirectionalLabel(Vector2 reference, int zoneSize)
+			{
+				// Compute the centre of the zone in world‑space (grid coordinates).
+				Vector2 zoneCenter = new Vector2(start.x + zoneSize * 0.5f, start.y + zoneSize * 0.5f);
+				Vector2 offset = zoneCenter - reference;
+				const float tolerance = 0.01f; // avoid jitter on exact axis
+				bool north = offset.y > tolerance;
+				bool south = offset.y < -tolerance;
+				bool east  = offset.x > tolerance;
+				bool west  = offset.x < -tolerance;
+				var parts = new List<string>();
+				if (north) parts.Add("North");
+				if (south) parts.Add("South");
+				if (east)  parts.Add("East");
+				if (west)  parts.Add("West");
+				if (parts.Count == 0) return "Center";
+				return string.Join("-", parts);
+			}
 		}
 
 		#endregion

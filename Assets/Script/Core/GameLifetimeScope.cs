@@ -82,8 +82,11 @@ namespace Script.Core
 			});
 
 			builder.Register<GridStateService>(Lifetime.Singleton).As<IGridStateService>();
-			builder.Register<GridQueryService>(Lifetime.Singleton);
-			builder.Register<GridVisualService>(Lifetime.Singleton);
+			// GridQueryService and GridVisualService are lightweight; use Transient to avoid unintended shared state.
+			builder.Register<GridQueryService>(Lifetime.Transient);
+			builder.Register<GridVisualService>(Lifetime.Transient);
+			// Register the new bootstrap service as a Singleton.
+			builder.Register<GridBootstrapService>(Lifetime.Singleton);
 
 			// RESOURCE SYSTEM
 			RegisterIfExists<ResourceSpawner>(builder);
