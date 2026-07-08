@@ -2,7 +2,6 @@ using Script.Core.Events;
 using Script.EconomySystem;
 using Script.GridSystem;
 using Script.ResourceSystem.Enums;
-using System.Collections.Generic;
 using UnityEngine;
 using VContainer;
 
@@ -16,12 +15,12 @@ namespace Script.ResourceSystem
         #region Dependencies (Injected by VContainer)
 
         private TileManager _tileManager;
-        private GameEconomyManager _economyManager;
         private ZoneManager _zoneManager;
         private ResourceSpawner _resourceSpawner;
         private ResourcePoolManager _poolManager;
         private GridManager _gridManager;
         private ResourceSpawnOrchestrator _spawnOrchestrator;
+        private GameEconomyManager _economyManager;
 
         [Inject]
         public void Construct(
@@ -205,13 +204,18 @@ namespace Script.ResourceSystem
 
         public void HandleResourceCollected(Vector2Int pos, ResourceDataSO data)
         {
-            UpdateEconomy(data);
-
-            if (_spawnOrchestrator != null)
+            if (data == null)
             {
-                _spawnOrchestrator.HandleResourceCollected(pos, data);
+#if UNITY_EDITOR
+                Debug.LogWarning("[ResourceManager] HandleResourceCollected chiamato con data null.");
+#endif
+                return;
             }
 
+            // Aggiorna economia
+            _economyManager?.AddResource(data.resourceType, data.collectedAmount);
+
+            // Pubblica eventi di dominio
             GlobalEventBus.Publish(new ResourceCollectedEvent(
                 data.resourceType,
                 data.collectedAmount,
@@ -222,43 +226,22 @@ namespace Script.ResourceSystem
             {
                 GlobalEventBus.Publish(new ResourceRegenerationStartedEvent(pos, data.regenerationTime));
             }
-        }
 
-        private void UpdateEconomy(ResourceDataSO data)
-        {
-            if (_economyManager != null)
-            {
-                _economyManager.AddResource(data.resourceType, data.collectedAmount);
-            }
-            else
-            {
-#if UNITY_EDITOR
-                Debug.LogError("[ResourceManager] GameEconomyManager non disponibile! Le risorse non verranno aggiunte all'economia.");
-#endif
-            }
+            // Delega all'orchestrator per lifecycle/rigenerazione
+            _spawnOrchestrator?.HandleResourceCollected(pos, data);
         }
 
         #endregion
 
-        #region Editor Utilities
+        #region Editor Utilities (delegati a ResourceEditorTools)
 
-        [ContextMenu("Remove All Resources")]
-        private void RemoveAllResources()
+        /// <summary>
+        /// Rimuove tutte le risorse attive e le rigenerazioni pendenti.
+        /// Pubblico per consentire l'invocazione da <see cref="ResourceEditorTools"/>.
+        /// </summary>
+        public void RemoveAllResources()
         {
             _spawnOrchestrator?.RemoveAllResources();
-#if UNITY_EDITOR
-            Debug.Log("[ResourceManager] All resources have been removed.");
-#endif
-        }
-
-        [ContextMenu("Regenerate All Resources")]
-        private void RegenerateAllResources()
-        {
-            RemoveAllResources();
-            _resourceSpawner.GenerateAllResources();
-#if UNITY_EDITOR
-            Debug.Log("[ResourceManager] All resources have been regenerated.");
-#endif
         }
 
         #endregion

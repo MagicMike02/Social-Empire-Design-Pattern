@@ -16,6 +16,7 @@ using UnityEngine;
 using VContainer;
 using VContainer.Unity;
 
+
 namespace Script.Core
 {
 	/// <summary>
@@ -92,6 +93,9 @@ namespace Script.Core
 			RegisterIfExists<ResourceSpawner>(builder);
 			RegisterIfExists<ResourcePoolManager>(builder);
 			RegisterIfExists<ResourceManager>(builder);
+#if UNITY_EDITOR
+			RegisterIfExists<ResourceEditorTools>(builder);
+#endif
 
 			// BUILDING SYSTEM
 			builder.Register<BuildingCatalog>(Lifetime.Singleton).As<IBuildingCatalog>();
@@ -111,7 +115,7 @@ namespace Script.Core
 
 #if UNITY_EDITOR
 			// TEST UTILITIES (solo in Editor)
-			RegisterIfExists<PathfindingTester>(builder);
+			// RegisterIfExists<PathfindingTester>(builder);
 #endif
 
 			// UI SYSTEM
