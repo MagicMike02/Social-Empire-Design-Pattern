@@ -9,28 +9,37 @@ using VContainer;
 
 namespace Script.BuildingSystem
 {
+    /// <summary>
+    /// Orchestratore FSM per il piazzamento edifici.
+    /// Responsabilità: gestione stati FSM, esecuzione Command Pattern, Public API.
+    /// Preview visiva delegata a <see cref="BuildingPreviewController"/>.
+    /// Validazione delegata a <see cref="BuildingValidationService"/>.
+    /// </summary>
     public sealed class BuildingPlacer : MonoBehaviour
     {
         #region Dependencies (Injected)
 
         private BuildingManager _manager;
-        private Camera _camera;
-        private GenericPreviewSystem _previewSystem;
         private CommandHistory _commandHistory;
+        private BuildingValidationService _validationService;
+        private Camera _mainCamera;
+        private GenericPreviewSystem _previewSystem;
 
         [Inject]
         public void Construct(
             BuildingManager manager,
+            CommandHistory commandHistory,
+            BuildingValidationService validationService,
             Camera mainCamera,
-            GenericPreviewSystem previewSystem,
-            CommandHistory commandHistory)
+            GenericPreviewSystem previewSystem)
         {
             try
             {
                 _manager = manager;
-                _camera = mainCamera;
-                _previewSystem = previewSystem;
                 _commandHistory = commandHistory;
+                _validationService = validationService;
+                _mainCamera = mainCamera;
+                _previewSystem = previewSystem;
             }
             catch (System.Exception ex)
             {
@@ -46,6 +55,7 @@ namespace Script.BuildingSystem
 
         private IPlacementState _currentState;
         private readonly BuildingPlacementStateTracker _placementState = new();
+        private BuildingPreviewController _previewController;
 
         #endregion
 
@@ -55,7 +65,6 @@ namespace Script.BuildingSystem
         [SerializeField] private InputActionReference _pointAction;
 
         #endregion
-
 
         #region Properties
 
@@ -80,6 +89,15 @@ namespace Script.BuildingSystem
                 return;
             }
 
+            // Costruisce il controller di preview con le dipendenze risolte.
+            _previewController = new BuildingPreviewController(
+                _mainCamera,
+                _previewSystem,
+                _manager,
+                _validationService,
+                _placementState,
+                _pointAction);
+
             // Inizializza lo stato di inattività e lo imposta come stato corrente.
             _currentState = new IdlePlacementState(this);
             _currentState.OnEnter();
@@ -87,12 +105,6 @@ namespace Script.BuildingSystem
 
         private void Update()
         {
-            if (_currentState == null)
-            {
-                return;
-            }
-
-            // Delega logica Update allo stato corrente
             _currentState?.OnUpdate();
         }
 
@@ -108,17 +120,8 @@ namespace Script.BuildingSystem
 
         private void OnDestroy()
         {
-            // Exit stato corrente
             _currentState?.OnExit();
-            
-            // Cleanup: nascondi preview se ancora presente
-            if (_previewSystem != null)
-            {
-                _previewSystem.HidePreview();
-            }
-
-            // Rimuovi preview griglia tile
-            CleanupGridPreview();
+            _previewController?.ClearPreview();
         }
 
         #endregion
@@ -128,7 +131,6 @@ namespace Script.BuildingSystem
         /// <summary>
         /// Seleziona edificio da piazzare.
         /// Chiamato da: UI button, keyboard shortcut, etc.
-        /// Trigger: OnBuildingSelected event nello stato corrente.
         /// </summary>
         public void SelectBuilding(BuildingConfigSO config)
         {
@@ -137,8 +139,6 @@ namespace Script.BuildingSystem
 
         /// <summary>
         /// Conferma piazzamento edificio.
-        /// Chiamato da: Mouse left click, UI confirm button, etc.
-        /// Trigger: OnPlacementConfirmed event nello stato corrente.
         /// </summary>
         public void ConfirmPlacement()
         {
@@ -147,8 +147,6 @@ namespace Script.BuildingSystem
 
         /// <summary>
         /// Cancella piazzamento edificio.
-        /// Chiamato da: Mouse right click, ESC key, UI cancel button, etc.
-        /// Trigger: OnPlacementCancelled event nello stato corrente.
         /// </summary>
         public void CancelPlacement()
         {
@@ -161,21 +159,12 @@ namespace Script.BuildingSystem
 
         /// <summary>
         /// Transizione a nuovo stato FSM.
-        /// Chiamato dagli stati stessi per navigare tra stati.
         /// </summary>
         public void TransitionTo(IPlacementState newState)
         {
-            if (_currentState != null)
-            {
-                _currentState.OnExit();
-            }
-
+            _currentState?.OnExit();
             _currentState = newState;
-
-            if (_currentState != null)
-            {
-                _currentState.OnEnter();
-            }
+            _currentState?.OnEnter();
 
 #if UNITY_EDITOR
             Debug.Log($"[BuildingPlacer] FSM Transition → {_currentState?.StateName ?? "null"}");
@@ -192,7 +181,23 @@ namespace Script.BuildingSystem
                 return false;
             }
 
-            if (_camera == null)
+            if (_commandHistory == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[BuildingPlacer] CommandHistory non iniettato!");
+#endif
+                return false;
+            }
+
+            if (_validationService == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[BuildingPlacer] BuildingValidationService non iniettato!");
+#endif
+                return false;
+            }
+
+            if (_mainCamera == null)
             {
 #if UNITY_EDITOR
                 Debug.LogError("[BuildingPlacer] Camera non iniettata!");
@@ -208,14 +213,6 @@ namespace Script.BuildingSystem
                 return false;
             }
 
-            if (_commandHistory == null)
-            {
-#if UNITY_EDITOR
-                Debug.LogError("[BuildingPlacer] CommandHistory non iniettato!");
-#endif
-                return false;
-            }
-
             return true;
         }
 
@@ -225,27 +222,12 @@ namespace Script.BuildingSystem
 
         /// <summary>
         /// Imposta configurazione edificio selezionato (chiamato da PreviewingState).
+        /// Delega cleanup preview al controller.
         /// </summary>
         public void SetSelectedConfig(BuildingConfigSO config)
         {
-            // Puliamo le preview visive sulla vecchia griglia e prefab prima di assegnare la nuova config
-            CleanupGridPreview();
-            
-            if (_previewSystem != null)
-            {
-                _previewSystem.HidePreview();
-            }
-
+            _previewController?.CleanupBeforeNewSelection();
             _placementState.Select(config);
-        }
-
-        /// <summary>
-        /// Abilita/disabilita modalità preview (chiamato dagli Stati).
-        /// </summary>
-        public void EnablePreviewMode(bool isEnabled)
-        {
-            // Logica gestita da UpdatePlacementPreviewInternal
-            // Questo metodo esiste per compatibilità Stati
         }
 
         /// <summary>
@@ -253,14 +235,7 @@ namespace Script.BuildingSystem
         /// </summary>
         public void ClearPreview()
         {
-            if (_previewSystem != null)
-            {
-                _previewSystem.HidePreview();
-            }
-            
-            CleanupGridPreview();
-            
-            _placementState.Clear();
+            _previewController?.ClearPreview();
         }
 
         /// <summary>
@@ -285,7 +260,6 @@ namespace Script.BuildingSystem
                 return false;
             }
 
-            // Crea comando PlaceBuilding
             var command = new PlaceBuildingCommand(
                 _manager,
                 _manager.Grid,
@@ -294,14 +268,12 @@ namespace Script.BuildingSystem
                 _placementState.CurrentCell
             );
 
-            // Esegui comando tramite CommandHistory (abilita Undo)
             bool success = _commandHistory.ExecuteCommand(command);
 
             if (success)
             {
-                // Pubblica evento GlobalEventBus
                 GlobalEventBus.Publish(new BuildingPlacedEvent(
-                    null, // Building non accessibile da command (privacy)
+                    null,
                     _placementState.CurrentCell,
                     selectedConfig.name
                 ));
@@ -316,113 +288,13 @@ namespace Script.BuildingSystem
 
         /// <summary>
         /// Update posizione preview (chiamato da PreviewingState.OnUpdate).
+        /// Delega al BuildingPreviewController.
         /// </summary>
         public void UpdatePlacementPreviewInternal()
         {
             if (_placementState.SelectedConfig == null) return;
-            
-            UpdatePlacementPreview();
-        }
 
-        #endregion
-
-        #region Private Methods
-
-        private void CleanupGridPreview()
-        {
-            if (_manager?.Grid != null && _placementState.SelectedConfig != null)
-            {
-                _manager.Grid.SetCellsPreview(_placementState.CurrentCell, 0, 0, false);
-            }
-        }
-
-        private void UpdatePlacementPreview()
-        {
-            var selectedConfig = _placementState.SelectedConfig;
-            if (_camera == null || _manager?.Grid == null || selectedConfig == null || _previewSystem == null)
-            {
-                return;
-            }
-
-            // STEP 1: Conversione mouse → world
-            var mousePos = ReadMousePosition();
-            var worldPos = _camera.ScreenToWorldPoint(mousePos);
-            worldPos.z = 1f;
-
-            // STEP 2: Converti a cella della griglia
-            if (!_manager.Grid.TryWorldToCell(worldPos, out var cell))
-            {
-                return;
-            }
-
-            // STEP 3: Se cella non è cambiata, non aggiornare (ottimizzazione)
-            if (cell == _placementState.LastPreviewCell)
-            {
-                return;
-            }
-
-            _placementState.SetCurrentCell(cell);
-
-            // Calcola posizione world snappata per il building finale
-            var snapPos = _manager.Grid.CellToWorld(cell);
-
-
-            // STEP 5: Validazione (il building può essere piazzato qui?)
-            bool isValid = CanPlaceBuilding(selectedConfig, cell);
-
-
-            // STEP 6: Aggiorna il preview visivo del building con posizione snappata
-            bool updated = _previewSystem.UpdatePreviewIfCellChanged(cell, snapPos, isValid);
-
-            // Se prima volta o cella cambiata, mostra preview
-            if (_placementState.LastPreviewCell.x == -1000 || updated)
-            {
-                _previewSystem.ShowPreview(selectedConfig.Prefab, snapPos, isValid);
-            }
-
-            // Aggiorna preview griglia tile
-            if (updated || _placementState.LastValidState != isValid)
-            {
-                _manager.Grid.SetCellsPreview(cell, selectedConfig.Width, selectedConfig.Height, isValid);
-                _placementState.MarkPreviewState(cell, isValid);
-            }
-        }
-
-        /// <summary>
-        /// Validazione consolidata del piazzamento edifici.
-        /// Verifica: 1) Celle libere, 2) Risorse sufficienti, 3) Nessuna risorsa sulle celle
-        /// </summary>
-        private bool CanPlaceBuilding(BuildingConfigSO config, Vector3Int originCell)
-        {
-            if (_manager.Grid == null || config == null)
-            {
-                return false;
-            }
-
-            // Controllo 1: Celle libere (non occupate da altri edifici)
-            bool cellsFree = _manager.Grid.AreCellsFree(originCell, config.Width, config.Height);
-
-            // Controllo 2: Risorse sufficienti
-            bool canAfford = _manager.Economy == null || _manager.Economy.CanAfford(config.ToDictionary());
-
-            return cellsFree && canAfford;
-        }
-
-        private Vector3 ReadMousePosition()
-        {
-            if (_pointAction != null && _pointAction.action != null)
-            {
-                Vector2 screenPos = _pointAction.action.ReadValue<Vector2>();
-                return new Vector3(screenPos.x, screenPos.y, 0f);
-            }
-
-            if (Mouse.current != null)
-            {
-                Vector2 screenPos = Mouse.current.position.ReadValue();
-                return new Vector3(screenPos.x, screenPos.y, 0f);
-            }
-
-            return Vector3.zero;
+            _previewController?.UpdatePlacementPreview();
         }
 
         #endregion

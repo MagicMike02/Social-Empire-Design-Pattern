@@ -83,8 +83,7 @@ namespace Script.BuildingSystem.States
         /// </summary>
         public void OnExit()
         {
-            // Disattiva preview (placement completato o fallito)
-            _context.EnablePreviewMode(false);
+            // Pulisce preview (placement completato o fallito)
             _context.ClearPreview();
         }
         

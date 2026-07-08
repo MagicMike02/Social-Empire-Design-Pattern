@@ -41,9 +41,8 @@ namespace Script.BuildingSystem.States
             Debug.Log($"[PlacementFSM] → Previewing ({_selectedConfig.name})");
 #endif
 
-            // Attiva preview
+            // Imposta configurazione selezionata (attiva preview)
             _context.SetSelectedConfig(_selectedConfig);
-            _context.EnablePreviewMode(true);
         }
 
         /// <summary>
