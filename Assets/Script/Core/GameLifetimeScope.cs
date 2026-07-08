@@ -104,6 +104,8 @@ namespace Script.Core
 
 			RegisterIfExists<PrefabPoolManager>(builder);
 			RegisterIfExists<GenericPreviewSystem>(builder);
+			builder.Register<PreviewPool>(Lifetime.Singleton);
+			builder.Register<PreviewTintController>(Lifetime.Singleton);
 			builder.Register<BuildingValidationService>(Lifetime.Singleton);
 			RegisterIfExists<BuildingPlacer>(builder);
 			RegisterIfExists<PlacementInputHandler>(builder);
