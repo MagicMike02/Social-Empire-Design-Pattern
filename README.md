@@ -6,7 +6,7 @@ A **Unity 6** (6000.5.2f1 LTS) project demonstrating **design patterns** for sca
 
 ## 📌 **Project Overview**
 - **Engine**: Unity 6 (URP 17.5.0)
-- **Language**: C# 9.0 (`netstandard2.1`)
+- **Language**: C# 10.0 (`netstandard2.1`)
 - **Architecture**: Component-based with **SOLID** principles and **Design Patterns** (Singleton, Observer, Factory, Strategy, Command, State, etc.).
 - **DI Container**: [VContainer](https://github.com/hadashikick/vcontainer) (1.19.0)
 - **Testing**: Unity Test Framework (EditMode + PlayMode)
@@ -52,7 +52,7 @@ Assets/
 ---
 
 ## 📜 **Conventions**
-- **Coding**: Follow [C# 9.0](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-9) best practices.
+- **Coding**: Follow [C# 10.0](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-10) best practices.
 - **Unity**: Use `SerializeField` for Inspector-exposed fields, `CompareTag` for tag checks.
 - **Patterns**: Prefer **Composition Over Inheritance** and **Single Responsibility Principle (SRP)**.
 - **Testing**: Unit tests in `SocialEmpire.Tests.EditMode` (logic) and `SocialEmpire.Tests.PlayMode` (runtime).

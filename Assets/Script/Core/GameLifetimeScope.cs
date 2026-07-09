@@ -3,6 +3,7 @@ using Script.BuildingSystem;
 using Script.Common;
 using Script.Core.AutoSave;
 using Script.Core.Commands;
+using Script.Core.Entities;
 using Script.Core.SaveSystem;
 using Script.EconomySystem;
 using Script.GridSystem;
@@ -109,6 +110,9 @@ namespace Script.Core
 			builder.Register<BuildingValidationService>(Lifetime.Singleton);
 			RegisterIfExists<BuildingPlacer>(builder);
 			RegisterIfExists<PlacementInputHandler>(builder);
+
+			// ENTITY SYSTEM
+			builder.Register<EntitySelectionManager>(Lifetime.Singleton);
 
 			// INPUT SYSTEM
 			RegisterIfExists<InputManager>(builder);
