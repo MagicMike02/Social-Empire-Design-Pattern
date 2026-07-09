@@ -7,7 +7,7 @@ namespace Script.Core.Entities
 	/// </summary>
 	/// <param name="Label">Localized label (e.g. "Health", "Attack").</param>
 	/// <param name="Value">Pre-formatted value string (e.g. "100/100", "+15%").</param>
-	public readonly record struct StatDisplay(string Label, string Value);
+	public record StatDisplay(string Label, string Value);
 
 	/// <summary>
 	/// Immutable snapshot of an entity's display data for the HUD/inspector panel.
