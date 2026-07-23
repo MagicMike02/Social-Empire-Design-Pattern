@@ -8,5 +8,6 @@
         Gold,
         Meat,
         Experience,
+        Population,
     }
 }

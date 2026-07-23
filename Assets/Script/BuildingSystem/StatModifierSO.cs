@@ -1,10 +1,13 @@
 using Script.Core.Entities;
+using Script.ResourceSystem.Enums;
 using UnityEngine;
 
 namespace Script.BuildingSystem
 {
 	/// <summary>
 	/// ScriptableObject definition for a single stat row displayed in the entity inspector panel.
+	/// Also defines which <see cref="ResourceType"/> the stat modifies at runtime, so the
+	/// <c>StatApplier</c> component can apply the change to the <c>GameEconomyManager</c>.
 	/// Convert to a pure <see cref="StatDisplay"/> via <see cref="ToStatDisplay"/>.
 	/// </summary>
 	[CreateAssetMenu(fileName = "StatModifier", menuName = "Social Empire/Stats/Stat Modifier")]
@@ -16,6 +19,7 @@ namespace Script.BuildingSystem
 		[SerializeField] private float value;
 		[SerializeField] private bool isPercentage;
 		[SerializeField] private string displayLabel;
+		[SerializeField] private ResourceType targetResource = ResourceType.None;
 
 		#endregion
 
@@ -25,6 +29,7 @@ namespace Script.BuildingSystem
 		public float Value => value;
 		public bool IsPercentage => isPercentage;
 		public string DisplayLabel => displayLabel;
+		public ResourceType TargetResource => targetResource;
 
 		#endregion
 
