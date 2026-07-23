@@ -21,6 +21,16 @@ namespace Script.BuildingSystem
         [Tooltip("Sorting order base (verrà modificato in base alla posizione Y per l'isometria)")]
         public int BaseSortingOrder;
 
+        [Header("Identità e Display (migrato da EntityInfoProvider)")]
+        [Tooltip("Nome visualizzato nell'HUD quando l'edificio è selezionato")]
+        public string EntityName = "";
+
+        [Tooltip("Descrizione mostrata nel pannello info")]
+        [TextArea] public string Description = "";
+
+        [Tooltip("Icona mostrata nell'HUD (Sprite reference)")]
+        public Sprite Icon;
+
         [Header("Dimensioni sulla griglia (celle)")]
         [Tooltip("Larghezza in celle (asse X)")]
         public int Width = 1;

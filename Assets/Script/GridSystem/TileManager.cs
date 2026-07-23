@@ -18,6 +18,8 @@ namespace Script.GridSystem
         
         #endregion
 
+		
+
         #region Private Fields
         
         private const string DefaultShaderName = "Sprites/Default";

@@ -10,13 +10,16 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: a0b0e57321f24816995c868a0e13ba21, type: 3}
-  m_Name: Tower
+  m_Name: TownHall_1
   m_EditorClassIdentifier: Assembly-CSharp::Script.BuildingSystem.BuildingConfigSO
-  Prefab: {fileID: 1900990216496387211, guid: cbddb53e6ec45d44693549bc8924bc4c, type: 3}
+  Prefab: {fileID: 2230628894334881196, guid: 6c7e8d9662880fc4e82262c92931af61, type: 3}
   SortingLayer: OnTiles
   BaseSortingOrder: 0
-  Width: 1
-  Height: 1
+  EntityName: TownHall 1
+  Description: 
+  Icon: {fileID: 0}
+  Width: 4
+  Height: 4
   Costs:
   - Type: 3
     Amount: 1

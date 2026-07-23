@@ -41,14 +41,18 @@ namespace Script.BuildingSystem
 
         /// <summary>
         /// Aggiorna il sorting order in base alla posizione Y per la visualizzazione isometrica.
-        /// Gli oggetti più in basso (Y minore) vengono renderizzati sopra.
+        /// Delega a <see cref="IsometricSortingUtility.ApplySorting"/> per evitare duplicazione logica.
         /// </summary>
         /// <param name="yBase">Posizione Y base per il calcolo</param>
         public void SetSortingByY(float yBase)
         {
-            if (_renderer == null) return;
+            if (_renderer == null || Config == null) return;
 
-            _renderer.sortingOrder = Mathf.RoundToInt(-yBase * 100f) + Config.BaseSortingOrder;
+            IsometricSortingUtility.ApplySorting(
+                _renderer,
+                Config.SortingLayer,
+                yBase,
+                Config.BaseSortingOrder);
         }
 
         private void OnDestroy()

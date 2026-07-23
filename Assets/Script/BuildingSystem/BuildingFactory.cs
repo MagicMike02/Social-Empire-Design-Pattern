@@ -1,6 +1,7 @@
 ﻿using UnityEngine;
 using VContainer;
 using Script.Common;
+using Script.Core.Entities;
 
 namespace Script.BuildingSystem
 {
@@ -51,6 +52,12 @@ namespace Script.BuildingSystem
 
             building.Init(config);
 
+            // Sincronizza i dati display dell'EntityInfoProvider con il SO (se presente).
+            // I componenti entity (Selectable/Highlightable/EntityInfoProvider) sono già
+            // cablati sul prefab Building_Base e derivati; qui si popolano i campi
+            // migrati dal SO per evitare duplicazione manuale sull'Inspector.
+            SyncEntityInfo(buildingGO, config);
+
             var spriteRenderer = buildingGO.GetComponentInChildren<SpriteRenderer>();
             if (spriteRenderer != null)
             {
@@ -58,6 +65,19 @@ namespace Script.BuildingSystem
             }
 
             return building;
+        }
+
+        /// <summary>
+        /// Popola <see cref="EntityInfoProvider"/> dai campi del <see cref="BuildingConfigSO"/>.
+        /// Se il prefab non ha EntityInfoProvider (es. prefab legacy), il sync è no-op.
+        /// </summary>
+        private static void SyncEntityInfo(GameObject buildingGO, BuildingConfigSO config)
+        {
+            var infoProvider = buildingGO.GetComponent<EntityInfoProvider>();
+            if (infoProvider == null) return;
+
+            var iconPath = config.Icon != null ? config.Icon.name : string.Empty;
+            infoProvider.Init(config.EntityName, config.Description, iconPath);
         }
     }
 }

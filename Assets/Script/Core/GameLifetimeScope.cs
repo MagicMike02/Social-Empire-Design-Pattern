@@ -4,6 +4,7 @@ using Script.Common;
 using Script.Core.AutoSave;
 using Script.Core.Commands;
 using Script.Core.Entities;
+using Script.Core.Events;
 using Script.Core.SaveSystem;
 using Script.EconomySystem;
 using Script.GridSystem;
@@ -256,5 +257,33 @@ namespace Script.Core
 #endif
 			}
 		}
+
+		#region Post-Build Wiring
+
+		/// <summary>
+		/// After the VContainer container is built (post-Awake), wire static bridges
+		/// that let MonoBehaviours reach DI-managed singletons without constructor injection.
+		/// </summary>
+		private void Start()
+		{
+			if (Container != null && Container.TryResolve<EntitySelectionManager>(out var selectionManager))
+			{
+				EntitySelectionResolver.Instance = selectionManager;
+#if UNITY_EDITOR
+				if (debugMode)
+				{
+					Debug.Log("[GameLifetimeScope] ✓ EntitySelectionResolver wired");
+				}
+#endif
+			}
+#if UNITY_EDITOR
+			else
+			{
+				Debug.LogWarning("[GameLifetimeScope] EntitySelectionManager not resolvable — selection will not work.");
+			}
+#endif
+		}
+
+		#endregion
 	}
 }
