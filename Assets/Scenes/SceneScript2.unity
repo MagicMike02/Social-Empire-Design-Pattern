@@ -3441,6 +3441,8 @@ MonoBehaviour:
   - {fileID: 11400000, guid: a516fd8da1aff9749aecba020527245d, type: 2}
   - {fileID: 11400000, guid: 6f99233fbe92ceb4f98b2f146b8ef503, type: 2}
   - {fileID: 11400000, guid: 39f06289ecb8e0d44b9c630714b28a9d, type: 2}
+  - {fileID: 11400000, guid: ebb5c5d2ed1066a4b972eb31a7f686fc, type: 2}
+  - {fileID: 11400000, guid: 44a718dc073c1a14e80ea636839db72f, type: 2}
   _selectBuildingActions:
   - {fileID: 6807742298211538387, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
   - {fileID: 4894637267126041950, guid: 2bcd2660ca9b64942af0de543d8d7100, type: 3}
