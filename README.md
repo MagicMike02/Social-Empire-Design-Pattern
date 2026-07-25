@@ -51,7 +51,18 @@ Assets/
 
 ---
 
-## 📜 **Conventions**
+## � **Editor Tools**
+
+### Building Importer
+Automates the building asset pipeline: **PNG → Prefab → BuildingConfigSO** in a single click.
+
+- **Access**: `Tools → Building System → Building Importer`
+- **Features**: Auto-derive names, sprite meta config, prefab hierarchy, SO generation, duplicate detection, post-import reset
+- **Docs**: See [`Documentation/BuildingImporterTool.md`](Documentation/BuildingImporterTool.md)
+
+---
+
+## �📜 **Conventions**
 - **Coding**: Follow [C# 9.0](https://learn.microsoft.com/en-us/dotnet/csharp/whats-new/csharp-9) best practices.
 - **Unity**: Use `SerializeField` for Inspector-exposed fields, `CompareTag` for tag checks.
 - **Patterns**: Prefer **Composition Over Inheritance** and **Single Responsibility Principle (SRP)**.

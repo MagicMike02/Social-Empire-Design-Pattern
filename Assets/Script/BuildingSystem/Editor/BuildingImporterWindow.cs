@@ -219,6 +219,12 @@ namespace Script.BuildingSystem.Editor
 			{
 				ValidateInput();
 
+				// Check for existing assets (duplicate detection)
+				if (!ConfirmOverwriteIfExists())
+				{
+					return; // User cancelled
+				}
+
 				// Step 3: Configura PNG meta
 				ConfigureSpriteMeta(sourcePng);
 				AssetDatabase.Refresh();
@@ -234,12 +240,47 @@ namespace Script.BuildingSystem.Editor
 
 				Debug.Log($"[BuildingImporter] '{spriteName}' importato con successo!");
 				EditorUtility.DisplayDialog("Successo", $"Edificio '{spriteName}' importato correttamente!\nEntityName SO: {entityName}", "OK");
+
+				// Reset campi per il prossimo import
+				ResetFields();
 			}
 			catch (Exception e)
 			{
 				Debug.LogError($"[BuildingImporter] Errore durante l'import: {e.Message}\n{e.StackTrace}");
 				EditorUtility.DisplayDialog("Errore", $"Import fallito:\n{e.Message}", "OK");
 			}
+		}
+
+		private bool ConfirmOverwriteIfExists()
+		{
+			string prefabPath = "Assets/_Prefabs/Buildings/" + spriteName + ".prefab";
+			string soPath = "Assets/Resources/Buildings/" + spriteName + ".asset";
+
+			bool prefabExists = File.Exists(prefabPath);
+			bool soExists = File.Exists(soPath);
+
+			if (prefabExists || soExists)
+			{
+				string message = $"Esiste già un edificio con nome '{spriteName}':\n";
+				if (prefabExists) message += $"• Prefab: {prefabPath}\n";
+				if (soExists) message += $"• SO: {soPath}\n";
+				message += "\nSovrascrivere?";
+
+				return EditorUtility.DisplayDialog("Duplicato rilevato", message, "Sovrascrivi", "Annulla");
+			}
+
+			return true; // No duplicates, proceed
+		}
+
+		private void ResetFields()
+		{
+			sourcePng = null;
+			spriteName = "";
+			entityName = "";
+			description = "";
+			width = 1;
+			height = 1;
+			costs.Clear();
 		}
 
 		private void ValidateInput()
