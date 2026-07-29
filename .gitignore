@@ -89,5 +89,4 @@ docs/
 *.md
 *.txt
 skills-lock.json
-.github
 !README.md
