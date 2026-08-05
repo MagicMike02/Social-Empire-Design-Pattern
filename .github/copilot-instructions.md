@@ -80,3 +80,8 @@ Quando si modifica la firma (nome, parametri, tipo di ritorno) di un membro pubb
 - **Controlli null**: usare `?.` o `is null` per riferimenti critici prima dell'accesso.
 - **Eventi**: disiscrivere sempre i delegati in `OnDestroy()` per prevenire memory leak.
 - **Race condition**: evitarle in sistemi multi-thread o multi-coroutine.
+
+---
+
+## Future Improvements Protocol
+When the user agrees on future work (refactor, feature, investigation), create/update a file in `Documentation/FUTURE/` per `Documentation/FUTURE/PROTOCOL.md`.

@@ -54,6 +54,7 @@ namespace Script.PathfindingSystem
         
         private IPathfindingAlgorithm _pathfindingAlgorithm;
         private CachedPathfindingDecorator _cacheDecorator; // Reference per invalidazione
+        private bool _saveLoadCompleted = false; // Flag per evitare clear cache durante load iniziale
         
         #endregion
 
@@ -138,10 +139,11 @@ namespace Script.PathfindingSystem
             // Grid events (edifici e risorse)
             GlobalEventBus.Subscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Subscribe<CellsFreedEvent>(OnCellsFreed);
+            // Save load completion - clear cache once after all buildings restored
+            GlobalEventBus.Subscribe<SaveLoadCompletedEvent>(OnSaveLoadCompleted);
 #if UNITY_EDITOR
             Debug.Log("[PathfindingManager] ✓ Subscribed to Grid events (cache auto-invalidation)");
 #endif            
-
         }
 
         /// <summary>
@@ -151,14 +153,34 @@ namespace Script.PathfindingSystem
         {
             GlobalEventBus.Unsubscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Unsubscribe<CellsFreedEvent>(OnCellsFreed);
+            GlobalEventBus.Unsubscribe<SaveLoadCompletedEvent>(OnSaveLoadCompleted);
+        }
+
+        /// <summary>
+        /// Handler: Save load completato.
+        /// Clear cache una sola volta dopo che tutti gli edifici sono stati ripristinati.
+        /// </summary>
+        private void OnSaveLoadCompleted(SaveLoadCompletedEvent _)
+        {
+            _saveLoadCompleted = true;
+            if (_cacheDecorator != null)
+            {
+                _cacheDecorator.ClearCache();
+            }
+#if UNITY_EDITOR
+            Debug.Log("[PathfindingManager] Cache cleared after save load completed");
+#endif
         }
 
         /// <summary>
         /// Handler: Celle occupate (edificio piazzato).
         /// Invalida cache perché la walkability è cambiata.
+        /// Durante load iniziale: skip (aspetta SaveLoadCompletedEvent).
         /// </summary>
         private void OnCellsOccupied(CellsOccupiedEvent evt)
         {
+            if (!_saveLoadCompleted) return; // Skip durante load
+            
             if (_cacheDecorator != null)
             {
                 _cacheDecorator.ClearCache();

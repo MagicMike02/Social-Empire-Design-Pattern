@@ -336,6 +336,9 @@ namespace Script.Core.SaveSystem
 
 				grid.OccupyCells(originCell, config.Width, config.Height, building);
 			}
+
+			// Notify systems that save load is complete (e.g., Pathfinding can clear cache once)
+			GlobalEventBus.Publish(new SaveLoadCompletedEvent());
 		}
 
 

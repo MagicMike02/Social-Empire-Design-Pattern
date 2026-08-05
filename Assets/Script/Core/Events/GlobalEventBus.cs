@@ -23,7 +23,7 @@ namespace Script.Core.Events
 
 		/// <summary>
 		/// Sottoscrivi un handler per un tipo di evento.
-		/// IMPORTANTE: Devi chiamare Unsubscribe in OnDestroy per evitare memory leak!
+		/// IMPORTANTE: Chiamare Unsubscribe in OnDestroy per evitare memory leak
 		/// </summary>
 		/// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
 		/// <param name="handler">Callback da invocare quando l'evento viene pubblicato</param>
@@ -39,24 +39,20 @@ namespace Script.Core.Events
 
 			var eventType = typeof(T);
 
-			// Ottimizzazione: TryGetValue invece di ContainsKey + indexer (1 lookup invece di 2-4)
+			// TryGetValue invece di ContainsKey + indexer (solo 1 lookup)
 			if (_eventHandlers.TryGetValue(eventType, out var existing))
 			{
 				_eventHandlers[eventType] = Delegate.Combine(existing, handler);
 			}
 			else
 			{
-				_eventHandlers[eventType] = handler; // Primo subscriber: assegnazione diretta, zero Delegate.Combine
+				_eventHandlers[eventType] = handler;
 			}
-
-#if UNITY_EDITOR
-			Debug.Log($"[GlobalEventBus] ✓ Subscribed to {eventType.Name} (total subscribers: {GetSubscriberCount<T>()})");
-#endif
 		}
 
 		/// <summary>
 		/// Disiscrive un handler da un tipo di evento.
-		/// CRITICO: Chiamare sempre in OnDestroy per prevenire memory leak!
+		/// IMPORTANTE: Chiamare sempre in OnDestroy per prevenire memory leak
 		/// </summary>
 		/// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
 		/// <param name="handler">Callback da rimuovere</param>
@@ -72,7 +68,7 @@ namespace Script.Core.Events
 
 			var eventType = typeof(T);
 
-			// Ottimizzazione: TryGetValue invece di ContainsKey + indexer (1 lookup invece di 3)
+			// Ottimizzazione: TryGetValue invece di ContainsKey + indexer (1 lookup)
 			if (_eventHandlers.TryGetValue(eventType, out var existing))
 			{
 				var result = Delegate.Remove(existing, handler);
@@ -86,10 +82,6 @@ namespace Script.Core.Events
 				{
 					_eventHandlers[eventType] = result;
 				}
-
-#if UNITY_EDITOR
-				Debug.Log($"[GlobalEventBus] ✓ Unsubscribed from {eventType.Name} (remaining: {GetSubscriberCount<T>()})");
-#endif
 			}
 			else
 			{
@@ -119,11 +111,9 @@ namespace Script.Core.Events
 					(handler as Action<T>)?.Invoke(eventData);
 
 #if UNITY_EDITOR
-					// Hook per Debug Window — invocato DOPO l'handler, fuori dal try/catch
-					// così un errore nell'hook non impatta il flusso eventi
 					OnEventPublished?.Invoke(typeof(T), Time.realtimeSinceStartupAsDouble);
 
-					// Log solo se la Debug Window è attiva — evita GetInvocationList() allocation ad ogni evento
+					// Log solo se la Debug Window è attiva
 					if (_debugLoggingEnabled)
 						Debug.Log($"[GlobalEventBus] → Published {eventType.Name} to {GetSubscriberCount<T>()} subscriber(s)");
 #endif
@@ -165,7 +155,6 @@ namespace Script.Core.Events
 		/// <summary>
 		/// Pulisce TUTTI gli eventi sottoscritti.
 		/// ATTENZIONE: Usare solo per cleanup globale (es. cambio scena, reset completo).
-		/// Non chiamare durante gameplay normale!
 		/// </summary>
 		public static void ClearAllSubscriptions()
 		{
