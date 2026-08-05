@@ -10,6 +10,8 @@ namespace Script.PathfindingSystem
     /// </summary>
     public class AStarAlgorithm : IPathfindingAlgorithm
     {
+        private readonly List<Vector2Int> _neighborBuffer = new(8);
+
         #region Public APIs
 
         /// <summary>
@@ -42,7 +44,9 @@ namespace Script.PathfindingSystem
                     return ReconstructPath(cameFrom, current);
 
                 // Expand neighbors
-                foreach (var neighbor in gridService.GetWalkableNeighbors(current))
+                gridService.GetWalkableNeighbors(current, _neighborBuffer);
+
+                foreach (var neighbor in _neighborBuffer)
                 {
                     // Calculate cost based on direction (cardinal=1, diagonal=sqrt(2)≈1.414)
                     float movementCost = Mathf.Abs(neighbor.x - current.x) + Mathf.Abs(neighbor.y - current.y) == 2
@@ -70,6 +74,8 @@ namespace Script.PathfindingSystem
                         }
                     }
                 }
+
+                _neighborBuffer.Clear();
             }
 
             // No path found

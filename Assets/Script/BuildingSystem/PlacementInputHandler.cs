@@ -28,8 +28,17 @@ namespace Script.BuildingSystem
         [Inject]
         public void Construct(BuildingPlacer placer, InputManager inputManager)
         {
-            _placer = placer;
-            _inputManager = inputManager;
+            try
+            {
+                _placer = placer;
+                _inputManager = inputManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[PlacementInputHandler] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         private void OnEnable()
@@ -76,8 +85,10 @@ namespace Script.BuildingSystem
             {
                 if (!_loggedMissingDependency)
                 {
+#if UNITY_EDITOR
                     Debug.LogError("[PlacementInputHandler] BuildingPlacer è NULL! VContainer non ha iniettato la dipendenza.");
-                    _loggedMissingDependency = true;
+#endif
+				    _loggedMissingDependency = true;
                 }
                 return;
             }
@@ -95,8 +106,19 @@ namespace Script.BuildingSystem
                         var config = _availableBuildings[i];
                         if (config != null)
                         {
-                            _placer.SelectBuilding(config);
-                            Debug.Log($"[PlacementInputHandler] Selected {config.name} (Key {i + 1})");
+                            try
+                            {
+                                _placer.SelectBuilding(config);
+#if UNITY_EDITOR							
+                                Debug.Log($"[PlacementInputHandler] Selected {config.name} (Key {i + 1})");
+#endif
+                            }
+                            catch (System.Exception ex)
+                            {
+#if UNITY_EDITOR
+                                Debug.LogError($"[PlacementInputHandler] Errore SelectBuilding su '{config.name}' (Key {i + 1}): {ex.Message}");
+#endif
+                            }
                         }
                     }
                 }

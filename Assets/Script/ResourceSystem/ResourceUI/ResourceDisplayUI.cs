@@ -29,7 +29,16 @@ namespace Script.ResourceSystem.ResourceUI
         [Inject]
         public void Construct(GameEconomyManager economyManager)
         {
-            _economyManager = economyManager;
+            try
+            {
+                _economyManager = economyManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[ResourceDisplayUI] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion
@@ -61,11 +70,27 @@ namespace Script.ResourceSystem.ResourceUI
 
         private void Start()
         {
+            if (_economyManager == null || resourceIcons == null || uiElements == null)
+            {
+#if UNITY_EDITOR
+                Debug.LogError("[ResourceDisplayUI] ResourceDisplayUI non inizializzata: dipendenze mancanti.");
+#endif
+                return;
+            }
+
             if (_economyManager == null)
+            {
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceDisplayUI] GameEconomyManager non iniettato da VContainer!");
+#endif
+            }
 
             if (resourceIcons == null || uiElements == null)
+            {
+#if UNITY_EDITOR
                 Debug.LogError("[ResourceDisplayUI] ResourceIcons o UIElements non assegnati nell'Inspector!");
+#endif
+            }
         }
 
         // Handler per GlobalEventBus (riceve struct invece di parametri separati)
@@ -87,7 +112,16 @@ namespace Script.ResourceSystem.ResourceUI
 
                 if (element.iconImage && resourceIcons)
                 {
-                    element.iconImage.sprite = resourceIcons.GetIcon(type);
+                    try
+                    {
+                        element.iconImage.sprite = resourceIcons.GetIcon(type);
+                    }
+                    catch (System.Exception ex)
+                    {
+#if UNITY_EDITOR
+                        Debug.LogError($"[ResourceDisplayUI] Errore GetIcon per {type}: {ex.Message}");
+#endif
+                    }
                 }
                 break;
             }

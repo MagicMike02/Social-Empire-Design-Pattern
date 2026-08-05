@@ -75,11 +75,11 @@ namespace Script.BuildingSystem
         bool IsCellWalkable(Vector2Int cell);
         
         /// <summary>
-        /// Restituisce le celle vicine percorribili (4-directional cross pattern per isometric).
+        /// Riempie un buffer con le celle vicine percorribili senza allocare.
         /// Utilizzato da PathfindingManager per A* neighbor expansion.
         /// </summary>
         /// <param name="cell">Cella di partenza</param>
-        /// <returns>Lista di celle vicine percorribili (max 4)</returns>
-        System.Collections.Generic.List<Vector2Int> GetWalkableNeighbors(Vector2Int cell);
+        /// <param name="neighbors">Buffer di output da riempire</param>
+        void GetWalkableNeighbors(Vector2Int cell, List<Vector2Int> neighbors);
     }
 }

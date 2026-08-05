@@ -39,7 +39,9 @@ namespace Script.GridSystem
             _renderer = GetComponent<SpriteRenderer>();
             if (_renderer == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("PurchaseSign does not have a SpriteRenderer component!");
+#endif
             }
             else
             {
@@ -97,7 +99,9 @@ namespace Script.GridSystem
 
             if (_economyManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning("GameEconomyManager non è stato assegnato! Chiama Setup() dopo l'instanziazione del prefab.");
+#endif
                 return;
             }
 
@@ -108,7 +112,9 @@ namespace Script.GridSystem
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.Log("Non hai abbastanza risorse per sbloccare questa zona!");
+#endif
             }
         }
 

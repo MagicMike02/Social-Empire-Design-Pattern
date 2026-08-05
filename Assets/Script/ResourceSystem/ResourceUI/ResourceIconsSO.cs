@@ -26,7 +26,9 @@ namespace Script.ResourceSystem.ResourceUI
                 }
             }
 
+#if UNITY_EDITOR
             Debug.LogWarning($"Icon not found for resource type: {type}");
+#endif
             return null; // icona di default per le risorse mancanti
         }
     }

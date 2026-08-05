@@ -59,6 +59,11 @@ namespace Script.CameraSystem
             _zoomAction?.action?.Disable();
         }
 
+        private void OnDestroy()
+        {
+            OnDisable();
+        }
+
         void InitIsoMatrix()
         {
             isoMatrix = Matrix4x4.identity;
@@ -74,38 +79,6 @@ namespace Script.CameraSystem
             cam.transform.position = new Vector3(isoCenter.x, isoCenter.y, -10f);
 
             cam.orthographicSize = initialZoom;
-        }
-
-
-        void SetUpCamera_test()
-        {
-            Vector3[] corners =
-            {
-                isoMatrix.MultiplyPoint3x4(Vector3.zero * cellSize), // Bottom-left
-                isoMatrix.MultiplyPoint3x4(new Vector3(width, 0) * cellSize), // Bottom-right
-                isoMatrix.MultiplyPoint3x4(new Vector3(0, height) * cellSize), // Top-left
-                isoMatrix.MultiplyPoint3x4(new Vector3(width, height) * cellSize) // Top-right
-            };
-
-            Vector3 min = corners[0];
-            Vector3 max = corners[0];
-
-            foreach (var corner in corners)
-            {
-                min = Vector3.Min(min, corner);
-                max = Vector3.Max(max, corner);
-            }
-
-            float padding = 1f;
-            minX = min.x - padding;
-            maxX = max.x + padding;
-            minY = min.y - padding;
-            maxY = max.y + padding;
-            
-            minX = -width - padding;
-            maxX = width + padding;
-            minY = 0 - padding;
-            maxY = height + padding;
         }
 
         void SetUpCamera()

@@ -37,13 +37,12 @@ namespace Script.BuildingSystem.States
         /// </summary>
         public void OnEnter()
         {
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[PlacementFSM] → Previewing ({_selectedConfig.name})");
-            #endif
+#endif
 
-            // Attiva preview
+            // Imposta configurazione selezionata (attiva preview)
             _context.SetSelectedConfig(_selectedConfig);
-            _context.EnablePreviewMode(true);
         }
 
         /// <summary>
@@ -88,9 +87,9 @@ namespace Script.BuildingSystem.States
             // Verifica se posizione valida
             if (!_context.CanPlaceAtCurrentPosition())
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning("[PreviewingPlacementState] Cannot confirm: invalid position");
-                #endif
+#endif
                 // Resta in Previewing (retry)
                 return;
             }

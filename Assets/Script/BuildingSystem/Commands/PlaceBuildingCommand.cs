@@ -1,5 +1,6 @@
 ﻿using Script.Core.Commands;
 using Script.EconomySystem;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Script.BuildingSystem.Commands
@@ -32,6 +33,7 @@ namespace Script.BuildingSystem.Commands
 
         #region Properties
 
+        public CommandState State { get; private set; } = CommandState.Pending;
         public string Description => $"Place {_config.name} at {_gridPosition}";
         
         #endregion
@@ -72,9 +74,9 @@ namespace Script.BuildingSystem.Commands
             // VALIDATION 1: Celle libere?
             if (!_gridService.AreCellsFree(_gridPosition, _config.Width, _config.Height))
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PlaceBuildingCommand] Cannot place {_config.name}: cells occupied at {_gridPosition}");
-                #endif
+#endif
                 return false;
             }
 
@@ -82,9 +84,9 @@ namespace Script.BuildingSystem.Commands
             var costs = _config.ToDictionary();
             if (!_economy.CanAfford(costs))
             {
-                #if UNITY_EDITOR
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PlaceBuildingCommand] Cannot afford {_config.name}: insufficient resources");
-                #endif
+#endif
                 return false;
             }
 
@@ -96,7 +98,9 @@ namespace Script.BuildingSystem.Commands
 
             if (_placedBuilding == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError($"[PlaceBuildingCommand] Factory failed to create {_config.name}!");
+#endif
                 return false;
             }
 
@@ -107,7 +111,9 @@ namespace Script.BuildingSystem.Commands
                 // Rollback: Distruggi edificio se spesa fallisce 
                 Object.Destroy(_placedBuilding.gameObject);
                 _placedBuilding = null;
+#if UNITY_EDITOR
                 Debug.LogError($"[PlaceBuildingCommand] Failed to spend resources (rollback executed)");
+#endif
                 return false;
             }
 
@@ -122,13 +128,54 @@ namespace Script.BuildingSystem.Commands
         }
 
         /// <summary>
+        /// Esegue il comando in modalità asincrona con optimistic update + conferma.
+        /// Per ora: esegue l'optimistic update (Execute) e conferma immediatamente.
+        /// In futuro: attenderà la conferma da IBackendService.
+        /// </summary>
+        public async Task<bool> ExecuteAsync()
+        {
+            // Step 1: Optimistic update (validazione + esecuzione sincrona)
+            bool success = Execute();
+            if (!success) return false;
+
+            // Step 2: Future — await _backendService.ConfirmBuildAsync(...)
+            // Per ora conferma immediata
+            await Task.CompletedTask;
+
+#if UNITY_EDITOR
+            Debug.Log($"[PlaceBuildingCommand] ✓ Async confirmed: {Description}");
+#endif
+
+            return true;
+        }
+
+        /// <summary>
+        /// Conferma il comando dopo ricezione conferma server.
+        /// Chiamato da CommandHistory quando il backend conferma l'operazione.
+        /// Sincronizza valori autoritativi dal server (es. saldo oro).
+        /// </summary>
+        public void Confirm()
+        {
+            State = CommandState.Confirmed;
+            
+            // Future: sincronizza valori autoritativi dal server
+            // Es: _economy.SyncGoldFromServer(serverGoldAmount);
+            
+#if UNITY_EDITOR
+            Debug.Log($"[PlaceBuildingCommand] ✓ Confirmed by server: {Description}");
+#endif
+        }
+
+        /// <summary>
         /// Esegue l'annullamento dell'operazione, distruggendo il building e rimborsando il giocatore 100%.
         /// </summary>
         public bool Undo()
         {
             if (_placedBuilding == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PlaceBuildingCommand] Cannot undo: building was never placed or already destroyed");
+#endif
                 return false;
             }
 
@@ -146,9 +193,11 @@ namespace Script.BuildingSystem.Commands
             Object.Destroy(_placedBuilding.gameObject);
             _placedBuilding = null;
 
-            #if UNITY_EDITOR
+            State = CommandState.RolledBack;
+
+#if UNITY_EDITOR
             Debug.Log($"[PlaceBuildingCommand] ✓ Undone: {Description} (100% refund)");
-            #endif
+#endif
 
             return true;
         }

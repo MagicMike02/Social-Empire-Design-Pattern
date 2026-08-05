@@ -1,10 +1,12 @@
-using System.Collections;
+using System;
 using Script.BuildingSystem;
 using Script.GridSystem;
 using Script.ResourceSystem;
 using UnityEngine;
 using VContainer;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Script.Core.Optimization
 {
@@ -23,7 +25,7 @@ namespace Script.Core.Optimization
         private Camera _mainCamera;
         private GridManager _gridManager;
         private TileManager _tileManager;
-        private Coroutine _cullingRoutine;
+        private CancellationTokenSource _cullingCts;
 
         private Vector3 _lastCameraPos;
         private float _lastCameraOrthoSize;
@@ -31,9 +33,18 @@ namespace Script.Core.Optimization
         [Inject]
         public void Construct(Camera mainCamera, GridManager gridManager, TileManager tileManager)
         {
-            _mainCamera = mainCamera;
-            _gridManager = gridManager;
-            _tileManager = tileManager;
+            try
+            {
+                _mainCamera = mainCamera;
+                _gridManager = gridManager;
+                _tileManager = tileManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GridCullingManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         // Cache per evitare GetComponentsInChildren ad ogni tick
@@ -41,41 +52,66 @@ namespace Script.Core.Optimization
 
         private void OnEnable()
         {
-            if (_mainCamera != null && _gridManager != null && _tileManager != null)
+            if (_mainCamera == null || _gridManager == null || _tileManager == null)
             {
-                _cullingRoutine = StartCoroutine(CullingRoutine());
-            }
-            else
-            {
+#if UNITY_EDITOR
                 Debug.LogWarning("[GridCullingManager] Dipendenze mancanti. Assicurati che VContainer le abbia iniettate.");
+#endif
+                return;
             }
+
+            _cullingCts?.Cancel();
+            _cullingCts?.Dispose();
+            _cullingCts = new CancellationTokenSource();
+            _ = RunCullingLoopAsync(_cullingCts.Token);
         }
 
         private void OnDisable()
         {
-            if (_cullingRoutine != null)
+            if (_cullingCts != null)
             {
-                StopCoroutine(_cullingRoutine);
+                _cullingCts.Cancel();
+                _cullingCts.Dispose();
+                _cullingCts = null;
             }
             
             _rendererCache.Clear();
         }
 
-        private IEnumerator CullingRoutine()
+        private async Task RunCullingLoopAsync(CancellationToken token)
         {
-            // Attendi che la griglia sia materialmente generata
-            yield return new WaitForSeconds(1f);
-
-            while (true)
+            try
             {
-                // Esegui il culling solo se la camera si è mossa o ha fatto zoom
-                if (CameraHasChanged())
+                await Task.Delay(TimeSpan.FromSeconds(1f), token);
+
+                if (token.IsCancellationRequested)
                 {
-                    PerformCulling();
-                    UpdateCameraState();
+                    return;
                 }
 
-                yield return new WaitForSeconds(_cullingInterval);
+                PerformCulling();
+                UpdateCameraState();
+
+                while (!token.IsCancellationRequested)
+                {
+                    if (CameraHasChanged())
+                    {
+                        PerformCulling();
+                        UpdateCameraState();
+                    }
+
+                    await Task.Delay(TimeSpan.FromSeconds(Mathf.Max(0.05f, _cullingInterval)), token);
+                }
+            }
+            catch (TaskCanceledException)
+            {
+                // Atteso durante OnDisable
+            }
+            catch (Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[GridCullingManager] Errore nel loop di culling: {ex.Message}\n{ex.StackTrace}");
+#endif
             }
         }
 
@@ -99,22 +135,10 @@ namespace Script.Core.Optimization
             // 1. Calcola il bounding box (AABB) espanso della telecamera
             Bounds camBounds = CalculateExpandedCameraBounds();
 
-            // 2. Culling sui Tile
-            var grid = _tileManager.GetGrid();
-            for (int x = 0; x < _tileManager.Width; x++)
-            {
-                for (int y = 0; y < _tileManager.Height; y++)
-                {
-                    Tile tile = grid.GetValue(x, y);
-                    if (tile != null)
-                    {
-                        // Usa la posizione in mondo del tile
-                        Vector3 worldPos = _gridManager.CellToWorld(new Vector3Int(x, y, 0));
-                        bool isVisible = camBounds.Contains(worldPos);
-                        ToggleRenderers(tile.gameObject, isVisible);
-                    }
-                }
-            }
+            // 2. Culling sui Tile — query spaziale invece di O(W×H) full scan.
+            //    Converte i 4 angoli del viewport in coordinate griglia e itera solo
+            //    sulle celle potenzialmente visibili (tipicamente << 100×100).
+            CullTilesInRange(camBounds);
 
             // 3. Culling su Entity occupanti (Edifici, Risorse, Cartelli)
             var occupancy = _gridManager.GetOccupancySnapshot();
@@ -130,6 +154,72 @@ namespace Script.Core.Optimization
                     
                     // Spegniamo solo i renderer, non i collider o script
                     ToggleRenderers(entityObj, isVisible);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Itera solo sulle celle che intersecano i bounds della camera (range query).
+        /// Su griglia 100×100 con camera che ne copre ~20×20, riduce le iterazioni da 10k a ~400.
+        /// </summary>
+          private void CullTilesInRange(Bounds camBounds)
+        {
+            var grid = _tileManager.GetGrid();
+            int gridW = _tileManager.Width;
+            int gridH = _tileManager.Height;
+
+            // BUG FIX: in una griglia isometrica il mapping AABB-world → range-celle NON è
+            // rettangolare. Usare solo 2 angoli opposti (min, max) dell'AABB produce un range Y
+            // sistematicamente troppo stretto: alcune tile visibili non entrano mai nel loop
+            // e restano disabilitate (symptom: tile mancanti a zoom alto + drag veloce).
+            //
+            // Proiezione iso della griglia:
+            //   world.x = (gx - gy) * cs
+            //   world.y = (gx + gy) * cs * 0.5
+            // Invertendo:
+            //   gy_min reale = (camMin.y*2 - camMax.x) / (2*cs)  → dipende da camMax.x, non camMin.x
+            //   gy_max reale = (camMax.y*2 - camMin.x) / (2*cs)  → dipende da camMin.x, non camMax.x
+            //
+            // Fix: converti TUTTI e 4 gli angoli dell'AABB → prendi min/max sui 4 risultati.
+            Vector3 bMin = camBounds.min;
+            Vector3 bMax = camBounds.max;
+
+            _gridManager.TryWorldToCell(new Vector3(bMin.x, bMin.y, 0), out Vector3Int c0);
+            _gridManager.TryWorldToCell(new Vector3(bMax.x, bMin.y, 0), out Vector3Int c1); // contiene gy_min reale
+            _gridManager.TryWorldToCell(new Vector3(bMin.x, bMax.y, 0), out Vector3Int c2); // contiene gy_max reale
+            _gridManager.TryWorldToCell(new Vector3(bMax.x, bMax.y, 0), out Vector3Int c3);
+
+            int xMin = Mathf.Max(0,         Mathf.Min(Mathf.Min(c0.x, c1.x), Mathf.Min(c2.x, c3.x)) - 1);
+            int xMax = Mathf.Min(gridW - 1,  Mathf.Max(Mathf.Max(c0.x, c1.x), Mathf.Max(c2.x, c3.x)) + 1);
+            int yMin = Mathf.Max(0,         Mathf.Min(Mathf.Min(c0.y, c1.y), Mathf.Min(c2.y, c3.y)) - 1);
+            int yMax = Mathf.Min(gridH - 1,  Mathf.Max(Mathf.Max(c0.y, c1.y), Mathf.Max(c2.y, c3.y)) + 1);
+
+            // Edge case: range invalido (camera fuori griglia) → disabilita tutto.
+            if (xMin > xMax || yMin > yMax)
+            {
+                // Fallback: full scan per sicurezza (raro, solo se camera è fuori bounds).
+                for (int x = 0; x < gridW; x++)
+                {
+                    for (int y = 0; y < gridH; y++)
+                    {
+                        Tile tile = grid.GetValue(x, y);
+                        if (tile != null) ToggleRenderers(tile.gameObject, false);
+                    }
+                }
+                return;
+            }
+
+            // Itera solo sul sub-range visibile.
+            for (int x = xMin; x <= xMax; x++)
+            {
+                for (int y = yMin; y <= yMax; y++)
+                {
+                    Tile tile = grid.GetValue(x, y);
+                    if (tile != null)
+                    {
+                        bool isVisible = camBounds.Contains(tile.WorldPosition);
+                        ToggleRenderers(tile.gameObject, isVisible);
+                    }
                 }
             }
         }

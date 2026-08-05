@@ -85,6 +85,8 @@ TestResults/
 
 # Documentation (local development only)
 Documentation/
+docs/
 *.md
 *.txt
+skills-lock.json
 !README.md

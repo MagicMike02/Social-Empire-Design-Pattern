@@ -20,9 +20,18 @@ namespace Script.BuildingSystem
         [Inject]
         public void Construct(GameEconomyManager economy, IGridService grid, BuildingFactory factory)
         {
-            _economy = economy;
-            _grid = grid;
-            _factory = factory;
+            try
+            {
+                _economy = economy;
+                _grid = grid;
+                _factory = factory;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[BuildingManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
 
         private void Awake()

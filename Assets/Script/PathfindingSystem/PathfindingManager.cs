@@ -28,8 +28,17 @@ namespace Script.PathfindingSystem
         [Inject]
         public void Construct(IGridService gridService, TileManager tileManager)
         {
-            _gridService = gridService;
-            _tileManager = tileManager;
+            try
+            {
+                _gridService = gridService;
+                _tileManager = tileManager;
+            }
+            catch (System.Exception ex)
+            {
+#if UNITY_EDITOR
+                Debug.LogError($"[PathfindingManager] Errore durante Construct: {ex.Message}");
+#endif
+            }
         }
         
         #endregion
@@ -45,6 +54,7 @@ namespace Script.PathfindingSystem
         
         private IPathfindingAlgorithm _pathfindingAlgorithm;
         private CachedPathfindingDecorator _cacheDecorator; // Reference per invalidazione
+        private bool _saveLoadCompleted = false; // Flag per evitare clear cache durante load iniziale
         
         #endregion
 
@@ -78,13 +88,17 @@ namespace Script.PathfindingSystem
             // Validate dependencies
             if (_gridService == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[PathfindingManager] IGridService non iniettato! VContainer dovrebbe averlo fornito.");
+#endif
                 return;
             }
 
             if (_tileManager == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[PathfindingManager] TileManager non iniettato! VContainer dovrebbe averlo fornito.");
+#endif
                 return;
             }
 
@@ -99,13 +113,17 @@ namespace Script.PathfindingSystem
             if (_enableDebugVisualization)
             {
                 algorithm = new DebugPathfindingDecorator(algorithm, _tileManager);
+#if UNITY_EDITOR
                 Debug.Log("[PathfindingManager] ✓ Debug visualization ENABLED");
+#endif
             }
 
             _pathfindingAlgorithm = algorithm;
 
+#if UNITY_EDITOR
             Debug.Log("[PathfindingManager] ✓ Initialized with A* + Caching" +
                       (_enableDebugVisualization ? " + Debug" : ""));
+#endif
         }
         
         #endregion
@@ -121,8 +139,11 @@ namespace Script.PathfindingSystem
             // Grid events (edifici e risorse)
             GlobalEventBus.Subscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Subscribe<CellsFreedEvent>(OnCellsFreed);
-            
+            // Save load completion - clear cache once after all buildings restored
+            GlobalEventBus.Subscribe<SaveLoadCompletedEvent>(OnSaveLoadCompleted);
+#if UNITY_EDITOR
             Debug.Log("[PathfindingManager] ✓ Subscribed to Grid events (cache auto-invalidation)");
+#endif            
         }
 
         /// <summary>
@@ -132,14 +153,34 @@ namespace Script.PathfindingSystem
         {
             GlobalEventBus.Unsubscribe<CellsOccupiedEvent>(OnCellsOccupied);
             GlobalEventBus.Unsubscribe<CellsFreedEvent>(OnCellsFreed);
+            GlobalEventBus.Unsubscribe<SaveLoadCompletedEvent>(OnSaveLoadCompleted);
+        }
+
+        /// <summary>
+        /// Handler: Save load completato.
+        /// Clear cache una sola volta dopo che tutti gli edifici sono stati ripristinati.
+        /// </summary>
+        private void OnSaveLoadCompleted(SaveLoadCompletedEvent _)
+        {
+            _saveLoadCompleted = true;
+            if (_cacheDecorator != null)
+            {
+                _cacheDecorator.ClearCache();
+            }
+#if UNITY_EDITOR
+            Debug.Log("[PathfindingManager] Cache cleared after save load completed");
+#endif
         }
 
         /// <summary>
         /// Handler: Celle occupate (edificio piazzato).
         /// Invalida cache perché la walkability è cambiata.
+        /// Durante load iniziale: skip (aspetta SaveLoadCompletedEvent).
         /// </summary>
         private void OnCellsOccupied(CellsOccupiedEvent evt)
         {
+            if (!_saveLoadCompleted) return; // Skip durante load
+            
             if (_cacheDecorator != null)
             {
                 _cacheDecorator.ClearCache();
@@ -170,7 +211,9 @@ namespace Script.PathfindingSystem
         {
             if (_pathfindingAlgorithm == null)
             {
+#if UNITY_EDITOR
                 Debug.LogError("[PathfindingManager] Pathfinding non inizializzato!");
+#endif
                 return new List<Vector2Int>();
             }
 
@@ -178,9 +221,9 @@ namespace Script.PathfindingSystem
             var path = _pathfindingAlgorithm.FindPath(start, goal, _gridService);
             sw.Stop();
             
-            #if UNITY_EDITOR
+#if UNITY_EDITOR
             Debug.Log($"[PathfindingManager] FindPath: {start} → {goal} = {path.Count} cells in {sw.ElapsedMilliseconds}ms");
-            #endif
+#endif
             
             return path;
         }

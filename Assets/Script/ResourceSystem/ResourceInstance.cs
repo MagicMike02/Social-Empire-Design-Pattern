@@ -13,7 +13,7 @@ namespace Script.ResourceSystem
         
         private ResourceDataSO _data;
         private Vector2Int _gridPosition;
-        private ResourceManager _manager;
+        private IResourceCollectionHandler _manager;
         private SpriteRenderer _spriteRenderer;
         private int _prefabIndex;
         private bool _isCollected;
@@ -43,7 +43,7 @@ namespace Script.ResourceSystem
         /// <summary>
         /// Inizializza l'istanza con i suoi dati e la collega al ResourceManager.
         /// </summary>
-        public void Initialize(ResourceDataSO data, Vector2Int gridPos, ResourceManager manager)
+        public void Initialize(ResourceDataSO data, Vector2Int gridPos, IResourceCollectionHandler manager)
         {
             _data = data;
             _gridPosition = gridPos;
@@ -66,8 +66,10 @@ namespace Script.ResourceSystem
             }
             else
             {
+#if UNITY_EDITOR
                 // Aggiunto un warning per aiutare a debuggare se il SpriteRenderer non viene trovato.
                 Debug.LogWarning($"SpriteRenderer non trovato su {gameObject.name} o sui suoi figli per l'ordinamento.");
+#endif
             }
         }
 
@@ -106,7 +108,9 @@ namespace Script.ResourceSystem
 
             if (_manager == null || _data == null)
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[ResourceInstance] Impossibile raccogliere risorsa: Manager o Data non inizializzati su {gameObject.name}");
+#endif
                 return;
             }
             

@@ -4,202 +4,231 @@ using UnityEngine;
 
 namespace Script.Core.Events
 {
-    /// <summary>
-    /// GlobalEventBus: Event aggregator centralizzato per comunicazione inter-system.
-    /// Pattern: Observer/Pub-Sub con tipo-safe events (struct-based).
-    /// MEMORY SAFE: Tutti gli eventi devono essere unsubscribed in OnDestroy.
-    /// </summary>
-    public static class GlobalEventBus
-    {
-        #region Private Fields
-        
-        // Dictionary: Type → Delegate
-        // Ogni tipo di evento (struct) ha la sua lista di handler
-        private static readonly Dictionary<Type, Delegate> _eventHandlers = new();
-        
-        #endregion
+	/// <summary>
+	/// GlobalEventBus: Event aggregator centralizzato per comunicazione inter-system.
+	/// Pattern: Observer/Pub-Sub con tipo-safe events (struct-based).
+	/// MEMORY SAFE: Tutti gli eventi devono essere unsubscribed in OnDestroy.
+	/// </summary>
+	public static class GlobalEventBus
+	{
+		#region Private Fields
 
-        #region Subscribe/Unsubscribe
+		// Dictionary: Type → Delegate
+		// Ogni tipo di evento (struct) ha la sua lista di handler
+		private static readonly Dictionary<Type, Delegate> _eventHandlers = new();
 
-        /// <summary>
-        /// Sottoscrivi un handler per un tipo di evento.
-        /// IMPORTANTE: Devi chiamare Unsubscribe in OnDestroy per evitare memory leak!
-        /// </summary>
-        /// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
-        /// <param name="handler">Callback da invocare quando l'evento viene pubblicato</param>
-        public static void Subscribe<T>(Action<T> handler) where T : struct
-        {
-            if (handler == null)
-            {
-                Debug.LogWarning("[GlobalEventBus] Tentativo di subscribe con handler null");
-                return;
-            }
+		#endregion
 
-            var eventType = typeof(T);
+		#region Subscribe/Unsubscribe
 
-            if (!_eventHandlers.ContainsKey(eventType))
-            {
-                _eventHandlers[eventType] = null;
-            }
+		/// <summary>
+		/// Sottoscrivi un handler per un tipo di evento.
+		/// IMPORTANTE: Chiamare Unsubscribe in OnDestroy per evitare memory leak
+		/// </summary>
+		/// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
+		/// <param name="handler">Callback da invocare quando l'evento viene pubblicato</param>
+		public static void Subscribe<T>(Action<T> handler) where T : struct
+		{
+			if (handler == null)
+			{
+#if UNITY_EDITOR
+				Debug.LogWarning("[GlobalEventBus] Tentativo di subscribe con handler null");
+#endif
+				return;
+			}
 
-            _eventHandlers[eventType] = Delegate.Combine(_eventHandlers[eventType], handler);
+			var eventType = typeof(T);
 
-            #if UNITY_EDITOR
-            Debug.Log($"[GlobalEventBus] ✓ Subscribed to {eventType.Name} (total subscribers: {GetSubscriberCount<T>()})");
-            #endif
-        }
+			// TryGetValue invece di ContainsKey + indexer (solo 1 lookup)
+			if (_eventHandlers.TryGetValue(eventType, out var existing))
+			{
+				_eventHandlers[eventType] = Delegate.Combine(existing, handler);
+			}
+			else
+			{
+				_eventHandlers[eventType] = handler;
+			}
+		}
 
-        /// <summary>
-        /// Disiscrive un handler da un tipo di evento.
-        /// CRITICO: Chiamare sempre in OnDestroy per prevenire memory leak!
-        /// </summary>
-        /// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
-        /// <param name="handler">Callback da rimuovere</param>
-        public static void Unsubscribe<T>(Action<T> handler) where T : struct
-        {
-            if (handler == null)
-            {
-                Debug.LogWarning("[GlobalEventBus] Tentativo di unsubscribe con handler null");
-                return;
-            }
+		/// <summary>
+		/// Disiscrive un handler da un tipo di evento.
+		/// IMPORTANTE: Chiamare sempre in OnDestroy per prevenire memory leak
+		/// </summary>
+		/// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
+		/// <param name="handler">Callback da rimuovere</param>
+		public static void Unsubscribe<T>(Action<T> handler) where T : struct
+		{
+			if (handler == null)
+			{
+#if UNITY_EDITOR
+				Debug.LogWarning("[GlobalEventBus] Tentativo di unsubscribe con handler null");
+#endif
+				return;
+			}
 
-            var eventType = typeof(T);
+			var eventType = typeof(T);
 
-            if (_eventHandlers.ContainsKey(eventType))
-            {
-                _eventHandlers[eventType] = Delegate.Remove(_eventHandlers[eventType], handler);
+			// Ottimizzazione: TryGetValue invece di ContainsKey + indexer (1 lookup)
+			if (_eventHandlers.TryGetValue(eventType, out var existing))
+			{
+				var result = Delegate.Remove(existing, handler);
 
-                // Cleanup se nessun subscriber rimasto
-                if (_eventHandlers[eventType] == null)
-                {
-                    _eventHandlers.Remove(eventType);
-                }
+				// Cleanup se nessun subscriber rimasto
+				if (result == null)
+				{
+					_eventHandlers.Remove(eventType);
+				}
+				else
+				{
+					_eventHandlers[eventType] = result;
+				}
+			}
+			else
+			{
+#if UNITY_EDITOR
+				Debug.LogWarning($"[GlobalEventBus] Tentativo di unsubscribe da {eventType.Name} ma nessun handler registrato");
+#endif
+			}
+		}
 
-                #if UNITY_EDITOR
-                Debug.Log($"[GlobalEventBus] ✓ Unsubscribed from {eventType.Name} (remaining: {GetSubscriberCount<T>()})");
-                #endif
-            }
-            else
-            {
-                Debug.LogWarning($"[GlobalEventBus] Tentativo di unsubscribe da {eventType.Name} ma nessun handler registrato");
-            }
-        }
+		#endregion
 
-        #endregion
+		#region Publish
 
-        #region Publish
+		/// <summary>
+		/// Pubblica un evento a tutti i subscriber.
+		/// </summary>
+		/// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
+		/// <param name="eventData">Dati evento da passare ai subscriber</param>
+		public static void Publish<T>(T eventData) where T : struct
+		{
+			var eventType = typeof(T);
 
-        /// <summary>
-        /// Pubblica un evento a tutti i subscriber.
-        /// </summary>
-        /// <typeparam name="T">Tipo evento (deve essere struct)</typeparam>
-        /// <param name="eventData">Dati evento da passare ai subscriber</param>
-        public static void Publish<T>(T eventData) where T : struct
-        {
-            var eventType = typeof(T);
+			if (_eventHandlers.TryGetValue(eventType, out var handler))
+			{
+				try
+				{
+					(handler as Action<T>)?.Invoke(eventData);
 
-            if (_eventHandlers.TryGetValue(eventType, out var handler))
-            {
-                try
-                {
-                    (handler as Action<T>)?.Invoke(eventData);
+#if UNITY_EDITOR
+					OnEventPublished?.Invoke(typeof(T), Time.realtimeSinceStartupAsDouble);
 
-                    #if UNITY_EDITOR
-                    Debug.Log($"[GlobalEventBus] → Published {eventType.Name} to {GetSubscriberCount<T>()} subscriber(s)");
-                    #endif
-                }
-                catch (Exception ex)
-                {
-                    Debug.LogError($"[GlobalEventBus] Errore durante invocazione handler per {eventType.Name}: {ex.Message}\n{ex.StackTrace}");
-                }
-            }
-            else
-            {
-                #if UNITY_EDITOR
-                Debug.Log($"[GlobalEventBus] → Published {eventType.Name} ma nessun subscriber (ignorato)");
-                #endif
-            }
-        }
+					// Log solo se la Debug Window è attiva
+					if (_debugLoggingEnabled)
+						Debug.Log($"[GlobalEventBus] → Published {eventType.Name} to {GetSubscriberCount<T>()} subscriber(s)");
+#endif
+				}
+				catch (Exception ex)
+				{
+#if UNITY_EDITOR
+					Debug.LogError($"[GlobalEventBus] Errore durante invocazione handler per {eventType.Name}: {ex.Message}\n{ex.StackTrace}");
+#endif
+				}
+			}
+			else
+			{
+#if UNITY_EDITOR
+				if (_debugLoggingEnabled)
+					Debug.Log($"[GlobalEventBus] → Published {eventType.Name} ma nessun subscriber (ignorato)");
+#endif
+			}
+		}
 
-        #endregion
+		#endregion
 
-        #region Utilities
+		#region Utilities
 
-        /// <summary>
-        /// Ottiene il numero di subscriber per un tipo di evento.
-        /// Utile per debugging e monitoring.
-        /// </summary>
-        public static int GetSubscriberCount<T>() where T : struct
-        {
-            var eventType = typeof(T);
-            if (_eventHandlers.TryGetValue(eventType, out var handler) && handler != null)
-            {
-                return handler.GetInvocationList().Length;
-            }
-            return 0;
-        }
+		/// <summary>
+		/// Ottiene il numero di subscriber per un tipo di evento.
+		/// Utile per debugging e monitoring.
+		/// </summary>
+		public static int GetSubscriberCount<T>() where T : struct
+		{
+			var eventType = typeof(T);
+			if (_eventHandlers.TryGetValue(eventType, out var handler) && handler != null)
+			{
+				return handler.GetInvocationList().Length;
+			}
+			return 0;
+		}
 
-        /// <summary>
-        /// Pulisce TUTTI gli eventi sottoscritti.
-        /// ATTENZIONE: Usare solo per cleanup globale (es. cambio scena, reset completo).
-        /// Non chiamare durante gameplay normale!
-        /// </summary>
-        public static void ClearAllSubscriptions()
-        {
-            var eventCount = _eventHandlers.Count;
-            _eventHandlers.Clear();
+		/// <summary>
+		/// Pulisce TUTTI gli eventi sottoscritti.
+		/// ATTENZIONE: Usare solo per cleanup globale (es. cambio scena, reset completo).
+		/// </summary>
+		public static void ClearAllSubscriptions()
+		{
+			var eventCount = _eventHandlers.Count;
+			_eventHandlers.Clear();
 
-            Debug.LogWarning($"[GlobalEventBus] ⚠️ ClearAllSubscriptions: rimossi {eventCount} tipi di eventi");
-        }
+#if UNITY_EDITOR
+			Debug.LogWarning($"[GlobalEventBus] ⚠️ ClearAllSubscriptions: rimossi {eventCount} tipi di eventi");
+#endif
+		}
 
-        /// <summary>
-        /// Reset silenzioso all'avvio sessione / domain reload per evitare subscriber stale in Editor.
-        /// </summary>
-        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-        private static void ResetOnSessionStart()
-        {
-            _eventHandlers.Clear();
-        }
+		/// <summary>
+		/// Reset silenzioso all'avvio sessione / domain reload per evitare subscriber stale in Editor.
+		/// </summary>
+		[RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+		private static void ResetOnSessionStart()
+		{
+			_eventHandlers.Clear();
+		}
 
-        /// <summary>
-        /// Ottiene statistiche del bus per monitoring.
-        /// </summary>
-        public static string GetStats()
-        {
-            var totalEventTypes = _eventHandlers.Count;
-            var totalSubscribers = 0;
+		/// <summary>
+		/// Ottiene statistiche del bus per monitoring.
+		/// </summary>
+		public static string GetStats()
+		{
+			var totalEventTypes = _eventHandlers.Count;
+			var totalSubscribers = 0;
 
-            foreach (var handler in _eventHandlers.Values)
-            {
-                if (handler != null)
-                {
-                    totalSubscribers += handler.GetInvocationList().Length;
-                }
-            }
+			foreach (var handler in _eventHandlers.Values)
+			{
+				if (handler != null)
+				{
+					totalSubscribers += handler.GetInvocationList().Length;
+				}
+			}
 
-            return $"Event Types: {totalEventTypes}, Total Subscribers: {totalSubscribers}";
-        }
+			return $"Event Types: {totalEventTypes}, Total Subscribers: {totalSubscribers}";
+		}
 
-        #endregion
+		#endregion
 
-        #region Editor Debugging
+		#region Editor Debugging
 
-        #if UNITY_EDITOR
-        /// <summary>
-        /// Ottiene lista di tutti gli eventi registrati (solo editor).
-        /// </summary>
-        public static Dictionary<string, int> GetRegisteredEvents()
-        {
-            var result = new Dictionary<string, int>();
-            foreach (var kvp in _eventHandlers)
-            {
-                var count = kvp.Value?.GetInvocationList().Length ?? 0;
-                result[kvp.Key.Name] = count;
-            }
-            return result;
-        }
-        #endif
+#if UNITY_EDITOR
+		/// <summary>
+		/// Flag per abilitare/disabilitare i log verbosi del bus.
+		/// La Debug Window imposta a true quando aperta, false quando chiusa.
+		/// Quando disabilitato, elimina le allocazioni di Delegate[] da GetInvocationList()
+		/// che avverrebbero ad ogni singolo evento pubblicato.
+		/// </summary>
+		public static bool _debugLoggingEnabled;
 
-        #endregion
-    }
+		/// <summary>
+		/// Editor-only callback invocato dopo ogni Publish.
+		/// Parametri: (Type eventType, double timestamp).
+		/// Usato dalla Debug Window per intercettare eventi senza sottoscriverli manualmente.
+		/// </summary>
+		public static event Action<Type, double> OnEventPublished;
+
+		/// <summary>
+		/// Ottiene lista di tutti gli eventi registrati (solo editor).
+		/// </summary>
+		public static Dictionary<string, int> GetRegisteredEvents()
+		{
+			var result = new Dictionary<string, int>();
+			foreach (var kvp in _eventHandlers)
+			{
+				var count = kvp.Value?.GetInvocationList().Length ?? 0;
+				result[kvp.Key.Name] = count;
+			}
+			return result;
+		}
+#endif
+
+		#endregion
+	}
 }

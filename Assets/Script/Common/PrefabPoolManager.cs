@@ -60,7 +60,9 @@ namespace Script.Common
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"[PrefabPoolManager] Tentativo di rilascio di un'istanza ({instance.name}) per la quale non esiste un pool registrato ({prefab.name}). Distruzione...");
+#endif
                 Destroy(instance);
             }
         }

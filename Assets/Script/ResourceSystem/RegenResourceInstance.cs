@@ -19,7 +19,11 @@ namespace Script.ResourceSystem
         {
             _spriteRenderer = GetComponentInChildren<SpriteRenderer>();
             if (_spriteRenderer == null)
+            {
+#if UNITY_EDITOR
                 Debug.LogWarning($"{nameof(SpriteRenderer)} non trovato su {gameObject.name} o sui suoi figli.");
+#endif
+            }
 
         }
 
@@ -42,7 +46,9 @@ namespace Script.ResourceSystem
             }
             else
             {
+#if UNITY_EDITOR
                 Debug.LogWarning($"SpriteRenderer non trovato su {gameObject.name} o sui suoi figli per RegenPlaceholderSorting.");
+#endif
             }
         }
 
@@ -52,7 +58,9 @@ namespace Script.ResourceSystem
 
         private void OnMouseDown()
         {
+#if UNITY_EDITOR
             Debug.Log("Regen resource");
+#endif
         }
         #endregion
     }
