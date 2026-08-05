@@ -10,7 +10,7 @@ namespace Script.Core.Entities
 	/// <summary>
 	/// Applies <see cref="StatModifierSO"/> modifiers to the <see cref="GameEconomyManager"/>
 	/// when the owning building is placed or destroyed.
-	/// Attach to any building prefab that should affect the economy (e.g. houses add Population).
+	/// Attach to any building prefab that should affect the economy (e.g. houses generate Gold per day).
 	/// Subscribes to <see cref="BuildingPlacedEvent"/> and <see cref="BuildingDestroyedEvent"/>
 	/// via <see cref="GlobalEventBus"/>; unsubscribes in <c>OnDestroy</c>.
 	/// </summary>

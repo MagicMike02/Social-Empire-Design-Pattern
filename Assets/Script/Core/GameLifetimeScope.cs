@@ -14,6 +14,8 @@ using Script.ResourceSystem;
 using Script.ResourceSystem.ResourceUI;
 using Script.UI;
 using Script.Core.Optimization;
+using SocialEmpire.UI.HUD.TopBar;
+using SocialEmpire.UI.HUD.TopBar.Providers;
 using UnityEngine;
 using VContainer;
 using VContainer.Unity;
@@ -95,9 +97,6 @@ namespace Script.Core
 			RegisterIfExists<ResourceSpawner>(builder);
 			RegisterIfExists<ResourcePoolManager>(builder);
 			RegisterIfExists<ResourceManager>(builder);
-#if UNITY_EDITOR
-			RegisterIfExists<ResourceEditorTools>(builder);
-#endif
 
 			// BUILDING SYSTEM
 			builder.Register<BuildingCatalog>(Lifetime.Singleton).As<IBuildingCatalog>();
@@ -129,6 +128,11 @@ namespace Script.Core
 			// UI SYSTEM
 			RegisterIfExists<UIManager>(builder);
 			RegisterIfExists<ResourceDisplayUI>(builder);
+			// HUD TopBar (depends on GameEconomyManager)
+			// Usa RegisterIfExists: trova le istanze già presenti in scena (create dal wizard)
+			// e inietta le dipendenze via [Inject] Construct.
+			RegisterIfExists<PlayerDataProvider>(builder, r => r.As<IPlayerDataProvider>());
+			RegisterIfExists<TopBarController>(builder);
 
 			// OPTIMIZATION SYSTEM
 			RegisterIfExists<GridCullingManager>(builder);

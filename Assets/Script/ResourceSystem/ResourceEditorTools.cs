@@ -1,49 +1,47 @@
 #if UNITY_EDITOR
+using UnityEditor;
 using UnityEngine;
-using VContainer;
 
 namespace Script.ResourceSystem
 {
 	/// <summary>
 	/// Strumenti di debug/editor per il sistema risorse, separati da <see cref="ResourceManager"/>
 	/// per rispettare il Single Responsibility Principle.
-	/// I metodi <see cref="ContextMenu"/> sono invocabili solo dall'Inspector in Editor.
+	/// Utility statiche con [MenuItem]: invocabili dal menu SocialEmpire > Resources.
+	/// NON richiedono un GameObject in scena né registrazione DI nel runtime scope.
 	/// Racchiuso in #if UNITY_EDITOR: non compilato in build di produzione.
 	/// </summary>
-	public class ResourceEditorTools : MonoBehaviour
+	public static class ResourceEditorTools
 	{
-		#region Dependencies (Injected by VContainer)
-
-		private ResourceManager _resourceManager;
-		private ResourceSpawner _resourceSpawner;
-
-		[Inject]
-		public void Construct(ResourceManager resourceManager, ResourceSpawner resourceSpawner)
+		[MenuItem("SocialEmpire/Resources/Remove All Resources")]
+		public static void RemoveAllResources()
 		{
-			_resourceManager = resourceManager;
-			_resourceSpawner = resourceSpawner;
-		}
+			var resourceManager = Object.FindAnyObjectByType<ResourceManager>();
+			if (resourceManager == null)
+			{
+				Debug.LogWarning("[ResourceEditorTools] ResourceManager non trovato in scena.");
+				return;
+			}
 
-		#endregion
-
-		#region Editor Utilities
-
-		[ContextMenu("Remove All Resources")]
-		public void RemoveAllResources()
-		{
-			_resourceManager?.RemoveAllResources();
+			resourceManager.RemoveAllResources();
 			Debug.Log("[ResourceEditorTools] All resources have been removed.");
 		}
 
-		[ContextMenu("Regenerate All Resources")]
-		public void RegenerateAllResources()
+		[MenuItem("SocialEmpire/Resources/Regenerate All Resources")]
+		public static void RegenerateAllResources()
 		{
-			_resourceManager?.RemoveAllResources();
-			_resourceSpawner?.GenerateAllResources();
+			var resourceManager = Object.FindAnyObjectByType<ResourceManager>();
+			var resourceSpawner = Object.FindAnyObjectByType<ResourceSpawner>();
+			if (resourceManager == null || resourceSpawner == null)
+			{
+				Debug.LogWarning("[ResourceEditorTools] ResourceManager o ResourceSpawner non trovati in scena.");
+				return;
+			}
+
+			resourceManager.RemoveAllResources();
+			resourceSpawner.GenerateAllResources();
 			Debug.Log("[ResourceEditorTools] All resources have been regenerated.");
 		}
-
-		#endregion
 	}
 }
 #endif
