@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Script.Core.Config;
 using Script.Core.Events;
 using Script.ResourceSystem.Enums;
 using UnityEngine;
@@ -17,16 +18,25 @@ namespace Script.EconomySystem
 
 		private Dictionary<ResourceType, int> _resources = new();
 
+		[SerializeField] private GameConfigSO _gameConfig;
+
 		#endregion
 
 		#region Unity Lifecycle
 
 		private void Awake()
 		{
-			// Inizializza risorse
+			// Prima inizializza tutto a 0 per sicurezza
 			foreach (ResourceType type in Enum.GetValues(typeof(ResourceType)))
 			{
 				if (!_resources.ContainsKey(type)) _resources[type] = 0;
+			}
+
+			// Poi applica i default da GameConfigSO se disponibile
+			if (_gameConfig != null)
+			{
+				foreach (var entry in _gameConfig.startingResources)
+					_resources[entry.type] = entry.amount;
 			}
 
 #if UNITY_EDITOR

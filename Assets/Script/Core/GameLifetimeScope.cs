@@ -3,6 +3,7 @@ using Script.BuildingSystem;
 using Script.Common;
 using Script.Core.AutoSave;
 using Script.Core.Commands;
+using Script.Core.Config;
 using Script.Core.Entities;
 using Script.Core.Events;
 using Script.Core.SaveSystem;
@@ -13,6 +14,7 @@ using Script.PathfindingSystem;
 using Script.ResourceSystem;
 using Script.ResourceSystem.ResourceUI;
 using Script.UI;
+using Script.UI.Toolkit.Data;
 using Script.Core.Optimization;
 using UnityEngine;
 using VContainer;
@@ -67,6 +69,23 @@ namespace Script.Core
 
 			// CORE - Economy
 			RegisterIfExists<GameEconomyManager>(builder);
+
+			// GAME CONFIG — carica e registra GameConfigSO come singleton da Resources
+			var gameConfig = Resources.Load<GameConfigSO>("Configs/GameConfig");
+			if (gameConfig == null)
+			{
+#if UNITY_EDITOR
+				Debug.LogError("[GameLifetimeScope] GameConfig.asset non trovato in Resources/Configs/. Verifica il percorso.");
+#endif
+			}
+			else
+			{
+				builder.RegisterInstance(gameConfig);
+			}
+
+			// PLAYER DATA PROVIDER — per UI Toolkit
+			builder.Register<PlayerDataProvider>(Lifetime.Singleton)
+				   .As<IPlayerDataProvider>();
 
 			// CORE - Command System (Undo/Redo universale)
 			builder.Register<CommandHistory>(Lifetime.Singleton);
